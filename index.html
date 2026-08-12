@@ -113,7 +113,7 @@ table.master td.act{width:64px;white-space:nowrap}
 /* ================= PRINT SHEET（A4 横） =================
    用紙：A4 landscape / 余白 6mm → 印刷可能領域 285mm × 198mm
    シート：285mm × 197mm（1mm の余裕を残して空白ページを防ぐ）
-   1 ページ 15 名（左：入居者情報／中央：日勤／右：夜勤の 3 列） */
+   1 ページ最大 15 名（左：入居者情報／中央：日勤／右：夜勤の 3 列） */
 .sheet{
   width:285mm;height:197mm;background:#fff;color:#000;
   border:1px solid #999;
@@ -148,6 +148,7 @@ table.master td.act{width:64px;white-space:nowrap}
 /* --- 1人分＝横1行の3列（左：入居者情報／中央：日勤／右：夜勤） --- */
 .prow{
   flex:1 1 0;min-height:0;
+  max-height:26mm;
   display:grid;grid-template-columns:102mm 91mm minmax(0,1fr);
   column-gap:1.4mm;align-items:stretch;
   border-bottom:.7pt solid #000;overflow:hidden;
@@ -190,7 +191,7 @@ table.master td.act{width:64px;white-space:nowrap}
 /* --- 入居者ごとに表示する記録項目が変わるため、日勤／夜勤欄は行数が可変 ---
    ・OFF の項目は要素自体を出力しない（項目名・記入線・空白を残さない）
    ・残った項目が縦方向に均等へ広がり、行数が少ない人ほど記入欄が広くなる
-   ・行の高さ（1人分）は .prow の flex で 15 等分のまま＝ A4 横 1 ページ 15 名を維持 */
+   ・行の高さ（1人分）はページ内人数に応じて flex で均等化し、最大高で過大化を防ぐ */
 .prow .p-day,.prow .p-ni{display:flex;flex-direction:column}
 .prow .p-day > .fl,.prow .p-ni > .fl{flex:1 0 auto;min-height:0}   /* 縮まない＝はみ出しを実測で検知できる */
 .eat{flex-wrap:wrap;row-gap:.2mm}
@@ -214,6 +215,10 @@ table.master td.act{width:64px;white-space:nowrap}
 .sh-foot{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;font-size:6.6pt;padding-top:.6mm;color:#000}
 .sh-foot .l{font-weight:700;letter-spacing:.08em}
 .sh-foot .c{color:#444}
+
+/* 1ページだけのUnitを両面印刷で次Unitと混在させないための空白裏面 */
+.sheet.blank-sheet{display:flex;align-items:center;justify-content:center;border-color:#bbb}
+.blank-note{font-size:9pt;color:#555;letter-spacing:.08em}
 
 /* ---------- print ---------- */
 #printArea{display:none}
@@ -389,8 +394,8 @@ table.master td.act{width:64px;white-space:nowrap}
   <div class="tabs">
     <button data-tab="input" class="on">申し送り入力</button>
     <button data-tab="master">入居者マスター</button>
-    <button data-tab="sched">予定一覧</button>
     <button data-tab="print">印刷プレビュー</button>
+    <button data-tab="sched">予定一覧</button>
   </div>
   <div class="units" id="unitBar"></div>
 </header>
@@ -448,7 +453,7 @@ table.master td.act{width:64px;white-space:nowrap}
         <tbody id="masterBody"></tbody>
       </table>
     </div>
-    <p class="hint" style="margin-top:10px">上限：1 Unit あたり 30 名（A4 横 1 ページ 15 名／表 1〜15 名・裏 16〜30 名の両面 1 枚）。31 名以上は追加できません。</p>
+    <p class="hint" style="margin-top:10px">上限：1 Unit あたり 30 名（印刷時は入居人数に応じ、各面最大15名で表裏へ自動分割）。31 名以上は追加できません。</p>
   </div>
   <div class="panel">
     <h2>データ管理</h2>
@@ -479,17 +484,17 @@ table.master td.act{width:64px;white-space:nowrap}
     <h2>印刷プレビュー（A4 横 / 1 ページ 15 名）</h2>
     <div class="row-actions">
       <label class="hint"><input type="checkbox" id="optAllUnits"> Unit 2〜5 をまとめて出力</label>
-      <label class="hint"><input type="checkbox" id="optHideEmpty" checked> 空床を印刷しない</label>
-      <label class="hint"><input type="checkbox" id="optAlwaysBack"> ページ数を偶数にそろえる（両面印刷の面ズレ防止）</label>
+      <span class="hint">入居人数を自動判定（空床は自動除外）</span>
+      <label class="hint"><input type="checkbox" id="optAlwaysBack" checked> 各Unitを必ず新しい用紙から開始</label>
       <label class="hint"><input type="checkbox" id="optPrintWarn"> 警告マークを印刷にも出す</label>
       <span style="flex:1"></span>
       <button class="btn pri" id="btnPrint">印刷する</button>
     </div>
     <p class="hint" style="margin-top:8px">
-      1 ページに 15 名を A4 横で出力します（表：1〜15 名／裏：16〜30 名。1 Unit 30 名なら両面 1 枚）。同じ Unit のページは続けて並び、「Unit 2　1/2」のようにページ番号が入ります。<br>
+      各Unitの入居人数を自動判定し、空床を除外します。1〜7名は表面のみ、8〜30名は表裏へできるだけ均等に分割し、各面最大15名で出力します。<br>
       両面印刷：ブラウザの印刷画面で「両面印刷（A4 横なので「短辺とじ」）」を選ぶと、Unit 2 表 → Unit 2 裏 → Unit 3 表 → Unit 3 裏 … の順に、同じ Unit の裏面がそのまま裏に印刷されます。<br>
       用紙サイズは A4、向きは「横」、倍率は「100%（既定）」、余白は「既定」のままにしてください。<br>
-      Unit をまとめて出力するときは、面ズレ防止のため各 Unit のページ数を自動で偶数にそろえます。<br>
+      「各Unitを必ず新しい用紙から開始」がONの場合、表面だけのUnitには小さな案内だけの空白裏面を自動挿入します。プリンターの両面設定自体はブラウザの印刷画面で選択してください。<br>
       日勤・夜勤欄に出る項目は、入居者マスターの「記録項目設定」と<b>対象日の曜日</b>で決まります（翌朝BSのみ対象日の翌朝の曜日で判定。OFF の項目・該当しない項目は印刷されません）。
     </p>
     <div class="ovlist" id="ovList"></div>
@@ -529,9 +534,8 @@ table.master td.act{width:64px;white-space:nowrap}
 
 var KEY   = "kaigo_handover_v2";
 var UNITS = [2,3,4,5];
-var PER_PAGE = 15;      // A4 横 1 ページあたりの入居者数（表 1〜15名／裏 16〜30名）
+var PER_PAGE = 15;      // A4 横 1 ページあたりの最大入居者数
 var MAX_UNIT = 30;      // 1 Unit 最大 30名（= 表裏 2 ページ）
-var MIN_SLOTS = 15;     // 少人数のページでも行の高さを揃えるための最小行数
 
 /* ---------------- storage ---------------- */
 var DB = null;
@@ -720,7 +724,7 @@ var SEED_VER = 3;   // サンプル入居者の世代（既存サンプルを不
 
 function defaultDB(){
   return { v:5, seedVer:SEED_VER, residents:[], daily:{}, schedules:[],
-           settings:{ hideEmpty:true, alwaysBack:false, allUnits:false, autoCarry:true }, demo:true };
+           settings:{ hideEmpty:true, alwaysBack:true, allUnits:false, autoCarry:true }, demo:true };
 }
 
 var STORAGE_OK = true;
@@ -806,8 +810,8 @@ function migrate(){
   }
   var st = (DB.settings && typeof DB.settings === "object") ? DB.settings : {};
   DB.settings = {
-    hideEmpty : st.hideEmpty !== false,
-    alwaysBack: !!st.alwaysBack,
+    hideEmpty : true,
+    alwaysBack: st.alwaysBack !== false,
     allUnits  : !!st.allUnits,
     printWarn : !!st.printWarn,
     showPastSched : !!st.showPastSched,
@@ -1399,9 +1403,9 @@ function residentsOf(unit){
     .sort(function(a,b){ return (a.order||0) - (b.order||0); });
 }
 function printableOf(unit){
-  var list = residentsOf(unit);
-  if(DB.settings.hideEmpty) list = list.filter(function(r){ return r.status !== "empty"; });
-  return list.slice(0, MAX_UNIT);
+  return residentsOf(unit)
+    .filter(function(r){ return r.status !== "empty"; })
+    .slice(0, MAX_UNIT);
 }
 function dailyOf(date, id){
   if(!DB.daily[date]) DB.daily[date] = {};
@@ -2094,23 +2098,33 @@ function schedBoxHTML(unit, date){
   return '<div class="sched-box"><div class="hd">【本日の予定】</div>' + items + '</div>';
 }
 
-/* ページ見出し用のラベル（例：Unit 2　1/2　1〜15名） */
+/* ページ見出し用のラベル（例：Unit 2 表（1〜7名）） */
 function pageRangeLabel(startIdx, count){
-  return count ? (startIdx+1) + '〜' + (startIdx+count) + '名' : '予備ページ';
+  return (startIdx+1) + '〜' + (startIdx+count) + '名';
 }
-function pageTitle(unit, pageNo, pageTotal){
-  return 'Unit ' + unit + (pageTotal > 1 ? '　' + pageNo + '/' + pageTotal : '');
+function pageTitle(unit, pageNo){
+  return 'Unit ' + unit + ' ' + (pageNo === 1 ? '表' : '裏');
 }
 
-function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, withSched){
+/* 1〜7名は表のみ、8〜30名は ceil / floor で可能な限り均等に分ける */
+function splitResidentsForPrint(list){
+  var total = Math.min(list.length, MAX_UNIT);
+  if(!total) return [];
+  if(total <= 7) return [{ people:list.slice(0, total), start:0, side:"front" }];
+  var frontCount = Math.ceil(total / 2);
+  return [
+    { people:list.slice(0, frontCount), start:0, side:"front" },
+    { people:list.slice(frontCount, total), start:frontCount, side:"back" }
+  ];
+}
+
+function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, withSched, totalResidents){
   var rows = "";
-  var n = Math.max(people.length, MIN_SLOTS);
-  if(n > PER_PAGE) n = PER_PAGE;
-  for(var i=0;i<n;i++) rows += rowHTML(people[i]||null, date);
+  for(var i=0;i<people.length && i<PER_PAGE;i++) rows += rowHTML(people[i], date);
 
-  return '<div class="sheet">'
+  return '<div class="sheet" data-resident-count="'+people.length+'">'
     + '<div class="sh-head">'
-      + '<div class="u">'+pageTitle(unit, pageNo, pageTotal)+'<small>（'+pageRangeLabel(startIdx, people.length)+'）</small></div>'
+      + '<div class="u">'+pageTitle(unit, pageNo)+'<small>（'+pageRangeLabel(startIdx, people.length)+'）</small><small>入居'+totalResidents+'名</small></div>'
       + '<div class="d">'+esc(jpDate(date))+'</div>'
       + '<div class="sig">日勤<span></span>夜勤<span></span></div>'
     + '</div>'
@@ -2124,32 +2138,36 @@ function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, withSched){
       + rows
     + '</div>'
     + '<div class="sh-foot">'
-      + '<div class="l">'+pageTitle(unit, pageNo, pageTotal)+'</div>'
+      + '<div class="l">'+pageTitle(unit, pageNo)+'</div>'
       + '<div class="c">申し送り・勤務記録</div>'
       + '<div class="l">'+pageNo+' / '+pageTotal+'</div>'
     + '</div>'
   + '</div>';
 }
 
+function blankBackHTML(unit){
+  return '<div class="sheet blank-sheet"><div class="blank-note">Unit '+unit+' 裏面（空白）</div></div>';
+}
+
 function renderPrint(){
   var units = DB.settings.allUnits ? UNITS.slice() : [UI.unit];
-  // 複数Unitは面ズレ防止のため各Unitのページ数を偶数にそろえる（同じUnitの続きが裏面に来る）
-  var evenPages = DB.settings.alwaysBack || units.length > 1;
   var html = "";
   for(var i=0;i<units.length;i++){
     var u = units[i];
     var list = printableOf(u);
-    var pages = [];
-    for(var p=0; p<list.length; p+=PER_PAGE) pages.push(list.slice(p, p+PER_PAGE));
-    if(!pages.length) pages.push([]);
-    if(evenPages && pages.length % 2 === 1) pages.push([]);
+    var pages = splitResidentsForPrint(list);
+    if(!pages.length) continue;
     var total = pages.length;
 
     for(var q=0; q<total; q++){
-      var start = q * PER_PAGE;
-      var lbl = pageTitle(u, q+1, total) + '　' + pageRangeLabel(start, pages[q].length);
+      var page = pages[q];
+      var lbl = pageTitle(u, q+1) + '（' + pageRangeLabel(page.start, page.people.length) + '）　入居' + list.length + '名　' + (q+1) + ' / ' + total;
       html += '<div class="sheetWrap"><div class="pv-label">'+lbl+'</div>'
-            + '<div class="sheetScale">' + sheetHTML(u, pages[q], start, q+1, total, UI.date, q===0) + '</div></div>';
+            + '<div class="sheetScale">' + sheetHTML(u, page.people, page.start, q+1, total, UI.date, q===0, list.length) + '</div></div>';
+    }
+    if(DB.settings.alwaysBack && total % 2 === 1){
+      html += '<div class="sheetWrap"><div class="pv-label">Unit '+u+' 裏面（空白）</div>'
+            + '<div class="sheetScale">' + blankBackHTML(u) + '</div></div>';
     }
   }
   if(!html) html = '<div class="panel"><p class="hint">印刷対象の入居者がいません。</p></div>';
@@ -2781,9 +2799,6 @@ document.getElementById("schedList").addEventListener("click", function(e){
 document.getElementById("optAllUnits").addEventListener("change", function(){
   DB.settings.allUnits = this.checked; saveDB(); renderPrint(); fitPreview();
 });
-document.getElementById("optHideEmpty").addEventListener("change", function(){
-  DB.settings.hideEmpty = this.checked; saveDB(); renderPrint(); fitPreview();
-});
 document.getElementById("optAlwaysBack").addEventListener("change", function(){
   DB.settings.alwaysBack = this.checked; saveDB(); renderPrint(); fitPreview();
 });
@@ -2840,7 +2855,6 @@ window.addEventListener("error", function(ev){
 
 function initUIFromDB(){
   document.getElementById("optAllUnits").checked   = !!DB.settings.allUnits;
-  document.getElementById("optHideEmpty").checked  = DB.settings.hideEmpty !== false;
   document.getElementById("optAlwaysBack").checked = !!DB.settings.alwaysBack;
   document.getElementById("optPrintWarn").checked  = !!DB.settings.printWarn;
   document.getElementById("optPastSched").checked  = !!DB.settings.showPastSched;
