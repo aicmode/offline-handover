@@ -1,0 +1,2791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>申し送り・勤務記録支援</title>
+<style>
+:root{
+  --ink:#16202a;
+  --sub:#5b6b7a;
+  --line:#c9d3dc;
+  --bg:#eceff3;
+  --panel:#ffffff;
+  --accent:#16345e;
+  --accent-w:#0e2340;
+  --accent2:#2f6fb5;
+  --warn:#c62828;
+  --soft:#f4f6f9;
+  --sc:1;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.5;
+  -webkit-text-size-adjust:100%;
+}
+button{font-family:inherit;font-size:14px;cursor:pointer}
+input,textarea,select{font-family:inherit;font-size:15px;color:var(--ink)}
+
+/* ---------- App shell ---------- */
+.app{max-width:1180px;margin:0 auto;padding:0 12px 80px}
+header.top{
+  position:sticky;top:0;z-index:30;background:var(--panel);
+  border-bottom:2px solid var(--accent);margin:0 -12px 14px;padding:10px 14px;
+}
+.title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.title h1{font-size:18px;margin:0;letter-spacing:.04em}
+.title .badge{font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:1px 6px}
+.topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.topbar label{font-size:13px;color:var(--sub)}
+.topbar input[type=date]{padding:5px 8px;border:1px solid var(--line);border-radius:5px}
+
+.tabs{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+.tabs button{
+  border:1px solid var(--line);border-bottom:none;background:var(--soft);
+  padding:8px 16px;border-radius:6px 6px 0 0;color:var(--sub)
+}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+.units{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
+.units button{
+  border:1px solid var(--line);background:#fff;padding:7px 18px;border-radius:20px;color:var(--sub)
+}
+.units button.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+.units .cnt{font-size:11px;opacity:.75;margin-left:4px}
+
+.view{display:none}
+.view.on{display:block}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px}
+.panel h2{margin:0 0 10px;font-size:15px;letter-spacing:.04em}
+.hint{font-size:12px;color:var(--sub);line-height:1.6}
+
+.btn{border:1px solid var(--line);background:#fff;padding:7px 14px;border-radius:6px;color:var(--ink)}
+.btn:hover{background:var(--soft)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn.pri:hover{background:var(--accent-w)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.danger{color:var(--warn);border-color:#e2b7ae}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* ---------- Resident cards (入力) ---------- */
+.card{
+  background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--accent2);
+  border-radius:8px;padding:12px 14px;margin-bottom:10px
+}
+.card.empty{border-left-color:#b9c3cc;opacity:.72}
+.card-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.card-head .room{width:80px;padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-size:14px}
+.card-head .name{flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;font-size:17px;font-weight:700}
+.card-head .st{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.fld{margin-bottom:8px}
+.fld .lb{font-size:12px;font-weight:700;color:var(--sub);display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.fld .lb .tag{font-weight:400;font-size:11px}
+textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:5px;resize:vertical;line-height:1.55}
+textarea.raw{min-height:64px;background:#fff}
+textarea.short{min-height:44px;background:#f3f8fd;border-color:#a9c6e4;font-weight:600}
+textarea.short.imp{background:#fdf4f4;border-color:#e2b3b3}
+.mini{font-size:11px;color:var(--sub);margin-top:2px}
+
+/* ---------- Master table ---------- */
+table.master{width:100%;border-collapse:collapse;font-size:14px}
+table.master th,table.master td{border:1px solid var(--line);padding:5px 6px;text-align:left}
+table.master th{background:var(--soft);font-size:12px;color:var(--sub);white-space:nowrap}
+table.master input[type=text]{width:100%;padding:5px 6px;border:1px solid transparent;border-radius:4px;background:transparent}
+table.master input[type=text]:focus{border-color:var(--accent);background:#fff;outline:none}
+table.master td.ord{width:74px;white-space:nowrap}
+table.master td.act{width:64px;white-space:nowrap}
+.iconbtn{border:1px solid var(--line);background:#fff;border-radius:4px;width:26px;height:26px;line-height:1;padding:0}
+.pill{font-size:11px;border-radius:10px;padding:1px 8px;border:1px solid}
+.pill.in{color:var(--accent2);border-color:var(--accent2);background:#eef4fb}
+.pill.out{color:var(--sub);border-color:var(--line);background:var(--soft)}
+
+/* ---------- Preview ---------- */
+.pv-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.sheetWrap{margin:0 0 16px;overflow:hidden}
+.sheetScale{transform:scale(var(--sc));transform-origin:top left}
+.pv-label{font-size:12px;color:var(--sub);margin:0 0 4px;font-weight:700;letter-spacing:.06em}
+
+/* ================= PRINT SHEET（A4 横） =================
+   用紙：A4 landscape / 余白 6mm → 印刷可能領域 285mm × 198mm
+   シート：285mm × 197mm（1mm の余裕を残して空白ページを防ぐ）
+   1 ページ 15 名（左：入居者情報／中央：日勤／右：夜勤の 3 列） */
+.sheet{
+  width:285mm;height:197mm;background:#fff;color:#000;
+  border:1px solid #999;
+  display:flex;flex-direction:column;
+  font-size:7.4pt;line-height:1.25;
+  padding:1.5mm 2mm;
+  overflow:hidden;
+}
+.sh-head{display:flex;align-items:flex-end;justify-content:space-between;gap:2mm;
+  border-bottom:1.1pt solid #000;padding-bottom:.7mm;margin-bottom:.6mm}
+.sh-head .u{font-size:11.5pt;font-weight:800;letter-spacing:.06em;white-space:nowrap}
+.sh-head .u small{font-size:7.6pt;font-weight:600;margin-left:2mm;letter-spacing:.02em}
+.sh-head .d{font-size:8.6pt;font-weight:600;white-space:nowrap}
+.sh-head .sig{font-size:7.4pt;letter-spacing:.02em;white-space:nowrap}
+.sh-head .sig span{display:inline-block;border-bottom:.6pt solid #000;width:20mm;margin:0 2mm 0 1mm}
+
+/* 本日の予定：各Unitの表面（1ページ目）上部にのみ表示。予定が無い日は欄自体を出さない */
+.sched-box{border:.9pt solid #000;margin-bottom:.6mm;padding:.5mm 1.2mm;font-size:7pt;line-height:1.22}
+.sched-box .hd{font-weight:800;font-size:7.2pt;letter-spacing:.08em;margin-right:1.5mm;display:inline}
+.sched-box .it{display:inline-block;margin-right:4mm;white-space:nowrap}
+.sched-box .it b{font-weight:800}
+.sched-box .it .fam{margin-left:1.5mm}
+
+.rows{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;border:.8pt solid #000;overflow:hidden}
+
+/* 列見出し（3列の内訳を1回だけ示す。各行に【日勤】【夜勤】を繰り返さず横幅を節約） */
+.rhead{flex:0 0 auto;display:grid;grid-template-columns:102mm 91mm minmax(0,1fr);
+  column-gap:1.4mm;padding:.15mm 1.2mm;border-bottom:.9pt solid #000;
+  font-size:6.8pt;font-weight:800;letter-spacing:.1em;line-height:1.25}
+.rhead .p-day,.rhead .p-ni{border-left:.5pt dotted #444;padding-left:1.4mm}
+
+/* --- 1人分＝横1行の3列（左：入居者情報／中央：日勤／右：夜勤） --- */
+.prow{
+  flex:1 1 0;min-height:0;
+  display:grid;grid-template-columns:102mm 91mm minmax(0,1fr);
+  column-gap:1.4mm;align-items:stretch;
+  border-bottom:.7pt solid #000;overflow:hidden;
+  padding:.45mm 1.2mm;
+}
+.prow:last-child{border-bottom:none}
+.pc{min-width:0;overflow:hidden}
+.prow .p-day,.prow .p-ni{border-left:.5pt dotted #444;padding-left:1.4mm}
+
+.p-info{position:relative}
+.p-info .nm{font-size:10pt;font-weight:800;line-height:1.16;letter-spacing:.02em}
+.p-info .nm .rm{font-size:8.4pt;font-weight:800;margin-right:1.8mm;letter-spacing:0}
+.p-info .imp,.p-info .today{font-size:7pt;line-height:1.2;margin-top:.15mm}
+.p-info .imp b,.p-info .today b{font-weight:800}
+/* 文字量が多い行は段階的に縮小して、できる限り欠けさせない */
+.prow.dense .p-info .nm{font-size:9.2pt}
+.prow.dense .p-info .nm .rm{font-size:7.8pt}
+.prow.dense .p-info .imp,.prow.dense .p-info .today{font-size:6.6pt;line-height:1.14}
+.prow.dense2 .p-info .nm{font-size:8.6pt}
+.prow.dense2 .p-info .nm .rm{font-size:7.2pt}
+.prow.dense2 .p-info .imp,.prow.dense2 .p-info .today{font-size:6.2pt;line-height:1.08}
+.ovwarn{display:none;position:absolute;right:.3mm;top:.2mm;font-size:6pt;font-weight:800;
+  color:#c62828;background:#fff;border:.5pt solid #c62828;border-radius:.6mm;padding:0 .5mm;line-height:1.3}
+.prow.over .ovwarn{display:block}
+
+.vit{display:flex;gap:1.6mm;align-items:baseline;white-space:nowrap;font-size:7.2pt;line-height:1.2}
+.vit .it{display:flex;align-items:baseline;gap:.3mm;flex:1 1 0;min-width:0}
+.vit .it i{font-style:normal;font-weight:700}
+.vit .it u{text-decoration:none;border-bottom:.5pt solid #000;flex:1 1 0;min-width:5mm;display:inline-block;height:.85em}
+.eat{display:flex;gap:1.6mm;align-items:baseline;white-space:nowrap;font-size:7.2pt;line-height:1.2;margin-top:.3mm}
+.eat b{font-weight:700}
+.eat .p{display:inline-flex;align-items:baseline}
+.eat .p u{text-decoration:none;border-bottom:.5pt solid #000;display:inline-block;width:10mm;height:.85em}
+.eat .p em{font-style:normal}
+.eat u.ln{text-decoration:none;border-bottom:.5pt solid #000;flex:1 1 0;min-width:14mm;display:inline-block;height:.85em}
+.memo{display:flex;align-items:baseline;gap:.8mm;font-size:7.2pt;line-height:1.2;margin-top:.3mm}
+.memo b{font-weight:700}
+.memo u{text-decoration:none;border-bottom:.5pt solid #000;flex:1 1 0;min-width:0;display:inline-block;height:.85em}
+
+/* --- 入居者ごとに表示する記録項目が変わるため、日勤／夜勤欄は行数が可変 ---
+   ・OFF の項目は要素自体を出力しない（項目名・記入線・空白を残さない）
+   ・残った項目が縦方向に均等へ広がり、行数が少ない人ほど記入欄が広くなる
+   ・行の高さ（1人分）は .prow の flex で 15 等分のまま＝ A4 横 1 ページ 15 名を維持 */
+.prow .p-day,.prow .p-ni{display:flex;flex-direction:column}
+.prow .p-day > .fl,.prow .p-ni > .fl{flex:1 0 auto;min-height:0}   /* 縮まない＝はみ出しを実測で検知できる */
+.eat{flex-wrap:wrap;row-gap:.2mm}
+/* 項目が多い人は、情報を削る前にまず段階的に縮小して収める（それでも収まらない場合だけ警告） */
+.pc.fdense .vit,.pc.fdense .eat,.pc.fdense .memo,.pc.fdense .target-bs{font-size:6.7pt;line-height:1.14}
+.pc.fdense2 .vit,.pc.fdense2 .eat,.pc.fdense2 .memo,.pc.fdense2 .target-bs{font-size:6.2pt;line-height:1.06}
+.pc.fdense .eat,.pc.fdense .memo{margin-top:.15mm}
+.pc.fdense2 .eat,.pc.fdense2 .memo{margin-top:.1mm}
+.pc.fdense2 .eat .p.sz-m u{width:8mm}
+.pc.fdense2 .eat .p.sz-l u{width:13mm}
+.eat .p.sz-s u{width:6mm}
+.eat .p.sz-m u{width:10mm}
+.eat .p.sz-l u{width:17mm}
+.eat .p .un{font-style:normal;margin-left:.2mm}
+.target-bs{display:flex;align-items:baseline;gap:.7mm;white-space:nowrap;font-size:7pt;line-height:1.18;margin-top:.2mm}
+.target-bs b{font-weight:800;margin-right:.3mm}
+.target-bs .slot{display:inline-flex;align-items:baseline;gap:.2mm}
+.target-bs .slot em{font-style:normal;font-weight:700}
+.target-bs .slot u{text-decoration:none;border-bottom:.5pt solid #000;display:inline-block;width:7mm;height:.85em}
+
+.sh-foot{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;font-size:6.6pt;padding-top:.6mm;color:#000}
+.sh-foot .l{font-weight:700;letter-spacing:.08em}
+.sh-foot .c{color:#444}
+
+/* ---------- print ---------- */
+#printArea{display:none}
+.view.on #printArea{display:block}
+
+@page{size:A4 landscape;margin:6mm}
+@media print{
+  html,body{background:#fff}
+  .toast{display:none !important}
+  .ovwarn{display:none !important}
+  body.pw .prow.over .ovwarn{display:block !important}
+  .app > header.top, .app > .view:not(#v-print), #pv-controls, .pv-label, .noprint{display:none !important}
+  .app{max-width:none;padding:0;margin:0}
+  #printArea{display:block !important}
+  .sheetWrap{overflow:visible;margin:0}
+  .sheetScale{transform:none !important;height:auto !important}
+  .sheet{
+    width:285mm;height:197mm;border:none;padding:0;
+    break-after:page;page-break-after:always;
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .sheet.last{break-after:auto;page-break-after:auto}
+  .prow,.sheet,.rows{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+.toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  background:var(--ink);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .18s;z-index:99
+}
+.toast.on{opacity:1}
+.foot{font-size:11px;color:var(--sub);text-align:center;padding:18px 0}
+.savest{font-size:12px;color:var(--accent2);font-weight:700;min-width:78px;text-align:right}
+.datelb{font-size:14px;font-weight:700;color:var(--accent)}
+.dateflag{font-size:11px;font-weight:700;color:#fff;background:var(--warn);border-radius:10px;padding:2px 9px;display:none}
+.dateflag.on{display:inline-block}
+.dateflag.future{background:var(--accent2)}
+.copypanel{display:none;margin-top:10px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:6px}
+.copypanel.on{display:block}
+.copypanel .rowline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.copypanel input[type=date]{padding:5px 8px;border:1px solid var(--line);border-radius:5px}
+.copypanel label{font-size:13px}
+.copied{font-size:12px;font-weight:700;color:var(--warn);background:#fdf1f1;border:1px solid #eec2c2;
+  border-radius:5px;padding:3px 8px;margin-top:6px;display:inline-block}
+
+/* ---- 予定（スケジュール） ---- */
+.sched-area{margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
+.sched-chip{display:inline-block;font-size:12px;background:#eef4fb;border:1px solid #a9c6e4;
+  border-radius:4px;padding:3px 9px;margin:0 6px 5px 0}
+.sched-chip .dt{font-weight:700;color:var(--accent2);margin-right:5px}
+.sched-chip.today{background:#fdf1f1;border-color:#e6a9a9}
+.sched-chip.today .dt{color:var(--warn)}
+.sched-chip .ed{margin-left:6px;border:none;background:transparent;color:var(--sub);font-size:12px;padding:0 2px;cursor:pointer}
+.sched-form{display:none;margin-top:8px;padding:10px;background:var(--soft);border:1px solid var(--line);border-radius:6px}
+.sched-form.on{display:block}
+.sched-form .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.sched-form .f{display:flex;flex-direction:column;gap:3px}
+.sched-form .f span{font-size:11px;font-weight:700;color:var(--sub)}
+.sched-form input,.sched-form select{padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-size:14px;background:#fff}
+.sched-form .acts{margin-top:9px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cand{margin-top:8px;padding:8px 10px;background:#fffdf3;border:1px solid #e3d08a;border-radius:6px}
+.cand .ttl{font-size:12px;font-weight:700;color:var(--warn);margin-bottom:6px}
+.sched-row{display:flex;gap:12px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);
+  border-radius:6px;margin-bottom:8px;background:#fff}
+.sched-row.today{border-color:var(--warn);background:#fdf6f6}
+.sched-row .d{min-width:112px;font-weight:700;color:var(--accent)}
+.sched-row .body{flex:1}
+.sched-row .who{font-weight:700}
+.sched-row .det{font-size:13px;color:var(--sub);margin-top:2px}
+.schedsave{font-size:12px;font-weight:700;color:var(--accent2)}
+#fatal{display:none;background:#c62828;color:#fff;padding:8px 14px;font-size:13px;font-weight:700}
+#fatal.on{display:block}
+#memnote{display:none;font-size:11px;color:var(--warn);margin-top:4px}
+#memnote.on{display:block}
+.savest.busy{color:var(--sub)}
+.caution{font-size:11px;color:var(--warn);margin-top:4px}
+.warnmsg{display:none;font-size:12px;color:var(--warn);font-weight:700;margin-top:4px;
+  background:#fdf1f1;border:1px solid #eec2c2;border-radius:5px;padding:4px 8px}
+.warnmsg.on{display:block}
+.ovlist{margin-top:10px;font-size:13px;color:var(--warn);font-weight:700;line-height:1.7}
+.ovlist .none{color:var(--sub);font-weight:400}
+.ovlist ul{margin:4px 0 0;padding-left:20px}
+
+/* ---- 記録項目設定（入居者ごと） ---- */
+.recbtn{border:1px solid var(--accent2);background:#eef4fb;color:var(--accent);border-radius:5px;
+  padding:4px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.recbtn:hover{background:#dce9f7}
+.recsum{font-size:11px;color:var(--sub);margin-top:2px;line-height:1.35}
+
+.modal{display:none;position:fixed;inset:0;z-index:60;background:rgba(16,26,36,.5);
+  padding:16px;overflow:auto}
+.modal.on{display:block}
+.mbox{max-width:1100px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.28);overflow:hidden}
+.mhead{background:var(--accent);color:#fff;padding:12px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.mhead h3{margin:0;font-size:15px;letter-spacing:.06em;font-weight:700}
+.mhead .who{font-size:19px;font-weight:800}
+.mhead .who .rm{font-size:15px;background:#fff;color:var(--accent);border-radius:4px;padding:1px 8px;margin-right:8px}
+.mhead .who .un{font-size:12px;border:1px solid #fff;border-radius:10px;padding:1px 9px;margin-left:8px;font-weight:700}
+.mhead .sp{flex:1}
+.mhead button{border:1px solid #fff;background:transparent;color:#fff;border-radius:6px;padding:6px 14px;font-weight:700}
+.mbody{padding:14px 16px;max-height:calc(100vh - 190px);overflow:auto}
+.mfoot{border-top:1px solid var(--line);background:var(--soft);padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+.rec2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.rec2{grid-template-columns:1fr}}
+.recbox{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.recbox > h4{margin:0;padding:8px 12px;font-size:14px;background:var(--soft);border-bottom:1px solid var(--line);
+  letter-spacing:.08em}
+.recbox.day > h4{background:#eef4fb;color:var(--accent)}
+.recbox.night > h4{background:#f1eef8;color:#463a75}
+.ri{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:6px 12px;border-bottom:1px dashed var(--line)}
+.ri:last-child{border-bottom:none}
+.ri.off{background:#fafbfc;color:var(--sub)}
+.ri .sw{display:flex;align-items:center;gap:6px;min-width:112px;font-weight:700;font-size:14px;cursor:pointer}
+.ri .sw input{width:17px;height:17px}
+.ri .wd{display:flex;gap:2px;align-items:center;flex-wrap:wrap}
+.ri .wd label{display:inline-flex;align-items:center;gap:3px;font-size:12px;border:1px solid var(--line);
+  border-radius:4px;padding:2px 6px;background:#fff;cursor:pointer}
+.ri .wd label.ev{font-weight:700;color:var(--accent);border-color:var(--accent2);background:#eef4fb}
+.ri .wd label.sel{background:#e6f0fa;border-color:var(--accent2);font-weight:700}
+.ri.off .wd,.ri .wd.dim{opacity:.38;pointer-events:none}
+.ri .todaymark{font-size:11px;font-weight:700;color:#1b7a3d;background:#e9f6ee;border:1px solid #a9d9bc;
+  border-radius:10px;padding:1px 8px}
+.ri .wdtitle{font-size:11px;font-weight:700;color:var(--sub);margin-right:3px}
+
+.custbox{margin-top:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.custbox > h4{margin:0;padding:8px 12px;font-size:14px;background:#fdf8ec;color:#7a5a12;
+  border-bottom:1px solid var(--line);letter-spacing:.08em}
+.cust{padding:8px 12px;border-bottom:1px dashed var(--line)}
+.cust:last-child{border-bottom:none}
+.cust .l1{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cust .l1 input[type=text]{padding:5px 8px;border:1px solid var(--line);border-radius:5px}
+.cust .l1 select{padding:5px 6px;border:1px solid var(--line);border-radius:5px;background:#fff}
+.cust .l1 .nm{width:150px}
+.cust .l1 .ut{width:64px}
+.cust .l2{margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cust .prev{font-size:12px;color:var(--sub);background:var(--soft);border:1px solid var(--line);
+  border-radius:4px;padding:2px 8px}
+.cust.off{background:#fafbfc}
+.custadd{padding:10px 12px}
+</style>
+</head>
+<body>
+<div class="app">
+<div id="fatal"></div>
+
+<header class="top">
+  <div class="title">
+    <h1>申し送り・勤務記録支援</h1>
+    <span class="badge">オフライン動作／外部通信なし</span>
+  </div>
+  <div class="topbar">
+    <label for="theDate">対象日</label>
+    <button class="btn sm" id="btnPrevDay">← 前日</button>
+    <input type="date" id="theDate">
+    <button class="btn sm" id="btnNextDay">翌日 →</button>
+    <button class="btn sm" id="btnToday">今日</button>
+    <span class="datelb" id="dateLabel"></span>
+    <span class="dateflag" id="dateFlag"></span>
+    <span class="savest" id="saveState">✓ 保存済み</span>
+    <span class="schedsave" id="schedSave"></span>
+    <span style="flex:1"></span>
+    <button class="btn sm" id="btnExport">バックアップ保存</button>
+    <button class="btn sm" id="btnImport">バックアップ復元</button>
+    <input type="file" id="fileImport" accept="application/json" style="display:none">
+  </div>
+  <div class="caution">バックアップには入居者情報が含まれます。取り扱い注意（保存先はこのPC内のみ／自動アップロードは行いません）。</div>
+  <div id="memnote">※ このブラウザでは保存領域が使えないため、一時的にメモリ内だけで動作しています（ページを閉じると消えます）。</div>
+  <div class="tabs">
+    <button data-tab="input" class="on">申し送り入力</button>
+    <button data-tab="master">入居者マスター</button>
+    <button data-tab="sched">予定一覧</button>
+    <button data-tab="print">印刷プレビュー</button>
+  </div>
+  <div class="units" id="unitBar"></div>
+</header>
+
+<!-- ============ 申し送り入力 ============ -->
+<section class="view on" id="v-input">
+  <div class="panel">
+    <div class="row-actions">
+      <button class="btn pri" id="btnMakeAll">未作成をまとめて申し送り作成</button>
+      <button class="btn" id="btnShortAll">常設重要メモを一括簡潔化（未作成のみ）</button>
+      <button class="btn" id="btnCopyPrev">前日からコピー（この Unit）</button>
+      <button class="btn" id="btnCopyOther">別の日からコピー…</button>
+      <span class="hint">入力は自動保存されます。常設重要メモは翌日以降も保持、本日の申し送りは対象日ごとの保存です。</span>
+    </div>
+    <div class="copypanel" id="copyPanel">
+      <div class="rowline">
+        <label for="copySrc">コピー元の日付</label>
+        <input type="date" id="copySrc">
+        <span class="hint">コピー先：<b id="copyDstLabel"></b>／対象：<b id="copyUnitLabel"></b></span>
+      </div>
+      <div class="rowline">
+        <label><input type="radio" name="ovw" value="skip" checked> コピー先が未入力の人だけコピー（初期設定）</label>
+        <label><input type="radio" name="ovw" value="ask"> すでに入力がある人は 1 人ずつ確認して上書き</label>
+      </div>
+      <div class="rowline">
+        <button class="btn pri" id="btnCopyRun">この内容でコピーする</button>
+        <button class="btn" id="btnCopyClose">閉じる</button>
+        <span class="hint">常設重要メモ・入居者名・部屋番号・空床状況はコピーされません（日次の申し送りだけをコピーします）。</span>
+      </div>
+    </div>
+  </div>
+  <div id="inputList"></div>
+</section>
+
+<!-- ============ 入居者マスター ============ -->
+<section class="view" id="v-master">
+  <div class="panel">
+    <h2>入居者マスター（<span id="mUnitLabel">Unit 2</span>）</h2>
+    <div class="row-actions" style="margin-bottom:10px">
+      <button class="btn pri" id="btnAdd">入居者を追加</button>
+      <button class="btn" id="btnSortRoom">部屋番号順に並べ替え</button>
+      <span class="hint">並び順は ↑↓ で変更でき、そのまま固定保存されます（用紙の並び順に反映）。「記録項目設定」はこの入居者マスターに固定保存され、日付が変わっても維持されます。</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="master">
+        <thead>
+          <tr>
+            <th class="ord">並び</th><th style="width:110px">部屋番号</th><th>入居者名</th>
+            <th style="width:110px">在床状況</th><th>常設重要メモ（表示用）</th>
+            <th style="width:190px">記録項目（日勤／夜勤）</th><th class="act">削除</th>
+          </tr>
+        </thead>
+        <tbody id="masterBody"></tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px">上限：1 Unit あたり 30 名（A4 横 1 ページ 15 名／表 1〜15 名・裏 16〜30 名の両面 1 枚）。31 名以上は追加できません。</p>
+  </div>
+  <div class="panel">
+    <h2>データ管理</h2>
+    <div class="row-actions">
+      <button class="btn danger" id="btnClearDaily">この対象日の「今日あったこと・申し送り」を全消去</button>
+      <button class="btn" id="btnDemo18">動作確認用に Unit 3 へ 18 名を追加（A4横 2 ページ分）</button>
+      <button class="btn danger" id="btnDemoDel">サンプル入居者を削除</button>
+    </div>
+    <p class="hint" style="margin-top:8px">常設重要メモは入居者マスター側に保存されるため、日次データを消しても残ります。</p>
+  </div>
+</section>
+
+<!-- ============ 予定一覧 ============ -->
+<section class="view" id="v-sched">
+  <div class="panel">
+    <h2>予定一覧（<span id="sUnitLabel">Unit 2</span>）</h2>
+    <div class="row-actions" style="margin-bottom:8px">
+      <label class="hint"><input type="checkbox" id="optPastSched"> 過去の予定も表示する</label>
+      <span class="hint">予定は登録した日付に紐づきます。「前日からコピー」ではコピーされません。</span>
+    </div>
+    <div id="schedList"></div>
+  </div>
+</section>
+
+<!-- ============ 印刷プレビュー ============ -->
+<section class="view" id="v-print">
+  <div class="panel" id="pv-controls">
+    <h2>印刷プレビュー（A4 横 / 1 ページ 15 名）</h2>
+    <div class="row-actions">
+      <label class="hint"><input type="checkbox" id="optAllUnits"> Unit 2〜5 をまとめて出力</label>
+      <label class="hint"><input type="checkbox" id="optHideEmpty" checked> 空床を印刷しない</label>
+      <label class="hint"><input type="checkbox" id="optAlwaysBack"> ページ数を偶数にそろえる（両面印刷の面ズレ防止）</label>
+      <label class="hint"><input type="checkbox" id="optPrintWarn"> 警告マークを印刷にも出す</label>
+      <span style="flex:1"></span>
+      <button class="btn pri" id="btnPrint">印刷する</button>
+    </div>
+    <p class="hint" style="margin-top:8px">
+      1 ページに 15 名を A4 横で出力します（表：1〜15 名／裏：16〜30 名。1 Unit 30 名なら両面 1 枚）。同じ Unit のページは続けて並び、「Unit 2　1/2」のようにページ番号が入ります。<br>
+      両面印刷：ブラウザの印刷画面で「両面印刷（A4 横なので「短辺とじ」）」を選ぶと、Unit 2 表 → Unit 2 裏 → Unit 3 表 → Unit 3 裏 … の順に、同じ Unit の裏面がそのまま裏に印刷されます。<br>
+      用紙サイズは A4、向きは「横」、倍率は「100%（既定）」、余白は「既定」のままにしてください。<br>
+      Unit をまとめて出力するときは、面ズレ防止のため各 Unit のページ数を自動で偶数にそろえます。<br>
+      日勤・夜勤欄に出る項目は、入居者マスターの「記録項目設定」と<b>対象日の曜日</b>で決まります（翌朝BSのみ対象日の翌朝の曜日で判定。OFF の項目・該当しない項目は印刷されません）。
+    </p>
+    <div class="ovlist" id="ovList"></div>
+  </div>
+  <div id="printArea"></div>
+</section>
+
+<p class="foot noprint">データはこのブラウザ内（localStorage）にのみ保存されます。外部API・外部AI・サーバー・CDN・通信は一切使用していません。</p>
+</div>
+
+<!-- ============ 記録項目設定（入居者ごと） ============ -->
+<div class="modal noprint" id="recModal">
+  <div class="mbox">
+    <div class="mhead">
+      <h3>記録項目設定</h3>
+      <div class="who" id="recWho"></div>
+      <span class="sp"></span>
+      <button id="recClose">閉じる</button>
+    </div>
+    <div class="mbody" id="recBody"></div>
+    <div class="mfoot">
+      <span class="hint" id="recNote"></span>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn pri" id="recClose2">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================
+   申し送り・勤務記録支援ソフト  (完全オフライン / 単一HTML)
+   - fetch / XMLHttpRequest / WebSocket / CDN / 外部AI は不使用
+   ========================================================= */
+
+var KEY   = "kaigo_handover_v2";
+var UNITS = [2,3,4,5];
+var PER_PAGE = 15;      // A4 横 1 ページあたりの入居者数（表 1〜15名／裏 16〜30名）
+var MAX_UNIT = 30;      // 1 Unit 最大 30名（= 表裏 2 ページ）
+var MIN_SLOTS = 15;     // 少人数のページでも行の高さを揃えるための最小行数
+
+/* ---------------- storage ---------------- */
+var DB = null;
+
+function newId(){ return "r" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* =========================================================
+   記録項目設定（入居者ごと / 日勤・夜勤別 / 曜日指定）
+   - 設定は入居者マスター（DB.residents[].rec）に固定保存する
+   - 日付が変わっても設定自体は変わらず、選択日の曜日で表示だけが切り替わる
+   - すべて localStorage 内で完結（外部通信なし）
+   ========================================================= */
+
+/* 標準項目の定義。BS は勤務上の役割ごとに別キーで保存し、旧 BS キーは移行時だけ参照する */
+var REC_DAY_ITEMS = [
+  {k:"T",     lb:"T",       g:"vit"},
+  {k:"P",     lb:"P",       g:"vit"},
+  {k:"BP",    lb:"BP",      g:"vit"},
+  {k:"SpO2",  lb:"SpO2",    g:"vit"},
+  {k:"mealB", lb:"食事 朝", g:"meal", em:"朝"},
+  {k:"mealL", lb:"食事 昼", g:"meal", em:"昼"},
+  {k:"hr1",   lb:"Hr 1回目",g:"hr",   em:"1"},
+  {k:"hr2",   lb:"Hr 2回目",g:"hr",   em:"2"},
+  {k:"normalBS", lb:"通常BS",   g:"paren", printLb:"BS", defOff:true},
+  {k:"targetBS", lb:"ターゲスBS",g:"targetBS", defOff:true, daysOnly:true, daysTitle:"ターゲス対象曜日"},
+  {k:"BW",    lb:"BW",      g:"paren", unit:"kg", defOff:true},
+  {k:"memo",  lb:"メモ",    g:"memo",  noWd:true}
+];
+var REC_NIGHT_ITEMS = [
+  {k:"T",     lb:"T",       g:"vit"},
+  {k:"P",     lb:"P",       g:"vit"},
+  {k:"BP",    lb:"BP",      g:"vit"},
+  {k:"SpO2",  lb:"SpO2",    g:"vit"},
+  {k:"mealD", lb:"食事 夕", g:"meal", em:"夕"},
+  {k:"nightBS",       lb:"当日夜勤BS",g:"paren", printLb:"BS", defOff:true},
+  {k:"nextMorningBS", lb:"翌朝BS",    g:"nextMorningBS", defOff:true, daysOnly:true, daysTitle:"測定する朝の曜日"},
+  {k:"BW",    lb:"BW",      g:"paren", unit:"kg", defOff:true},
+  {k:"memo",  lb:"メモ",    g:"memo",  noWd:true}
+];
+var REC_SHIFTS = [{k:"day", lb:"日勤", items:REC_DAY_ITEMS}, {k:"night", lb:"夜勤", items:REC_NIGHT_ITEMS}];
+/* 用紙・設定画面ともに 月→日 の順で扱う（値は JavaScript の getDay() と同じ 0=日） */
+var REC_WDAYS = [{d:1,lb:"月"},{d:2,lb:"火"},{d:3,lb:"水"},{d:4,lb:"木"},{d:5,lb:"金"},{d:6,lb:"土"},{d:0,lb:"日"}];
+var CUST_SIZES = [{k:"s",lb:"小"},{k:"m",lb:"中"},{k:"l",lb:"大"}];
+var CUST_SHIFTS = [{k:"day",lb:"日勤"},{k:"night",lb:"夜勤"},{k:"both",lb:"日勤・夜勤"}];
+var MAX_CUSTOM = 8;   // 用紙に収まらなくなるのを防ぐための上限（超過分は警告で知らせる）
+
+function recItemDef(shift, key){
+  var arr = (shift === "night") ? REC_NIGHT_ITEMS : REC_DAY_ITEMS;
+  for(var i=0;i<arr.length;i++){ if(arr[i].k === key) return arr[i]; }
+  return null;
+}
+function newRecItem(on, daysOnly){ return { on:!!on, every:!daysOnly, days:[] }; }
+
+/* 初期値：既存の用紙表示をそのまま再現する（BS・BW だけ初期 OFF） */
+function defaultRec(){
+  var rec = { day:{}, night:{}, custom:[] };
+  for(var s=0;s<REC_SHIFTS.length;s++){
+    var sh = REC_SHIFTS[s];
+    for(var i=0;i<sh.items.length;i++){
+      var it = sh.items[i];
+      rec[sh.k][it.k] = newRecItem(!it.defOff, !!it.daysOnly);
+    }
+  }
+  return rec;
+}
+
+function normDays(v){
+  var out = [];
+  if(!Array.isArray(v)) return out;
+  for(var i=0;i<v.length;i++){
+    var n = parseInt(v[i], 10);
+    if(!isNaN(n) && n >= 0 && n <= 6 && out.indexOf(n) < 0) out.push(n);
+  }
+  out.sort(function(a,b){ return a-b; });
+  return out;
+}
+function normRecItem(v, defOn, daysOnly){
+  if(typeof v === "boolean") return { on:v, every:!daysOnly, days:[] };
+  if(!v || typeof v !== "object" || Array.isArray(v)) return newRecItem(defOn, daysOnly);
+  var days = normDays(Array.isArray(v.days) ? v.days : v.weekdays);
+  var savedOn = (typeof v.on === "boolean") ? v.on
+              : (typeof v.checked === "boolean") ? v.checked
+              : (typeof v.enabled === "boolean") ? v.enabled : !!defOn;
+  return {
+    on   : savedOn,
+    every: daysOnly ? false : ((typeof v.every === "boolean") ? v.every : !days.length),
+    days : days
+  };
+}
+function ownValue(obj, keys){
+  for(var i=0;i<keys.length;i++){
+    if(Object.prototype.hasOwnProperty.call(obj, keys[i])) return obj[keys[i]];
+  }
+  return undefined;
+}
+function normCustom(c){
+  if(!c || typeof c !== "object" || Array.isArray(c)) return null;
+  var days = normDays(c.days);
+  var shift = (c.shift === "night" || c.shift === "both") ? c.shift : "day";
+  var size  = (c.size === "s" || c.size === "l") ? c.size : "m";
+  return {
+    id   : c.id ? String(c.id) : newId(),
+    name : (c.name == null) ? "" : String(c.name),
+    unit : (c.unit == null) ? "" : String(c.unit),
+    shift: shift,
+    size : size,
+    on   : (typeof c.on === "boolean") ? c.on : true,
+    every: (typeof c.every === "boolean") ? c.every : !days.length,
+    days : days
+  };
+}
+/* 既存データに rec が無くても停止しないよう、足りない部分だけ初期値で補う
+   （利用者が設定済みの値は書き換えない） */
+function normRec(v){
+  var src = (v && typeof v === "object" && !Array.isArray(v)) ? v : {};
+  var rec = { day:{}, night:{}, custom:[] };
+  for(var s=0;s<REC_SHIFTS.length;s++){
+    var sh = REC_SHIFTS[s];
+    var got = (src[sh.k] && typeof src[sh.k] === "object" && !Array.isArray(src[sh.k])) ? src[sh.k] : {};
+    for(var i=0;i<sh.items.length;i++){
+      var it = sh.items[i];
+      var aliases = [it.k];
+      if(sh.k === "day" && it.k === "normalBS") aliases = ["normalBS","BS","bs"];
+      if(sh.k === "night" && it.k === "nightBS") aliases = ["nightBS","BS","bs"];
+      var saved = ownValue(got, aliases);
+      /* 一部の旧バックアップにある rec.normalBS / rec.BS のような平坦形式も日勤通常BSへ拾う */
+      if(saved === undefined && sh.k === "day" && it.k === "normalBS") saved = ownValue(src, aliases);
+      else if(saved === undefined && Object.prototype.hasOwnProperty.call(src, it.k)) saved = src[it.k];
+      rec[sh.k][it.k] = normRecItem(saved, !it.defOff, !!it.daysOnly);
+    }
+    /* 未知の旧キーも保持する。印刷判定は定義済みの新キーだけを使う。 */
+    for(var oldKey in got){
+      if(!Object.prototype.hasOwnProperty.call(rec[sh.k], oldKey)) rec[sh.k][oldKey] = got[oldKey];
+    }
+  }
+  if(Array.isArray(src.custom)){
+    for(var c=0;c<src.custom.length;c++){
+      var cc = normCustom(src.custom[c]);
+      if(cc) rec.custom.push(cc);
+    }
+  }
+  for(var rootKey in src){
+    if(rootKey !== "day" && rootKey !== "night" && rootKey !== "custom") rec[rootKey] = src[rootKey];
+  }
+  return rec;
+}
+function recOf(r){
+  if(!r) return defaultRec();
+  if(!r.rec || typeof r.rec !== "object") r.rec = defaultRec();
+  return r.rec;
+}
+/* 対象日の曜日（0=日 … 6=土）。カレンダーで過去日・未来日を選んでも同じ判定になる */
+function dowOf(date){
+  var p = String(date||"").split("-");
+  if(p.length < 3) return new Date().getDay();
+  return new Date(+p[0], +p[1]-1, +p[2]).getDay();
+}
+/* 対象日の翌日を Date として計算するため、月末・年末も同じ処理で正しく繰り上がる */
+function nextDowOf(date){
+  var p = String(date||"").split("-");
+  if(p.length < 3){ var now = new Date(); now.setDate(now.getDate()+1); return now.getDay(); }
+  return new Date(+p[0], +p[1]-1, +p[2]+1).getDay();
+}
+/* その日に表示するか：ON かつ（毎日 または 指定曜日に一致） */
+function itemActive(st, dow){
+  if(!st || !st.on) return false;
+  if(st.every) return true;
+  return st.days.indexOf(dow) >= 0;
+}
+function daysLabel(st){
+  if(!st) return "";
+  if(st.every) return "毎日";
+  if(!st.days.length) return "曜日未選択";
+  var out = [];
+  for(var i=0;i<REC_WDAYS.length;i++){
+    if(st.days.indexOf(REC_WDAYS[i].d) >= 0) out.push(REC_WDAYS[i].lb);
+  }
+  return out.join("・");
+}
+function wdLabel(dow){
+  for(var i=0;i<REC_WDAYS.length;i++) if(REC_WDAYS[i].d === dow) return REC_WDAYS[i].lb;
+  return "";
+}
+
+var SEED_VER = 3;   // サンプル入居者の世代（既存サンプルを不用意に入れ替えない）
+
+function defaultDB(){
+  return { v:4, seedVer:SEED_VER, residents:[], daily:{}, schedules:[],
+           settings:{ hideEmpty:true, alwaysBack:false, allUnits:false }, demo:true };
+}
+
+var STORAGE_OK = true;
+function storeGet(){
+  try{ return localStorage.getItem(KEY); }
+  catch(e){ STORAGE_OK = false; return null; }
+}
+function storeSet(v){
+  try{ localStorage.setItem(KEY, v); return true; }
+  catch(e){ STORAGE_OK = false; return false; }
+}
+
+function loadDB(){
+  var raw = storeGet();
+  var fresh = false;
+  if(!raw){ DB = defaultDB(); fresh = true; }
+  else{
+    try{ DB = JSON.parse(raw); }catch(e){ DB = null; }
+    if(!DB || typeof DB!=="object" || Array.isArray(DB)){ DB = defaultDB(); fresh = true; }
+  }
+  migrate();                      // 旧データでも止まらないよう不足分を安全に補完
+  if(fresh && !DB.residents.length){ seedDemo(); }
+  else if(DB.seedVer !== SEED_VER){ reseedDemo(); }  // 旧サンプルを新サンプルへ入れ替え
+  DB.seedVer = SEED_VER;
+  saveDB();
+}
+
+/* 旧バージョンのデータ構造でもアプリが停止しないように補正する
+   （既存データは消さず、不足しているプロパティだけ初期値で補う） */
+function migrate(){
+  DB.v = 4;
+  if(!Array.isArray(DB.residents)) DB.residents = [];
+  DB.residents = DB.residents.filter(function(r){ return r && typeof r === "object"; });
+  var seen = {};
+  for(var i=0;i<DB.residents.length;i++){
+    var r = DB.residents[i];
+    if(!r.id || seen[r.id]) r.id = newId();
+    seen[r.id] = 1;
+    var u = parseInt(r.unit, 10);
+    r.unit = (UNITS.indexOf(u) >= 0) ? u : UNITS[0];      // "2" のような文字列も数値へ
+    r.room = (r.room == null) ? "" : String(r.room);
+    r.name = (r.name == null) ? "" : String(r.name);
+    if(typeof r.order !== "number" || isNaN(r.order)) r.order = i;
+    r.status = (r.status === "empty") ? "empty" : "in";
+    if(typeof r.permRaw !== "string")   r.permRaw = "";
+    if(typeof r.permShort !== "string") r.permShort = "";
+    /* 記録項目設定：無い場合は初期値（BS・BW のみ OFF）を補う。既存の設定は保持する */
+    r.rec = normRec(r.rec);
+  }
+  /* 予定データ（既存データに無くても停止しないよう安全に補完） */
+  if(!Array.isArray(DB.schedules)) DB.schedules = [];
+  DB.schedules = DB.schedules.filter(function(x){ return x && typeof x === "object"; });
+  for(var k=0;k<DB.schedules.length;k++){
+    var sc = DB.schedules[k];
+    if(!sc.id) sc.id = newId();
+    sc.residentId = String(sc.residentId || "");
+    var su = parseInt(sc.unit, 10);
+    sc.unit = (UNITS.indexOf(su) >= 0) ? su : UNITS[0];
+    sc.date = (typeof sc.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sc.date)) ? sc.date : ymd(new Date());
+    var fields = ["kind","start","end","title","place","dept","family","note"];
+    for(var fi=0; fi<fields.length; fi++){
+      if(typeof sc[fields[fi]] !== "string") sc[fields[fi]] = "";
+    }
+  }
+  DB.schedules = DB.schedules.filter(function(x){ return !!x.residentId; });
+
+  if(!DB.daily || typeof DB.daily !== "object" || Array.isArray(DB.daily)) DB.daily = {};
+  for(var d in DB.daily){
+    var day = DB.daily[d];
+    if(!day || typeof day !== "object" || Array.isArray(day)){ delete DB.daily[d]; continue; }
+    for(var id in day){
+      var e = day[id];
+      if(!e || typeof e !== "object"){ day[id] = { raw:"", short:"" }; continue; }
+      if(typeof e.raw   !== "string") e.raw = "";
+      if(typeof e.short !== "string") e.short = "";
+      if(e.copiedFrom != null && typeof e.copiedFrom !== "string") delete e.copiedFrom;
+    }
+  }
+  var st = (DB.settings && typeof DB.settings === "object") ? DB.settings : {};
+  DB.settings = {
+    hideEmpty : st.hideEmpty !== false,
+    alwaysBack: !!st.alwaysBack,
+    allUnits  : !!st.allUnits,
+    printWarn : !!st.printWarn,
+    showPastSched : !!st.showPastSched
+  };
+}
+
+function saveDB(){
+  var okFlag = false;
+  try{ okFlag = storeSet(JSON.stringify(DB)); }catch(e){ okFlag = false; }
+  if(okFlag){ setSave("ok"); }
+  else{
+    setSave("mem");
+    var mn = document.getElementById("memnote");
+    if(mn) mn.classList.add("on");
+  }
+}
+function setSave(state){
+  var el = document.getElementById("saveState");
+  if(!el) return;
+  if(state === "busy"){ el.textContent = "保存中…"; el.className = "savest busy"; }
+  else if(state === "mem"){ el.textContent = "メモリ保存"; el.className = "savest busy"; }
+  else if(state === "err"){ el.textContent = "保存エラー"; el.className = "savest busy"; }
+  else { el.textContent = "✓ 保存済み"; el.className = "savest"; }
+}
+
+/* サンプル入居者（すべて架空のデータ）
+   ※ 実在の人物・実際の入居者の情報は一切含みません
+   ※ 印刷レイアウト検証用に 1 Unit あたり 15 名（合計 60 名）を用意しています */
+var SEED_RESIDENTS = [
+  {unit:2, room:"201", name:"高橋 和子",   perm:"歩行時は職員が横について見守り。転倒注意。"},
+  {unit:2, room:"202", name:"中村 正志",   perm:"食事・水分はトロミをつけて提供。義歯あり。"},
+  {unit:2, room:"203", name:"井上 美代子", perm:"車椅子使用。移乗は見守り。"},
+  {unit:2, room:"204", name:"松本 一郎",   perm:"左上肢は血圧測定不可。眼鏡使用。"},
+  {unit:2, room:"205", name:"加藤 静江",   perm:"歩行器使用。"},
+  {unit:2, room:"206", name:"木村 徳夫",   perm:"車椅子使用。移乗は見守り。"},
+  {unit:2, room:"207", name:"清水 富子",   perm:"食事は一部介助。"},
+  {unit:2, room:"208", name:"山口 幸三",   perm:"右上肢は血圧測定不可。"},
+  {unit:2, room:"209", name:"池田 芳江",   perm:"水分はトロミをつけて提供。"},
+  {unit:2, room:"210", name:"阿部 康男",   perm:"定時のトイレ誘導をお願いします。"},
+  {unit:2, room:"211", name:"石川 千鶴",   perm:"義歯あり。"},
+  {unit:2, room:"212", name:"前田 敏夫",   perm:"移乗は2人介助。"},
+  {unit:2, room:"213", name:"長谷川 光子", perm:"歩行時は付き添い。転倒注意。"},
+  {unit:2, room:"214", name:"村上 貞夫",   perm:"補聴器あり。"},
+  {unit:2, room:"215", name:"近藤 妙子",   perm:"食事は全介助。"},
+
+  {unit:3, room:"301", name:"田中 久美子", perm:"食事は一部介助。むせ込みに注意。"},
+  {unit:3, room:"302", name:"山本 英夫",   perm:"歩行器使用。ふらつきあり見守り。"},
+  {unit:3, room:"303", name:"小林 京子",   perm:"定時のトイレ誘導をお願いします。"},
+  {unit:3, room:"304", name:"佐々木 隆",   perm:"移乗は2人介助。"},
+  {unit:3, room:"305", name:"坂本 文江",   perm:"車椅子使用。"},
+  {unit:3, room:"306", name:"遠藤 政雄",   perm:"歩行器使用。転倒注意。"},
+  {unit:3, room:"307", name:"青木 満枝",   perm:"食事・水分はトロミをつけて提供。"},
+  {unit:3, room:"308", name:"福田 稔",     perm:"左上肢は血圧測定不可。"},
+  {unit:3, room:"309", name:"西村 節子",   perm:"移乗は見守り。"},
+  {unit:3, room:"310", name:"太田 忠雄",   perm:"義歯あり。補聴器あり。"},
+  {unit:3, room:"311", name:"三浦 富美子", perm:"食事は一部介助。誤嚥に注意。"},
+  {unit:3, room:"312", name:"藤井 勝行",   perm:"定時のトイレ誘導をお願いします。"},
+  {unit:3, room:"313", name:"岡本 秀子",   perm:"歩行時は横について見守り。"},
+  {unit:3, room:"314", name:"中島 昭三",   perm:"移乗は2人介助。"},
+  {unit:3, room:"315", name:"原田 千代美", perm:"水分はトロミをつけて提供。"},
+
+  {unit:4, room:"401", name:"渡辺 良子",   perm:"義歯あり。食後に洗浄。"},
+  {unit:4, room:"402", name:"吉田 誠",     perm:"夜間はセンサーマット使用。離床時は訪室。"},
+  {unit:4, room:"403", name:"伊藤 千代",   perm:"水分のみトロミ。食事は自立。"},
+  {unit:4, room:"404", name:"山田 孝雄",   perm:"車椅子自走可。移動時は見守り。"},
+  {unit:4, room:"405", name:"小川 康子",   perm:"歩行時は見守り。転倒注意。"},
+  {unit:4, room:"406", name:"竹内 正夫",   perm:"車椅子使用。移乗は2人介助。"},
+  {unit:4, room:"407", name:"金子 和江",   perm:"食事は全介助。"},
+  {unit:4, room:"408", name:"和田 清一",   perm:"右上肢は血圧測定不可。"},
+  {unit:4, room:"409", name:"中山 澄子",   perm:"歩行器使用。"},
+  {unit:4, room:"410", name:"石田 幸一",   perm:"義歯あり。"},
+  {unit:4, room:"411", name:"上田 民子",   perm:"定時のトイレ誘導をお願いします。"},
+  {unit:4, room:"412", name:"森本 治郎",   perm:"移乗は見守り。"},
+  {unit:4, room:"413", name:"柴田 雪子",   perm:"食事・水分はトロミをつけて提供。"},
+  {unit:4, room:"414", name:"宮崎 元治",   perm:"補聴器あり。"},
+  {unit:4, room:"415", name:"大野 里子",   perm:"食事は一部介助。"},
+
+  {unit:5, room:"501", name:"斉藤 恵子",   perm:"転倒歴あり。歩行時は見守り。"},
+  {unit:5, room:"502", name:"森田 修",     perm:"補聴器あり。声かけは右側から。"},
+  {unit:5, room:"503", name:"藤田 和美",   perm:"入浴は機械浴。皮膚状態を確認。"},
+  {unit:5, room:"504", name:"岡田 正雄",   perm:"右上肢は血圧測定不可。歩行器使用。"},
+  {unit:5, room:"505", name:"河野 芳子",   perm:"車椅子使用。移乗は見守り。"},
+  {unit:5, room:"506", name:"内田 三郎",   perm:"歩行器使用。転倒注意。"},
+  {unit:5, room:"507", name:"高木 春江",   perm:"水分はトロミをつけて提供。"},
+  {unit:5, room:"508", name:"安藤 義明",   perm:"左上肢は血圧測定不可。"},
+  {unit:5, room:"509", name:"島田 房子",   perm:"食事は全介助。"},
+  {unit:5, room:"510", name:"谷口 健次",   perm:"移乗は2人介助。"},
+  {unit:5, room:"511", name:"今井 悦子",   perm:"義歯あり。"},
+  {unit:5, room:"512", name:"千葉 誠一",   perm:"歩行時は付き添い。転倒注意。"},
+  {unit:5, room:"513", name:"平野 米子",   perm:"定時のトイレ誘導をお願いします。"},
+  {unit:5, room:"514", name:"増田 五郎",   perm:"補聴器あり。"},
+  {unit:5, room:"515", name:"野口 敏子",   perm:"食事は一部介助。誤嚥に注意。"}
+];
+
+/* 印刷時の文字量確認用サンプル（各Unit 3名・すべて架空）
+   「今日あったこと」は空欄のまま、「本日の申し送り」だけを設定する */
+var SEED_DAILY = {
+  "202":"昼食5割。午後より微熱あり。経過観察中。",
+  "207":"午前中に入浴実施。皮膚トラブルなし。",
+  "213":"夜間不眠あり。日中傾眠傾向のため様子観察。",
+
+  "301":"朝食全量。水分摂取良好。",
+  "309":"午後に軽度のふらつきあり。歩行時は付き添い継続。",
+  "314":"入浴実施。背部に発赤なし。",
+
+  "404":"昼食3割。食欲低下傾向のため水分を追加提供。",
+  "406":"午前中に居室で転倒なし。センサー反応2回、訪室にて対応。",
+  "412":"夕方より咳込みあり。水分をこまめに提供。",
+
+  "502":"日中は穏やかに過ごされる。レクへ参加。",
+  "508":"午前中に爪切り実施。皮膚状態良好。",
+  "515":"昼食後に嘔気の訴えあり。臥床にて経過観察。"
+};
+
+/* 予定機能の印刷確認用サンプル（各Unit 1名・すべて架空） */
+var SEED_SCHED = [
+  {room:"205", kind:"外出",     start:"10:00", end:"15:00", title:"家族と外出", place:"", dept:"", family:"あり", note:"昼食は外食予定"},
+  {room:"310", kind:"受診",     start:"11:00", end:"",      title:"定期受診",   place:"みどり内科クリニック", dept:"内科", family:"あり", note:"家族付き添いあり"},
+  {room:"407", kind:"家族面会", start:"14:00", end:"",      title:"家族面会",   place:"1階面会室", dept:"", family:"", note:""},
+  {room:"512", kind:"外出",     start:"13:00", end:"16:00", title:"美容室",     place:"", dept:"", family:"なし", note:"送迎は施設車両"}
+];
+
+function seedDemo(){
+  var idx = {}, byRoom = {};
+  for(var i=0;i<SEED_RESIDENTS.length;i++){
+    var s = SEED_RESIDENTS[i];
+    if(idx[s.unit] == null) idx[s.unit] = 0;
+    var r = {
+      id:newId(), unit:s.unit, room:s.room, name:s.name, order:idx[s.unit],
+      status:"in", permRaw:s.perm, permShort:shortenPerm(s.perm), rec:defaultRec(), demo:true
+    };
+    DB.residents.push(r);
+    byRoom[s.room] = r;
+    idx[s.unit]++;
+  }
+  seedDemoDaily(byRoom);
+  seedDemoSched(byRoom);
+}
+
+/* サンプルの「本日の申し送り」（対象日は起動日） */
+function seedDemoDaily(byRoom){
+  var today = ymd(new Date());
+  if(!DB.daily[today]) DB.daily[today] = {};
+  for(var room in SEED_DAILY){
+    var r = byRoom[room];
+    if(!r) continue;
+    DB.daily[today][r.id] = { raw:"", short:SEED_DAILY[room] };
+  }
+}
+
+/* サンプルの予定（対象日は起動日） */
+function seedDemoSched(byRoom){
+  var today = ymd(new Date());
+  for(var i=0;i<SEED_SCHED.length;i++){
+    var s = SEED_SCHED[i], r = byRoom[s.room];
+    if(!r) continue;
+    DB.schedules.push({
+      id:newId(), residentId:r.id, unit:r.unit, date:today,
+      kind:s.kind, start:s.start, end:s.end, title:s.title,
+      place:s.place, dept:s.dept, family:s.family, note:s.note
+    });
+  }
+}
+
+/* 旧サンプル（localStorage に残っている古いデモ入居者）を安全に入れ替える。
+   ・demo フラグの付いた入居者だけを対象にし、利用者が自分で登録した入居者は消さない
+   ・削除した入居者に紐づく申し送り・予定も併せて片付ける
+   ・利用者の入居者が 1 名でも残っている場合は新しいサンプルを追加しない */
+function reseedDemo(){
+  var removed = {}, hadDemo = false;
+  DB.residents = DB.residents.filter(function(r){
+    if(r.demo){ removed[r.id] = 1; hadDemo = true; return false; }
+    return true;
+  });
+  if(hadDemo){
+    for(var d in DB.daily){
+      for(var id in DB.daily[d]){ if(removed[id]) delete DB.daily[d][id]; }
+    }
+    DB.schedules = DB.schedules.filter(function(sc){ return !removed[sc.residentId]; });
+  }
+  if(!DB.residents.length) seedDemo();
+}
+
+/* ---------------- date utils ---------------- */
+function ymd(d){
+  var y=d.getFullYear(), m=("0"+(d.getMonth()+1)).slice(-2), da=("0"+d.getDate()).slice(-2);
+  return y+"-"+m+"-"+da;
+}
+function shiftDate(s, n){
+  var p = s.split("-");
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  d.setDate(d.getDate() + n);
+  return ymd(d);
+}
+function prevDate(s){ return shiftDate(s, -1); }
+function shortJp(s){ var p = s.split("-"); return (+p[1]) + "/" + (+p[2]); }
+function jpDate(s){
+  var p=s.split("-"); if(p.length<3) return s;
+  var d=new Date(+p[0], +p[1]-1, +p[2]);
+  var w="日月火水木金土"[d.getDay()];
+  return p[0]+"年"+(+p[1])+"月"+(+p[2])+"日（"+w+"）";
+}
+
+/* =========================================================
+   簡潔化ロジック（すべてローカルJS。外部AIなし）
+   入力に無い情報は追加しない／医学的推測はしない
+   ========================================================= */
+
+/* --- 共通：語尾と冗長表現のみ整理。情報の削除・文字数カットは行わない --- */
+/* ケア内容・安全性に関わる語は絶対に落とさない（落ちた場合は元の文を返す） */
+var PROTECT_RE = /必ず|禁止|禁忌|不可|できない|拒否|全介助|一部介助|2人介助|２人介助|二人介助|見守|付き添|転倒|誤嚥|窒息|アレルギー|発熱|疼痛|痛み|出血|骨折|感染|SpO2|BP|血圧|酸素|吸引|インスリン|血糖|トロミ|とろみ/gi;
+
+function keepsProtected(orig, out){
+  var m = orig.match(PROTECT_RE) || [];
+  for(var i=0;i<m.length;i++){
+    if(out.indexOf(m[i]) < 0) return false;
+  }
+  return true;
+}
+
+function compressClause(s){
+  if(!s) return "";
+  var orig = s.trim().replace(/^[・\-–—\*\u30fb\s]+/, "").replace(/[。\.．]+$/, "");
+  if(!orig) return "";
+  if(orig.length <= 12) return orig;      // すでに短い文はそのまま
+  var t = orig;
+  // 冗長表現のみ除去（「必ず」など安全性に関わる語は除去しない）
+  t = t.replace(/するときは|する時は|する際は|した際は|する場合は|の場合は/g, "");
+  t = t.replace(/可能性があるので|可能性があるため|恐れがあるので|おそれがあるため|ことがあるので|ことがあるため/g, "");
+  t = t.replace(/ようにして|ようお願いします|ようにお願いします|ようお願いいたします/g, "");
+  t = t.replace(/なるべく|できるだけ|きちんと|しっかり|十分に/g, "");
+  var tail = [
+    /してください$/, /して下さい$/, /お願いします$/, /おねがいします$/,
+    /していました$/, /しています$/, /しております$/, /されています$/, /している$/,
+    /が必要です$/, /が必要$/, /必要があります$/, /してほしい$/,
+    /がありました$/, /ありました$/, /があります$/, /がある$/, /あります$/,
+    /ください$/, /下さい$/, /しました$/, /されました$/, /でした$/,
+    /します$/, /ます$/, /です$/, /である$/
+  ];
+  for(var k=0;k<3;k++){
+    for(var i=0;i<tail.length;i++){
+      if(tail[i].test(t)){
+        var cand = t.replace(tail[i], "");
+        if(cand.length >= 3) t = cand;
+        break;
+      }
+    }
+  }
+  t = t.replace(/[をがはにでへとも、,\s]+$/, "").trim();
+  if(!t) return orig;
+  if(!keepsProtected(orig, t)) return orig;   // 重要語が消えたら短縮しない
+  return t;                                    // ★ 文字数による切り捨ては行わない
+}
+
+/* --- 常設重要メモ用 ルール辞書 --- */
+/* 出力条件は「入力中に該当語が存在すること」のみ。推測・追記はしない */
+var PERM_RULES = [
+  {out:"移乗2人介助", all:[/移乗|移動介助|トランス/, /(2人|２人|二人|ふたり)/]},
+  {out:"移乗全介助",  all:[/移乗|トランス/, /全介助/]},
+  {out:"移乗一部介助",all:[/移乗|トランス/, /一部介助|部分介助/]},
+  {out:"移乗見守り",  all:[/移乗|トランス/, /見守|付き添|そばに|横に/]},
+  {out:"歩行全介助",  all:[/歩行|独歩|移動/, /全介助/]},
+  {out:"歩行見守り",  all:[/歩行|独歩|散歩|歩行時/, /見守|付き添|横に|そばに/]},
+  {out:"歩行器使用",  all:[/歩行器|シルバーカー|歩行車/]},
+  {out:"杖使用",      all:[/杖/]},
+  {out:"車椅子",      all:[/車椅子|車いす|車イス/]},
+  {out:"転倒注意",    all:[/転倒/]},
+  {out:"誤嚥注意",    all:[/誤嚥|むせ込|ムセ/]},
+  {out:"窒息注意",    all:[/窒息/]},
+  {out:"食事トロミ",  all:[/食事|食べ物|食物|昼食|食形態|食べる/, /トロミ|とろみ|増粘/]},
+  {out:"水分トロミ",  all:[/水分|飲み物|飲水|お茶|飲料/, /トロミ|とろみ|増粘/]},
+  {out:"食事見守り",  all:[/食事|摂取/, /見守|付き添/]},
+  {out:"食事全介助",  all:[/食事|摂取/, /全介助/]},
+  {out:"食事一部介助",all:[/食事|摂取/, /一部介助|部分介助/]},
+  {out:"義歯あり",    all:[/義歯|入れ歯/]},
+  {out:"吸引あり",    all:[/吸引/]},
+  {out:"酸素使用",    all:[/酸素|Ｏ２/]},
+  {out:"服薬拒否あり",all:[/内服|服薬|薬/, /拒否|吐き出|飲まない/]},
+  {out:"トイレ誘導",  all:[/トイレ|排泄/, /誘導/]},
+  {out:"オムツ使用",  all:[/オムツ|おむつ|パッド/]},
+  {out:"褥瘡処置",    all:[/褥瘡|床ずれ/]},
+  {out:"離設注意",    all:[/離設|外に出|外へ出|帰宅願望|徘徊/]},
+  {out:"インスリン",  all:[/インスリン/]},
+  {out:"血糖測定",    all:[/血糖/]}
+];
+var FORM_WORDS = ["ミキサー","ペースト","きざみ","刻み","一口大","軟菜","全粥","ゼリー","ソフト"];
+
+function shortenPerm(raw){
+  if(!raw || !raw.trim()) return "";
+  var text = raw.replace(/\r/g,"");
+  var out = [];
+  var used = {};
+
+  // 1) ルール辞書は「文単位」で判定（別々の文の語を勝手に結び付けない）
+  var clauses = text.split(/[\n。]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+  var consumedLine = {};
+  for(var c=0;c<clauses.length;c++){
+    for(var i=0;i<PERM_RULES.length;i++){
+      var r = PERM_RULES[i], ok = true;
+      for(var j=0;j<r.all.length;j++){ if(!r.all[j].test(clauses[c])){ ok=false; break; } }
+      if(ok){
+        consumedLine[c] = 1;
+        if(!used[r.out]){ out.push(r.out); used[r.out]=1; }
+      }
+    }
+  }
+
+  // 介助度が重複した場合は重い方を残す
+  out = dropWeaker(out, ["移乗2人介助","移乗全介助","移乗一部介助","移乗見守り"]);
+  out = dropWeaker(out, ["歩行全介助","歩行見守り"]);
+  out = dropWeaker(out, ["食事全介助","食事一部介助","食事見守り"]);
+
+  // 2) 血圧測定不可（部位は入力どおりに保持）
+  var bp = text.match(/(左|右)\s*(上肢|腕|前腕|上腕)[^。\n]{0,12}(BP|ＢＰ|血圧)[^。\n]{0,10}(不可|禁|できません|できない|避け|測らない|測定しない)/);
+  if(!bp) bp = text.match(/(BP|ＢＰ|血圧)[^。\n]{0,10}(左|右)\s*(上肢|腕|前腕|上腕)[^。\n]{0,10}(不可|禁|できません|できない|避け)/);
+  if(bp){
+    var side = /左/.test(bp[0]) ? "左" : "右";
+    var part = /上腕/.test(bp[0]) ? "上腕" : (/前腕/.test(bp[0]) ? "前腕" : "上肢");
+    var w = side+part+"BP不可";
+    if(!used[w]){ out.push(w); used[w]=1; }
+  }
+
+  // 3) 食事形態（入力語をそのまま使う）
+  for(var f=0; f<FORM_WORDS.length; f++){
+    if(text.indexOf(FORM_WORDS[f])>=0){
+      var w2 = FORM_WORDS[f] + (/食$/.test(FORM_WORDS[f])?"":"食");
+      if(!used[w2]){ out.push(w2); used[w2]=1; }
+      break;
+    }
+  }
+
+  // 4) アレルギー（内容を落とさず保持）
+  var al = text.match(/([^\s、。\n]{1,8})\s*アレルギー/);
+  if(al){ var w3 = al[1].replace(/[はがのを]$/,"") + "アレルギー"; if(!used[w3]){ out.push(w3); used[w3]=1; } }
+
+  // 5) 食事トロミ + 水分トロミ → 食事・水分トロミ（末尾へ）
+  if(out.indexOf("食事トロミ")>=0 && out.indexOf("水分トロミ")>=0){
+    out = out.filter(function(x){ return x!=="食事トロミ" && x!=="水分トロミ"; });
+    out.push("食事・水分トロミ");
+  }
+
+  // 6) どのルールにも当たらなかった行はフォールバック短縮で必ず拾う
+  var lines = clauses;
+  for(var L=0; L<lines.length; L++){
+    var ln = lines[L].trim();
+    if(!ln) continue;
+    if(consumedLine[L]) continue;
+    if(/アレルギー|血圧|ＢＰ|BP|トロミ|とろみ/.test(ln)) continue;
+    var skip=false;
+    for(var q=0;q<FORM_WORDS.length;q++){ if(ln.indexOf(FORM_WORDS[q])>=0){ skip=true; break; } }
+    if(skip) continue;
+    var c = compressClause(ln);
+    if(c && c.length>=2 && !used[c]){ out.push(c); used[c]=1; }
+  }
+
+  return out.join("・");   // ★ 文字数上限による切り捨てなし
+}
+
+function dropWeaker(arr, priority){
+  var found = -1;
+  for(var i=0;i<priority.length;i++){ if(arr.indexOf(priority[i])>=0){ found=i; break; } }
+  if(found<0) return arr;
+  return arr.filter(function(x){
+    var k = priority.indexOf(x);
+    return k<0 || k===found;
+  });
+}
+
+
+/* --- 本日の申し送り（日次）簡潔化 --- */
+var MED_RE = /(カロナール|アセトアミノフェン|ロキソニン|坐薬|座薬|解熱剤|頓服|クーリング|アイシング)/;
+
+function shortenToday(raw){
+  if(!raw || !raw.trim()) return "";
+  var lines = raw.replace(/\r/g,"").split(/[\n。]+/)
+                 .map(function(x){ return x.trim(); }).filter(Boolean);
+
+  var meals=[], temps=[], med=null, spo=null, bp=null, pulse=null, others=[];
+
+  var MEAL = /(朝食|昼食|夕食|朝|昼|夕|おやつ|間食)\s*[:：]?\s*(\d{1,2}\s*割|全量|完食|拒否|少量|半量)/g;
+  var TEMP = /(3[4-9](?:\.\d)?|4[0-2](?:\.\d)?)\s*(?:℃|度|°C)/g;
+  var TEMP2= /(?:体温|BT|Ｔ)\s*[:：]\s*(3[4-9](?:\.\d)?|4[0-2](?:\.\d)?)/g;
+  var SPO  = /SpO2\s*[:：]?\s*(\d{2,3})\s*%?(?:まで|へ|に)?/i;
+  var BPRE = /(?:BP|血圧)\s*[:：]?\s*(\d{2,3})\s*[\/\-−]\s*(\d{2,3})/i;
+  var PRE  = /(?:脈拍|脈|P|HR)\s*[:：]\s*(\d{2,3})/;
+
+  for(var i=0;i<lines.length;i++){
+    var rest = lines[i], hit = false;
+
+    rest = rest.replace(MEAL, function(m,a,b){
+      var l=a; if(l==="朝") l="朝食"; if(l==="昼") l="昼食"; if(l==="夕") l="夕食";
+      meals.push(l + b.replace(/\s/g,"")); hit = true; return " ";
+    });
+    rest = rest.replace(BPRE, function(m,a,b){ bp = a+"/"+b; hit = true; return " "; });
+    rest = rest.replace(SPO,  function(m,a){ spo = a; hit = true; return " "; });
+    rest = rest.replace(PRE,  function(m,a){ pulse = a; hit = true; return " "; });
+    rest = rest.replace(TEMP, function(m,a){ temps.push(a); hit = true; return " "; });
+    rest = rest.replace(TEMP2,function(m,a){ temps.push(a); hit = true; return " "; });
+    rest = rest.replace(MED_RE, function(m){ if(!med) med = m; hit = true; return " "; });
+
+    if(hit){
+      // 抽出済み項目を除いた「残り」も情報として必ず拾う
+      var r = rest.replace(/[（）\(\)]/g," ")
+                  .replace(/現在|その後|のち|以降/g," ")
+                  .replace(/^[\sをがはにでへともし]+/,"")
+                  .replace(/[\sをがはにでへとも、,]+$/,"")
+                  .trim();
+      // 「使用」だけ等、抽出済み項目の言い回しが残っただけなら捨てる。
+      // それ以外は語を削らずそのまま残す（情報を消さない）
+      var core = r.replace(/使用|内服|投与|与薬|実施|測定|あり|なし|した|する/g,"")
+                  .replace(/[\s、,。]/g,"");
+      if(core.length >= 2) others.push(compressClause(r));
+    }else{
+      var c = compressClause(lines[i]);
+      if(c) others.push(c);
+    }
+  }
+
+  meals = uniq(meals);
+  temps = uniqKeepOrder(temps);
+
+  var parts = [];
+  if(meals.length) parts.push(meals.join("、"));
+
+  if(temps.length){
+    var t0 = temps[0], tl = temps[temps.length-1];
+    var seg = t0 + "℃";
+    if(parseFloat(t0) >= 37.5) seg += "発熱あり";
+    var verb = /クーリング|アイシング/.test(med||"") ? "実施" : "使用";
+    if(med && temps.length > 1)  seg += "、" + med + verb + "後" + tl + "℃";
+    else if(med)                 seg += "、" + med + verb;
+    else if(temps.length > 1)    seg += "、現在" + tl + "℃";
+    parts.push(seg);
+  }else if(med){
+    parts.push(med + (/クーリング|アイシング/.test(med) ? "実施" : "使用"));
+  }
+
+  if(bp)    parts.push("BP" + bp);
+  if(pulse) parts.push("P" + pulse);
+  if(spo)   parts.push("SpO2 " + spo + "%");
+
+  for(var k=0;k<others.length;k++){
+    if(!others[k]) continue;
+    if(others[k].length < 2) continue;
+    parts.push(others[k]);
+  }
+
+  var res = parts.filter(Boolean).join("。");   // ★ 文字数上限による切り捨てなし
+  if(!res) return "";
+  if(!/[。]$/.test(res)) res += "。";
+  return res;
+}
+
+function uniq(a){ var s={}, r=[]; for(var i=0;i<a.length;i++){ if(!s[a[i]]){ s[a[i]]=1; r.push(a[i]); } } return r; }
+function uniqKeepOrder(a){
+  var r=[]; for(var i=0;i<a.length;i++){ if(i===0 || a[i]!==a[i-1]) r.push(a[i]); }
+  return r;
+}
+
+/* =========================================================
+   予定（スケジュール）
+   - 今日あったこと / 本日の申し送り / 常設重要メモ とは別データ
+   - residentId・unit・date で管理（氏名変更の影響を受けない）
+   ========================================================= */
+var SCHED_KINDS = ["外出","外泊","受診","入院","退院","家族面会","行事","その他"];
+
+function pad2(n){ n = String(n); return n.length < 2 ? "0"+n : n; }
+
+function residentById(id){
+  for(var i=0;i<DB.residents.length;i++){ if(DB.residents[i].id === id) return DB.residents[i]; }
+  return null;
+}
+/* 指定入居者の予定（日付順） */
+function schedOfResident(id, date){
+  return DB.schedules.filter(function(s){
+    return s.residentId === id && (!date || s.date === date);
+  }).sort(sortSched);
+}
+/* 指定Unit・指定日の予定（空床・退居者は除外） */
+function schedOfUnitDate(unit, date, includeEmpty){
+  return DB.schedules.filter(function(s){
+    var r = residentById(s.residentId);
+    if(!r || r.unit !== unit) return false;
+    if(!includeEmpty && r.status === "empty") return false;
+    return s.date === date;
+  }).sort(sortSched);
+}
+function sortSched(a,b){
+  if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+  var as = a.start || "99:99", bs = b.start || "99:99";
+  if(as !== bs) return as < bs ? -1 : 1;
+  var ra = residentById(a.residentId), rb = residentById(b.residentId);
+  return ((ra && ra.order) || 0) - ((rb && rb.order) || 0);
+}
+
+/* 用紙・一覧に出す1行分の文言を組み立てる（入力された内容だけを使う） */
+function schedTime(s){
+  if(s.start && s.end) return s.start + "〜" + s.end;
+  if(s.start) return s.start;
+  if(s.end)   return "〜" + s.end;
+  return "";
+}
+function schedBody(s){
+  var seg = [];
+  if(s.place) seg.push(s.place);
+  if(s.dept)  seg.push(s.dept);
+  if(s.kind && !(s.kind === "受診" && s.place)) seg.push(s.kind);
+  if(s.title) seg.push(s.title);
+  var t = schedTime(s);
+  if(t) seg.push(t);
+  if(s.note && !s.title && !s.place && !s.kind) seg.push(s.note);
+  return seg.join(" ");
+}
+function schedFamily(s){
+  return s.family ? ("家族付き添い" + s.family) : "";
+}
+
+function saveSchedules(){
+  saveDB();
+  var el = document.getElementById("schedSave");
+  if(el){
+    el.textContent = "✓ 予定保存済み";
+    clearTimeout(el._t);
+    el._t = setTimeout(function(){ el.textContent = ""; }, 3000);
+  }
+}
+
+/* --- 「今日あったこと」から予定候補を抽出（自動確定はしない） --- */
+function extractSchedules(raw, baseDate){
+  if(!raw) return [];
+  var year = parseInt(baseDate.split("-")[0], 10);
+  var lines = raw.replace(/\r/g,"").split(/[\n。]+/);
+  var out = [];
+  for(var i=0;i<lines.length;i++){
+    var ln = lines[i].trim();
+    if(!ln) continue;
+    var date = "";
+    var m = ln.match(/(20\d{2})[\/\-年](\d{1,2})[\/\-月](\d{1,2})日?/);
+    if(m){ date = m[1] + "-" + pad2(m[2]) + "-" + pad2(m[3]); }
+    else{
+      var m2 = ln.match(/(?:^|[^\d:])(\d{1,2})[\/月](\d{1,2})日?/);
+      if(m2 && +m2[1] >= 1 && +m2[1] <= 12 && +m2[2] >= 1 && +m2[2] <= 31){
+        date = year + "-" + pad2(m2[1]) + "-" + pad2(m2[2]);
+      }
+    }
+    if(!date) continue;
+
+    var start = "", end = "";
+    var t = ln.match(/(\d{1,2}):(\d{2})\s*[〜~\-–ー]\s*(\d{1,2}):(\d{2})/);
+    if(t){ start = pad2(t[1])+":"+t[2]; end = pad2(t[3])+":"+t[4]; }
+    else{
+      var t1 = ln.match(/(\d{1,2}):(\d{2})/);
+      if(t1) start = pad2(t1[1])+":"+t1[2];
+    }
+
+    var kind = "";
+    for(var k=0;k<SCHED_KINDS.length;k++){
+      if(SCHED_KINDS[k] !== "その他" && ln.indexOf(SCHED_KINDS[k]) >= 0){ kind = SCHED_KINDS[k]; break; }
+    }
+    if(!kind && /面会/.test(ln)) kind = "家族面会";
+
+    var pl = ln.match(/([^\s、,]{1,12}?(?:病院|クリニック|医院|診療所))/);
+    var place = pl ? pl[1] : "";
+    var rest = place ? ln.replace(place, " ") : ln;
+    var dp = rest.match(/([^\s、,]{1,10}科)/);
+    var dept = dp ? dp[1] : "";
+    if(dept && !kind) kind = "受診";
+
+    var fam = "";
+    if(/家族[^。\n]{0,4}付き?添い?[^。\n]{0,2}(あり|有)/.test(ln)) fam = "あり";
+    else if(/家族[^。\n]{0,4}付き?添い?[^。\n]{0,2}(なし|無)/.test(ln)) fam = "なし";
+    else if(/家族[^。\n]{0,4}付き?添い?[^。\n]{0,2}未定/.test(ln)) fam = "未定";
+
+    out.push({ date:date, kind:kind, start:start, end:end, title:"",
+               place:place, dept:dept, family:fam, note:ln });
+  }
+  return out;
+}
+
+/* =========================================================
+   state / helpers
+   ========================================================= */
+var UI = { tab:"input", unit:2, date: ymd(new Date()) };
+
+function residentsOf(unit){
+  return DB.residents
+    .filter(function(r){ return r.unit === unit; })
+    .sort(function(a,b){ return (a.order||0) - (b.order||0); });
+}
+function printableOf(unit){
+  var list = residentsOf(unit);
+  if(DB.settings.hideEmpty) list = list.filter(function(r){ return r.status !== "empty"; });
+  return list.slice(0, MAX_UNIT);
+}
+function dailyOf(date, id){
+  if(!DB.daily[date]) DB.daily[date] = {};
+  if(!DB.daily[date][id]) DB.daily[date][id] = { raw:"", short:"" };
+  return DB.daily[date][id];
+}
+function dailyGet(date, id){
+  return (DB.daily[date] && DB.daily[date][id]) || { raw:"", short:"" };
+}
+function esc(s){
+  return String(s==null?"":s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+var toastT = null;
+function toast(msg){
+  var el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("on");
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ el.classList.remove("on"); }, 1800);
+}
+
+/* =========================================================
+   render : unit bar / tabs
+   ========================================================= */
+function renderUnitBar(){
+  var h = "";
+  for(var i=0;i<UNITS.length;i++){
+    var u = UNITS[i];
+    var n = residentsOf(u).filter(function(r){ return r.status!=="empty"; }).length;
+    h += '<button data-unit="'+u+'" class="'+(u===UI.unit?"on":"")+'">Unit '+u+'<span class="cnt">'+n+'名</span></button>';
+  }
+  document.getElementById("unitBar").innerHTML = h;
+}
+
+function switchTab(t){
+  UI.tab = t;
+  var tb = document.querySelectorAll(".tabs button");
+  for(var i=0;i<tb.length;i++) tb[i].classList.toggle("on", tb[i].getAttribute("data-tab")===t);
+  document.getElementById("v-input").classList.toggle("on", t==="input");
+  document.getElementById("v-master").classList.toggle("on", t==="master");
+  document.getElementById("v-sched").classList.toggle("on", t==="sched");
+  document.getElementById("v-print").classList.toggle("on", t==="print");
+  // タブを開くたびに描画し直す（別タブでの変更が反映されない不具合の修正）
+  if(t==="input")  renderInput();
+  if(t==="master") renderMaster();
+  if(t==="sched")  renderSched();
+  if(t==="print"){ renderPrint(); fitPreview(); }
+}
+
+/* =========================================================
+   render : 申し送り入力
+   ========================================================= */
+function renderInput(){
+  var list = residentsOf(UI.unit);
+  var host = document.getElementById("inputList");
+  if(!list.length){
+    host.innerHTML = '<div class="panel"><p class="hint">この Unit にはまだ入居者が登録されていません。「入居者マスター」タブから追加してください。</p></div>';
+    return;
+  }
+  var h = "";
+  for(var i=0;i<list.length;i++){
+    var r = list[i];
+    var d = dailyGet(UI.date, r.id);
+    h += '<div class="card '+(r.status==="empty"?"empty":"")+'" data-id="'+r.id+'">'
+      + '<div class="card-head">'
+        + '<input class="room" type="text" value="'+esc(r.room)+'" data-f="room" placeholder="部屋">'
+        + '<input class="name" type="text" value="'+esc(r.name)+'" data-f="name" placeholder="入居者名">'
+        + '<label class="st"><input type="checkbox" data-f="empty" '+(r.status==="empty"?"checked":"")+'> 空床</label>'
+        + '<button class="recbtn" data-a="recOpen">記録項目設定</button>'
+      + '</div>'
+      + '<div class="grid2">'
+        + '<div>'
+          + '<div class="fld">'
+            + '<div class="lb"><span>常設重要メモ（入力・毎日保持）</span><span class="tag">入居者マスターへ保存</span></div>'
+            + '<textarea class="raw" data-f="permRaw" placeholder="例）歩行するときは転倒する可能性があるので必ず職員が横について見守ってください">'+esc(r.permRaw)+'</textarea>'
+            + '<div class="row-actions" style="margin-top:6px">'
+              + '<button class="btn sm pri" data-a="permShort">簡潔化する</button>'
+              + '<span class="mini">短くまとめた内容は下欄で手直しできます</span>'
+            + '</div>'
+          + '</div>'
+          + '<div class="fld">'
+            + '<div class="lb"><span>常設重要メモ（用紙に印刷される内容）</span></div>'
+            + '<textarea class="short imp" data-f="permShort" placeholder="例）歩行見守り・転倒注意">'+esc(r.permShort)+'</textarea>'
+            + '<div class="warnmsg" data-w="perm">印刷欄に収まらない可能性があります。内容を確認してください</div>'
+          + '</div>'
+        + '</div>'
+        + '<div>'
+          + '<div class="fld">'
+            + '<div class="lb"><span>今日あったこと（'+esc(UI.date)+'）</span><span class="tag">日付ごとに保存</span></div>'
+            + '<textarea class="raw" data-f="todayRaw" placeholder="例）昼食3割&#10;37.8℃&#10;カロナール使用&#10;現在36.7℃">'+esc(d.raw)+'</textarea>'
+            + '<div class="row-actions" style="margin-top:6px">'
+              + '<button class="btn sm pri" data-a="todayShort">申し送り作成</button>'
+              + '<button class="btn sm" data-a="copyPrev">前日分をコピー</button>'
+              + '<button class="btn sm" data-a="todayClear">この人の本日分を消去</button>'
+            + '</div>'
+          + '</div>'
+          + '<div class="fld">'
+            + '<div class="lb"><span>本日の申し送り（用紙に印刷される内容）</span></div>'
+            + '<textarea class="short" data-f="todayShort" placeholder="未入力なら用紙に「本日：」は表示されません">'+esc(d.short)+'</textarea>'
+            + '<div class="warnmsg" data-w="today">印刷欄に収まらない可能性があります。内容を確認してください</div>'
+            + (d.copiedFrom ? '<div class="copied">'+esc(shortJp(d.copiedFrom))+' からコピー済み・内容を確認してください</div>' : '')
+          + '</div>'
+        + '</div>'
+      + '</div>'
+      + schedAreaHTML(r)
+    + '</div>';
+  }
+  host.innerHTML = h;
+  updAllWarns();
+}
+
+/* 入居者カードの予定エリア */
+function schedAreaHTML(r){
+  var today = schedOfResident(r.id, UI.date);
+  var future = DB.schedules.filter(function(s){
+    return s.residentId === r.id && s.date > UI.date;
+  }).sort(sortSched).slice(0,4);
+
+  var chips = "";
+  for(var i=0;i<today.length;i++) chips += schedChip(today[i], true);
+  for(var j=0;j<future.length;j++) chips += schedChip(future[j], false);
+  if(!chips) chips = '<span class="hint">この日の予定・今後の予定はありません</span>';
+
+  return '<div class="sched-area">'
+    + '<div class="lb" style="font-size:12px;font-weight:700;color:#5b6b7a;margin-bottom:5px">予定（外出・受診・面会など）</div>'
+    + '<div class="chips">' + chips + '</div>'
+    + '<div class="row-actions" style="margin-top:6px">'
+      + '<button class="btn sm" data-a="schedAdd">＋予定を追加</button>'
+      + '<button class="btn sm" data-a="schedExtract">今日あったことから予定として抽出</button>'
+    + '</div>'
+    + '<div class="sched-form" data-sform></div>'
+    + '<div data-cand></div>'
+  + '</div>';
+}
+function schedChip(s, isCurrent){
+  var cls = "sched-chip" + (s.date === ymd(new Date()) ? " today" : "");
+  var body = schedBody(s), fam = schedFamily(s);
+  return '<span class="' + cls + '" data-sid="' + s.id + '">'
+    + '<span class="dt">' + esc(shortJp(s.date)) + '</span>'
+    + esc(body || "（内容未入力）")
+    + (fam ? '　' + esc(fam) : '')
+    + '<button class="ed" data-a="schedEdit" title="編集">編集</button>'
+    + '</span>';
+}
+
+/* 予定の入力フォーム（追加・編集・抽出候補で共通） */
+function schedFormHTML(sc, mode){
+  sc = sc || {};
+  var kindOpts = "";
+  var known = false;
+  for(var i=0;i<SCHED_KINDS.length;i++){
+    if(SCHED_KINDS[i] === sc.kind) known = true;
+    kindOpts += '<option value="'+SCHED_KINDS[i]+'"'+(SCHED_KINDS[i]===sc.kind?' selected':'')+'>'+SCHED_KINDS[i]+'</option>';
+  }
+  var famOpts = "";
+  var fams = ["","あり","なし","未定"];
+  for(var f=0;f<fams.length;f++){
+    famOpts += '<option value="'+fams[f]+'"'+(fams[f]===(sc.family||"")?' selected':'')+'>'+(fams[f]||"（未入力）")+'</option>';
+  }
+  return '<div class="grid">'
+    + fld("日付", '<input type="date" data-sf="date" value="'+esc(sc.date||UI.date)+'">')
+    + fld("予定種別", '<select data-sf="kind"><option value="">（選択）</option>'+kindOpts+'</select>')
+    + fld("種別を自由入力", '<input type="text" data-sf="kindFree" placeholder="例）美容室" value="'+esc(known?"":(sc.kind||""))+'">')
+    + fld("開始時間", '<input type="time" data-sf="start" value="'+esc(sc.start||"")+'">')
+    + fld("終了時間", '<input type="time" data-sf="end" value="'+esc(sc.end||"")+'">')
+    + fld("予定内容", '<input type="text" data-sf="title" placeholder="例）散髪" value="'+esc(sc.title||"")+'">')
+    + fld("場所 / 病院名", '<input type="text" data-sf="place" placeholder="例）○○病院" value="'+esc(sc.place||"")+'">')
+    + fld("診療科", '<input type="text" data-sf="dept" placeholder="例）循環器内科" value="'+esc(sc.dept||"")+'">')
+    + fld("家族付き添い", '<select data-sf="family">'+famOpts+'</select>')
+    + fld("補足メモ", '<input type="text" data-sf="note" value="'+esc(sc.note||"")+'">')
+  + '</div>'
+  + '<div class="acts">'
+    + '<button class="btn sm pri" data-a="schedSave">' + (mode==="cand" ? "予定に登録" : "予定を保存") + '</button>'
+    + (mode==="edit" ? '<button class="btn sm danger" data-a="schedDelete">この予定を削除</button>' : '')
+    + '<button class="btn sm" data-a="schedCancel">キャンセル</button>'
+    + '<span class="hint">日付は必ず確認してください（年をまたぐ場合は年も修正できます）</span>'
+  + '</div>';
+}
+function fld(label, inner){
+  return '<label class="f"><span>'+label+'</span>'+inner+'</label>';
+}
+function readSchedForm(box){
+  function v(n){ var e = box.querySelector('[data-sf="'+n+'"]'); return e ? String(e.value||"").trim() : ""; }
+  var kind = v("kindFree") || v("kind");
+  return { date:v("date"), kind:kind, start:v("start"), end:v("end"), title:v("title"),
+           place:v("place"), dept:v("dept"), family:v("family"), note:v("note") };
+}
+
+/* 印刷欄に収まらない可能性がある入力を、その場で知らせる */
+var WARN_PERM = 44, WARN_TODAY = 64;
+function updWarns(card){
+  if(!card) return;
+  var pe = card.querySelector('[data-f="permShort"]');
+  var te = card.querySelector('[data-f="todayShort"]');
+  var pw = card.querySelector('[data-w="perm"]');
+  var tw = card.querySelector('[data-w="today"]');
+  if(pe && pw) pw.classList.toggle("on", pe.value.trim().length > WARN_PERM);
+  if(te && tw) tw.classList.toggle("on", te.value.trim().length > WARN_TODAY);
+}
+function updAllWarns(){
+  var cs = document.querySelectorAll("#inputList .card");
+  for(var i=0;i<cs.length;i++) updWarns(cs[i]);
+}
+
+/* =========================================================
+   render : 入居者マスター
+   ========================================================= */
+function renderMaster(){
+  document.getElementById("mUnitLabel").textContent = "Unit " + UI.unit;
+  var list = residentsOf(UI.unit);
+  var h = "";
+  for(var i=0;i<list.length;i++){
+    var r = list[i];
+    h += '<tr data-id="'+r.id+'">'
+      + '<td class="ord">'
+        + '<button class="iconbtn" data-a="up" '+(i===0?"disabled":"")+'>↑</button> '
+        + '<button class="iconbtn" data-a="down" '+(i===list.length-1?"disabled":"")+'>↓</button>'
+      + '</td>'
+      + '<td><input type="text" data-f="room" value="'+esc(r.room)+'"></td>'
+      + '<td><input type="text" data-f="name" value="'+esc(r.name)+'"></td>'
+      + '<td><button class="pill '+(r.status==="empty"?"out":"in")+'" data-a="toggle">'+(r.status==="empty"?"空床":"入居中")+'</button></td>'
+      + '<td><input type="text" data-f="permShort" value="'+esc(r.permShort)+'" placeholder="（申し送り入力タブで作成できます）"></td>'
+      + '<td><button class="recbtn" data-a="rec">記録項目設定</button>'
+        + '<div class="recsum">'+recSummary(r)+'</div></td>'
+      + '<td class="act"><button class="iconbtn" data-a="del" title="削除">✕</button></td>'
+      + '</tr>';
+  }
+  if(!list.length) h = '<tr><td colspan="7" class="hint" style="padding:14px">入居者がいません。「入居者を追加」から登録してください。</td></tr>';
+  document.getElementById("masterBody").innerHTML = h;
+}
+
+/* マスター表に出す設定の要約（ON の数と、曜日を絞っている項目） */
+function recSummary(r){
+  var rec = recOf(r);
+  var cnt = { day:0, night:0 }, wd = [];
+  for(var s=0;s<REC_SHIFTS.length;s++){
+    var sh = REC_SHIFTS[s];
+    for(var i=0;i<sh.items.length;i++){
+      var st = rec[sh.k][sh.items[i].k];
+      if(!st || !st.on) continue;
+      cnt[sh.k]++;
+      if(!st.every) wd.push(sh.lb + sh.items[i].lb + "（" + daysLabel(st) + "）");
+    }
+  }
+  var cus = 0;
+  for(var c=0;c<rec.custom.length;c++){
+    var cc = rec.custom[c];
+    if(!cc.on || !cc.name.trim()) continue;
+    cus++;
+    if(cc.shift === "both"){ cnt.day++; cnt.night++; } else cnt[cc.shift]++;
+    if(!cc.every) wd.push(cc.name.trim() + "（" + daysLabel(cc) + "）");
+  }
+  var h = '日勤 ' + cnt.day + ' 項目／夜勤 ' + cnt.night + ' 項目' + (cus ? '（独自 ' + cus + '）' : '');
+  if(wd.length) h += '<br>曜日指定：' + esc(wd.join("、"));
+  return h;
+}
+
+/* =========================================================
+   render : 記録項目設定（入居者ごとの設定パネル）
+   - 入居者名・部屋番号・Unit を常に上部へ表示し、別の入居者を誤って編集しない
+   - 変更はその場で localStorage へ保存（外部通信なし）
+   ========================================================= */
+var REC_UI = { id:null };
+
+function openRecModal(id){
+  var r = residentById(id);
+  if(!r){ toast("入居者が見つかりません"); return; }
+  REC_UI.id = id;
+  document.getElementById("recModal").classList.add("on");
+  renderRecModal();
+}
+function closeRecModal(){
+  REC_UI.id = null;
+  document.getElementById("recModal").classList.remove("on");
+}
+function recResident(){
+  return REC_UI.id ? residentById(REC_UI.id) : null;
+}
+
+/* 対象日に実際に表示される項目名（設定画面の確認用） */
+function itemActiveOnDate(st, def, date){
+  return itemActive(st, def.g === "nextMorningBS" ? nextDowOf(date) : dowOf(date));
+}
+
+function activeLabels(rec, shift, date){
+  var defs = (shift === "night") ? REC_NIGHT_ITEMS : REC_DAY_ITEMS, out = [];
+  for(var i=0;i<defs.length;i++){
+    if(itemActiveOnDate(rec[shift][defs[i].k], defs[i], date)){
+      if(defs[i].g === "nextMorningBS") out.push(defs[i].lb + "（" + wdLabel(nextDowOf(date)) + "）");
+      else out.push(defs[i].lb);
+    }
+  }
+  for(var c=0;c<rec.custom.length;c++){
+    var cc = rec.custom[c];
+    if(!cc.name.trim()) continue;
+    if(cc.shift !== shift && cc.shift !== "both") continue;
+    if(!itemActive(cc, dowOf(date))) continue;
+    out.push(cc.name.trim() + (cc.unit ? "（" + cc.unit + "）" : ""));
+  }
+  return out;
+}
+
+function renderRecModal(){
+  var r = recResident();
+  if(!r){ closeRecModal(); return; }
+  var rec = recOf(r), dow = dowOf(UI.date);
+
+  document.getElementById("recWho").innerHTML =
+      (r.room ? '<span class="rm">'+esc(r.room)+'</span>' : '')
+    + esc(r.name || "（無名）")
+    + '<span class="un">Unit ' + r.unit + '</span>'
+    + (r.status === "empty" ? '<span class="un">空床</span>' : '');
+
+  document.getElementById("recNote").textContent =
+    "設定は入居者マスターに固定保存され、日付が変わっても維持されます（変更は自動保存）。";
+
+  var dayLb = activeLabels(rec, "day", UI.date), niLb = activeLabels(rec, "night", UI.date);
+  var h = '<p class="hint" style="margin:0 0 10px">'
+    + 'ON にした項目だけが用紙に印刷されます（OFF の項目は項目名・記入線・空白ごと出力されず、残った項目が自動的に詰まります）。'
+    + '曜日を指定した項目は対象日の曜日で、翌朝BSだけは対象日の翌朝の曜日で自動的に表示・非表示が切り替わります。'
+    + '<br>曜日を絞りたいときは「毎日」のチェックを外してから、必要な曜日（複数可）を選んでください。'
+    + '</p>'
+    + '<div class="cand" style="margin:0 0 12px">'
+      + '<div class="ttl">対象日 ' + esc(jpDate(UI.date)) + ' に印刷される項目</div>'
+      + '<div style="font-size:13px;line-height:1.7">'
+        + '<b>日勤：</b>' + esc(dayLb.length ? dayLb.join("・") : "（なし）") + '<br>'
+        + '<b>夜勤：</b>' + esc(niLb.length ? niLb.join("・") : "（なし）")
+      + '</div>'
+    + '</div>'
+    + '<div class="rec2">';
+
+  for(var s=0;s<REC_SHIFTS.length;s++){
+    var sh = REC_SHIFTS[s];
+    h += '<div class="recbox '+sh.k+'"><h4>【'+sh.lb+'】記録項目</h4>';
+    for(var i=0;i<sh.items.length;i++){
+      h += recItemRowHTML(sh.k, sh.items[i], rec[sh.k][sh.items[i].k], dow);
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+
+  /* ---- カスタム項目 ---- */
+  h += '<div class="custbox"><h4>カスタム項目（施設独自の項目）</h4>';
+  if(!rec.custom.length){
+    h += '<div class="custadd hint">まだ登録がありません。「＋カスタム項目追加」で、排便・水分量・尿量・酸素流量・疼痛・吸引・睡眠時間などを自由に追加できます。</div>';
+  }else{
+    for(var c=0;c<rec.custom.length;c++) h += recCustomRowHTML(rec.custom[c], dow);
+  }
+  h += '<div class="custadd">'
+    + '<button class="btn pri" data-a="custAdd">＋カスタム項目追加</button>'
+    + '<span class="hint" style="margin-left:10px">項目名・勤務帯・曜日・単位・入力欄サイズを設定できます（上限 '+MAX_CUSTOM+' 件）。</span>'
+    + '</div></div>';
+
+  document.getElementById("recBody").innerHTML = h;
+}
+
+function wdaysHTML(st, disabled){
+  var h = '<div class="wd'+(disabled?" dim":"")+'">'
+    + '<label class="ev'+(st.every?" sel":"")+'"><input type="checkbox" data-x="every"'+(st.every?" checked":"")+'>毎日</label>';
+  for(var i=0;i<REC_WDAYS.length;i++){
+    var w = REC_WDAYS[i], on = st.days.indexOf(w.d) >= 0;
+    h += '<label class="'+(on?"sel":"")+'"><input type="checkbox" data-x="wd" data-d="'+w.d+'"'
+       + (on?" checked":"") + (st.every?" disabled":"") + '>'+w.lb+'</label>';
+  }
+  return h + '</div>';
+}
+
+function daysOnlyHTML(st, disabled, title){
+  var h = '<div class="wd'+(disabled?' dim':'')+'"><span class="wdtitle">'+esc(title)+'：</span>';
+  for(var i=0;i<REC_WDAYS.length;i++){
+    var w = REC_WDAYS[i], on = st.days.indexOf(w.d) >= 0;
+    h += '<label class="'+(on?'sel':'')+'"><input type="checkbox" data-x="wd" data-d="'+w.d+'"'
+       + (on?' checked':'') + '>'+w.lb+'</label>';
+  }
+  return h + '</div>';
+}
+
+function recItemRowHTML(shift, def, st, dow){
+  var act = itemActive(st, def.g === "nextMorningBS" ? nextDowOf(UI.date) : dow);
+  var h = '<div class="ri'+(st.on?"":" off")+'" data-shift="'+shift+'" data-k="'+def.k+'">'
+    + '<label class="sw"><input type="checkbox" data-x="on"'+(st.on?" checked":"")+'>'
+      + esc(def.lb) + (def.unit ? '<span style="font-weight:400">（'+esc(def.unit)+'）</span>' : '')
+    + '</label>';
+  if(def.noWd){
+    h += '<div class="wd"><span class="hint">毎日表示</span></div>';
+  }else if(def.daysOnly){
+    h += daysOnlyHTML(st, !st.on, def.daysTitle);
+  }else{
+    h += wdaysHTML(st, !st.on);
+  }
+  if(act) h += '<span class="todaymark">この日は表示</span>';
+  return h + '</div>';
+}
+
+function recCustomRowHTML(c, dow){
+  var shOpts = "", szOpts = "";
+  for(var i=0;i<CUST_SHIFTS.length;i++){
+    shOpts += '<option value="'+CUST_SHIFTS[i].k+'"'+(CUST_SHIFTS[i].k===c.shift?" selected":"")+'>'+CUST_SHIFTS[i].lb+'</option>';
+  }
+  for(var j=0;j<CUST_SIZES.length;j++){
+    szOpts += '<option value="'+CUST_SIZES[j].k+'"'+(CUST_SIZES[j].k===c.size?" selected":"")+'>入力欄'+CUST_SIZES[j].lb+'</option>';
+  }
+  var act = !!c.name.trim() && itemActive(c, dow);
+  return '<div class="cust'+(c.on?"":" off")+'" data-cid="'+esc(c.id)+'">'
+    + '<div class="l1">'
+      + '<label class="sw" style="min-width:70px"><input type="checkbox" data-x="on"'+(c.on?" checked":"")+'>表示</label>'
+      + '<input class="nm" type="text" data-x="name" value="'+esc(c.name)+'" placeholder="項目名（例）水分量">'
+      + '<select data-x="shift">'+shOpts+'</select>'
+      + '<input class="ut" type="text" data-x="unit" value="'+esc(c.unit)+'" placeholder="単位">'
+      + '<select data-x="size">'+szOpts+'</select>'
+      + '<span class="prev" data-prev>'+esc(custPreview(c))+'</span>'
+      + (act ? '<span class="todaymark">この日は表示</span>' : '')
+      + '<span style="flex:1"></span>'
+      + '<button class="btn sm danger" data-a="custDel">削除</button>'
+    + '</div>'
+    + '<div class="l2">' + wdaysHTML(c, !c.on) + '</div>'
+  + '</div>';
+}
+function custPreview(c){
+  return (c.name.trim() || "項目名") + "（　　　）" + (c.unit || "");
+}
+
+/* 設定変更の保存（設定パネル内の操作はすべてここを通る） */
+function recChanged(rerender){
+  saveDB();
+  renderMaster();
+  if(rerender !== false) renderRecModal();
+  if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+}
+
+document.getElementById("recClose").addEventListener("click", closeRecModal);
+document.getElementById("recClose2").addEventListener("click", closeRecModal);
+document.getElementById("recModal").addEventListener("click", function(e){
+  if(e.target === this) closeRecModal();          // 背景クリックで閉じる
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape" && REC_UI.id) closeRecModal();
+});
+
+/* チェックボックス・選択肢の変更 */
+document.getElementById("recBody").addEventListener("change", function(e){
+  var r = recResident(); if(!r) return;
+  var rec = recOf(r);
+  var x = e.target.getAttribute("data-x"); if(!x) return;
+
+  var ri = e.target.closest(".ri");
+  var cu = e.target.closest(".cust");
+  var st = null;
+  if(ri){
+    var shift = ri.getAttribute("data-shift"), key = ri.getAttribute("data-k");
+    st = rec[shift] && rec[shift][key];
+  }else if(cu){
+    var cid = cu.getAttribute("data-cid");
+    for(var i=0;i<rec.custom.length;i++){ if(rec.custom[i].id === cid){ st = rec.custom[i]; break; } }
+  }
+  if(!st) return;
+
+  if(x === "on")    st.on = e.target.checked;
+  if(x === "every"){
+    st.every = e.target.checked;
+    if(!st.every && !st.days.length) st.days = [];   // 曜日は利用者が選ぶまで空のまま
+  }
+  if(x === "wd"){
+    var d = parseInt(e.target.getAttribute("data-d"), 10);
+    var at = st.days.indexOf(d);
+    if(e.target.checked){ if(at < 0) st.days.push(d); }
+    else if(at >= 0){ st.days.splice(at, 1); }
+    st.days.sort(function(a,b){ return a-b; });
+    if(st.days.length || (ri && recItemDef(ri.getAttribute("data-shift"), ri.getAttribute("data-k")).daysOnly)) st.every = false;
+  }
+  if(x === "shift") st.shift = (e.target.value === "night" || e.target.value === "both") ? e.target.value : "day";
+  if(x === "size")  st.size  = (e.target.value === "s" || e.target.value === "l") ? e.target.value : "m";
+  recChanged();
+});
+
+/* 項目名・単位の入力（入力中は再描画せず、見本表示だけ更新する） */
+document.getElementById("recBody").addEventListener("input", function(e){
+  var x = e.target.getAttribute("data-x");
+  if(x !== "name" && x !== "unit") return;
+  var r = recResident(); if(!r) return;
+  var cu = e.target.closest(".cust"); if(!cu) return;
+  var cid = cu.getAttribute("data-cid");
+  var rec = recOf(r), c = null;
+  for(var i=0;i<rec.custom.length;i++){ if(rec.custom[i].id === cid){ c = rec.custom[i]; break; } }
+  if(!c) return;
+  c[x] = e.target.value;
+  var pv = cu.querySelector("[data-prev]");
+  if(pv) pv.textContent = custPreview(c);
+  lazySave();
+  renderMaster();
+  if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+});
+
+/* カスタム項目の追加・削除 */
+document.getElementById("recBody").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-a]"); if(!b) return;
+  var r = recResident(); if(!r) return;
+  var rec = recOf(r);
+  var a = b.getAttribute("data-a");
+
+  if(a === "custAdd"){
+    if(rec.custom.length >= MAX_CUSTOM){ toast("カスタム項目は "+MAX_CUSTOM+" 件までです"); return; }
+    rec.custom.push(normCustom({ id:newId(), name:"", shift:"day", unit:"", size:"m", on:true, every:true, days:[] }));
+    recChanged();
+    var boxes = document.querySelectorAll("#recBody .cust");
+    if(boxes.length){
+      var inp = boxes[boxes.length-1].querySelector('[data-x="name"]');
+      if(inp) inp.focus();
+    }
+    return;
+  }
+  if(a === "custDel"){
+    var cu = b.closest(".cust"); if(!cu) return;
+    var cid = cu.getAttribute("data-cid");
+    var c = null;
+    for(var i=0;i<rec.custom.length;i++){ if(rec.custom[i].id === cid){ c = rec.custom[i]; break; } }
+    if(c && c.name.trim() && !confirm("カスタム項目「"+c.name.trim()+"」を削除します。よろしいですか？")) return;
+    rec.custom = rec.custom.filter(function(x){ return x.id !== cid; });
+    recChanged();
+    toast("カスタム項目を削除しました");
+    return;
+  }
+});
+
+/* =========================================================
+   render : 予定一覧
+   ========================================================= */
+function renderSched(){
+  var lb = document.getElementById("sUnitLabel");
+  if(lb) lb.textContent = "Unit " + UI.unit;
+  var host = document.getElementById("schedList");
+  if(!host) return;
+  var showPast = !!(DB.settings && DB.settings.showPastSched);
+  var today = ymd(new Date());
+  var base = (UI.date < today) ? UI.date : today;
+
+  var list = DB.schedules.filter(function(s){
+    var r = residentById(s.residentId);
+    if(!r || r.unit !== UI.unit) return false;
+    if(!showPast && s.date < base) return false;
+    return true;
+  }).sort(sortSched);
+
+  if(!list.length){
+    host.innerHTML = '<p class="hint">' + (showPast ? "この Unit には予定が登録されていません。"
+      : "今後の予定はありません。過去の予定を見るには上のチェックを入れてください。") + '</p>';
+    return;
+  }
+  var h = "";
+  for(var i=0;i<list.length;i++){
+    var s = list[i], r = residentById(s.residentId);
+    var fam = schedFamily(s);
+    h += '<div class="sched-row' + (s.date === today ? " today" : "") + '" data-sid="' + s.id + '">'
+      + '<div class="d">' + esc(jpDate(s.date)) + '</div>'
+      + '<div class="body">'
+        + '<div class="who">' + esc(r.room) + '　' + esc(r.name || "（無名）")
+        + (r.status === "empty" ? '　<span class="pill out">空床</span>' : '') + '</div>'
+        + '<div class="det">' + esc(schedBody(s) || "（内容未入力）") + (fam ? '　' + esc(fam) : '')
+        + (s.note && s.note !== s.title ? '　<span style="color:#8794a1">' + esc(s.note) + '</span>' : '') + '</div>'
+      + '</div>'
+      + '<div><button class="btn sm" data-a="schedEditRow">編集</button></div>'
+      + '</div>'
+      + '<div class="sched-form" data-sform-row="' + s.id + '"></div>';
+  }
+  host.innerHTML = h;
+}
+
+/* =========================================================
+   render : 印刷用紙
+   ========================================================= */
+/* --- 指定入居者・指定勤務帯・指定日に「実際に印刷する項目」だけを組み立てる ---
+   OFF の項目／その日の曜日に該当しない項目は要素自体を出力しない
+   （項目名も記入線も空白スペースも残さず、残った項目が自動的に詰まる） */
+function shiftFieldsHTML(rec, shift, date){
+  var defs = (shift === "night") ? REC_NIGHT_ITEMS : REC_DAY_ITEMS;
+  var map  = rec[shift] || {};
+  var vit = [], meals = [], hrs = [], others = [], hasMemo = false;
+  var target = "";
+
+  for(var i=0;i<defs.length;i++){
+    var d = defs[i];
+    if(!itemActiveOnDate(map[d.k], d, date)) continue;
+    if(d.g === "vit")       vit.push('<span class="it"><i>'+esc(d.lb)+'</i>：<u></u></span>');
+    else if(d.g === "meal") meals.push('<span class="p sz-m"><em>'+esc(d.em)+'</em>（<u></u>）</span>');
+    else if(d.g === "hr")   hrs.push('<span class="p sz-m"><em>'+esc(d.em)+'</em>（<u></u>）</span>');
+    else if(d.g === "paren") others.push(parenHTML(d.printLb || d.lb, d.unit || "", "m"));
+    else if(d.g === "targetBS") target = targetBSHTML();
+    else if(d.g === "nextMorningBS") others.push(parenHTML("翌朝BS（"+wdLabel(nextDowOf(date))+"）", "", "m"));
+    else if(d.g === "memo") hasMemo = true;
+  }
+  /* カスタム項目（施設独自の項目） */
+  var cus = rec.custom || [];
+  for(var c=0;c<cus.length;c++){
+    var cc = cus[c];
+    if(!cc.name || !cc.name.trim()) continue;
+    if(cc.shift !== shift && cc.shift !== "both") continue;
+    if(!itemActive(cc, dowOf(date))) continue;
+    others.push(parenHTML(cc.name.trim(), cc.unit || "", cc.size || "m"));
+  }
+
+  var h = "";
+  if(vit.length) h += '<div class="vit fl">' + vit.join("") + '</div>';
+  var mid = "";
+  if(meals.length) mid += '<b>食事</b>' + meals.join("");
+  if(hrs.length)   mid += '<b>Hr</b>'  + hrs.join("");
+  if(others.length) mid += others.join("");
+  if(mid) h += '<div class="eat fl">' + mid + '</div>';
+  if(target) h += target;
+  if(hasMemo) h += '<div class="memo fl"><b>メモ</b><u></u></div>';
+  return h;
+}
+function targetBSHTML(){
+  var slots = "";
+  for(var i=1;i<=3;i++) slots += '<span class="slot"><em>'+i+'</em>（<u></u>）</span>';
+  return '<div class="target-bs fl"><b>BSターゲス</b>'+slots+'</div>';
+}
+/* 「BS（　　）」「BW（　　）kg」「水分量（　　）ml」の共通形 */
+function parenHTML(label, unit, size){
+  return '<span class="p sz-'+esc(size||"m")+'"><b>'+esc(label)+'</b>（<u></u>）'
+       + (unit ? '<em class="un">'+esc(unit)+'</em>' : '') + '</span>';
+}
+
+/* 1人分＝横1行の3列
+   左：部屋番号・入居者名 → 常設重要メモ → 本日の申し送り／中央：日勤／右：夜勤
+   中央・右に出す項目は、その入居者の設定と対象日の曜日で決まる */
+function rowHTML(r, date){
+  var info;
+  if(r){
+    var perm = (r.permShort && r.permShort.trim()) ? r.permShort.trim() : shortenPerm(r.permRaw);
+    var d = dailyGet(date, r.id);
+    var today = (d.short && d.short.trim()) ? d.short.trim() : "";
+    info = '<div class="nm">'+(r.room?'<span class="rm">'+esc(r.room)+'</span>':'')+esc(r.name)+'</div>';
+    if(perm)  info += '<div class="imp"><b>重要：</b>'+esc(perm)+'</div>';   // 常設重要メモは毎日表示
+    if(today) info += '<div class="today"><b>本日：</b>'+esc(today)+'</div>'; // 未入力なら「本日：」自体を出さない
+  }else{
+    info = '<div class="nm">&nbsp;</div>';   // 予備行（手書き用の空欄）
+  }
+  var rec = r ? recOf(r) : defaultRec();     // 予備行は標準の記入欄を出す
+  return '<div class="prow">'
+    + '<div class="pc p-info">'+info+'<span class="ovwarn">⚠要確認</span></div>'
+    + '<div class="pc p-day">'+shiftFieldsHTML(rec, "day", date)+'</div>'
+    + '<div class="pc p-ni">'+shiftFieldsHTML(rec, "night", date)+'</div>'
+    + '</div>';
+}
+
+function schedBoxHTML(unit, date){
+  var list = schedOfUnitDate(unit, date, !DB.settings.hideEmpty);
+  if(!list.length) return "";                       // 予定なしの日は欄自体を出さない
+  var items = "";
+  for(var i=0;i<list.length;i++){
+    var s = list[i], r = residentById(s.residentId);
+    if(!r) continue;
+    var fam = schedFamily(s);
+    items += '<span class="it"><b>' + esc(r.room) + ' ' + esc(r.name) + '</b>　'
+           + esc(schedBody(s)) + (fam ? '<span class="fam">' + esc(fam) + '</span>' : '')
+           + '</span>';
+  }
+  if(!items) return "";
+  return '<div class="sched-box"><div class="hd">【本日の予定】</div>' + items + '</div>';
+}
+
+/* ページ見出し用のラベル（例：Unit 2　1/2　1〜15名） */
+function pageRangeLabel(startIdx, count){
+  return count ? (startIdx+1) + '〜' + (startIdx+count) + '名' : '予備ページ';
+}
+function pageTitle(unit, pageNo, pageTotal){
+  return 'Unit ' + unit + (pageTotal > 1 ? '　' + pageNo + '/' + pageTotal : '');
+}
+
+function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, withSched){
+  var rows = "";
+  var n = Math.max(people.length, MIN_SLOTS);
+  if(n > PER_PAGE) n = PER_PAGE;
+  for(var i=0;i<n;i++) rows += rowHTML(people[i]||null, date);
+
+  return '<div class="sheet">'
+    + '<div class="sh-head">'
+      + '<div class="u">'+pageTitle(unit, pageNo, pageTotal)+'<small>（'+pageRangeLabel(startIdx, people.length)+'）</small></div>'
+      + '<div class="d">'+esc(jpDate(date))+'</div>'
+      + '<div class="sig">日勤<span></span>夜勤<span></span></div>'
+    + '</div>'
+    + (withSched ? schedBoxHTML(unit, date) : "")   // 本日の予定は各Unitの表面（1ページ目）のみ
+    + '<div class="rows">'
+      + '<div class="rhead">'
+        + '<div class="pc">部屋・入居者／重要・本日</div>'
+        + '<div class="pc p-day">【日勤】</div>'
+        + '<div class="pc p-ni">【夜勤】</div>'
+      + '</div>'
+      + rows
+    + '</div>'
+    + '<div class="sh-foot">'
+      + '<div class="l">'+pageTitle(unit, pageNo, pageTotal)+'</div>'
+      + '<div class="c">申し送り・勤務記録</div>'
+      + '<div class="l">'+pageNo+' / '+pageTotal+'</div>'
+    + '</div>'
+  + '</div>';
+}
+
+function renderPrint(){
+  var units = DB.settings.allUnits ? UNITS.slice() : [UI.unit];
+  // 複数Unitは面ズレ防止のため各Unitのページ数を偶数にそろえる（同じUnitの続きが裏面に来る）
+  var evenPages = DB.settings.alwaysBack || units.length > 1;
+  var html = "";
+  for(var i=0;i<units.length;i++){
+    var u = units[i];
+    var list = printableOf(u);
+    var pages = [];
+    for(var p=0; p<list.length; p+=PER_PAGE) pages.push(list.slice(p, p+PER_PAGE));
+    if(!pages.length) pages.push([]);
+    if(evenPages && pages.length % 2 === 1) pages.push([]);
+    var total = pages.length;
+
+    for(var q=0; q<total; q++){
+      var start = q * PER_PAGE;
+      var lbl = pageTitle(u, q+1, total) + '　' + pageRangeLabel(start, pages[q].length);
+      html += '<div class="sheetWrap"><div class="pv-label">'+lbl+'</div>'
+            + '<div class="sheetScale">' + sheetHTML(u, pages[q], start, q+1, total, UI.date, q===0) + '</div></div>';
+    }
+  }
+  if(!html) html = '<div class="panel"><p class="hint">印刷対象の入居者がいません。</p></div>';
+  document.getElementById("printArea").innerHTML = html;
+
+  // 最終シートのみ改ページなし
+  var sheets = document.querySelectorAll("#printArea .sheet");
+  for(var s=0;s<sheets.length;s++) sheets[s].classList.remove("last");
+  if(sheets.length) sheets[sheets.length-1].classList.add("last");
+}
+
+/* 印刷欄からはみ出す入居者を実測で検知（段階縮小 → それでも超える場合は警告） */
+function markOverflow(){
+  var host = document.getElementById("printArea");
+  if(!host) return;
+  var rowsList = host.querySelectorAll(".prow");
+  var list = [], itemWarn = [];
+  for(var i=0;i<rowsList.length;i++){
+    var row = rowsList[i];
+    var c = row.querySelector(".p-info");
+    row.classList.remove("dense","dense2","over");
+    row._itemOver = false;
+
+    /* 記録項目が多い場合：まず段階的に縮小して収める。
+       それでも収まらないときは項目を勝手に削らず、プレビュー上で警告を出す */
+    var cells = [row.querySelector(".p-day"), row.querySelector(".p-ni")];
+    for(var ci=0; ci<cells.length; ci++){
+      var cell = cells[ci];
+      if(!cell) continue;
+      cell.classList.remove("fdense","fdense2");
+      if(!cell.clientHeight) continue;
+      if(cell.scrollHeight > cell.clientHeight + 1) cell.classList.add("fdense");
+      if(cell.scrollHeight > cell.clientHeight + 1){ cell.classList.remove("fdense"); cell.classList.add("fdense2"); }
+      if(cell.scrollHeight > cell.clientHeight + 1) row._itemOver = true;
+    }
+    if(row._itemOver){
+      row.classList.add("over");
+      itemWarn.push(rowLabel(row));
+    }
+
+    if(!c || !c.clientHeight) continue;
+    if(c.scrollHeight > c.clientHeight + 1) row.classList.add("dense");
+    if(c.scrollHeight > c.clientHeight + 1){ row.classList.remove("dense"); row.classList.add("dense2"); }
+    if(c.scrollHeight > c.clientHeight + 1){
+      row.classList.add("over");
+      list.push(rowLabel(row));
+    }
+  }
+  /* 本日の予定が多い日は行の高さが削られる。日勤／夜勤欄（文字量が固定の欄）が
+     実際に欠け始めたら、情報は削らずに警告だけを出す */
+  var schedWarn = [];
+  var boxes = host.querySelectorAll(".sched-box");
+  for(var s2=0;s2<boxes.length;s2++){
+    var bx = boxes[s2];
+    var shx = bx.closest ? bx.closest(".sheet") : null;
+    if(!shx) continue;
+    var cells2 = shx.querySelectorAll(".prow .p-day, .prow .p-ni");
+    var tight = false;
+    for(var c2=0;c2<cells2.length;c2++){
+      var pr = cells2[c2].parentNode;
+      if(pr && pr._itemOver) continue;            // 記録項目が多い行は別の警告で知らせる
+      if(cells2[c2].scrollHeight > cells2[c2].clientHeight + 1){ tight = true; break; }
+    }
+    if(tight){
+      var lbx = shx.querySelector(".sh-foot .l");
+      schedWarn.push(lbx ? lbx.textContent.trim() : "");
+    }
+  }
+  renderOvList(list, schedWarn, itemWarn);
+}
+/* 警告一覧に出す「Unit 2　201 高橋 和子」形式のラベル */
+function rowLabel(row){
+  var nm = row.querySelector(".p-info .nm");
+  var sh = row.closest ? row.closest(".sheet") : null;
+  var lb = sh ? sh.querySelector(".sh-head .u") : null;
+  var name = nm ? nm.textContent.replace(/\s+/g," ").trim() : "";
+  return (lb ? lb.textContent.trim() : "") + "　" + (name || "（予備行）");
+}
+function renderOvList(list, schedWarn, itemWarn){
+  var el = document.getElementById("ovList");
+  if(!el) return;
+  var h = "";
+  if(list.length){
+    h += '⚠ 要確認：印刷欄に収まらない可能性があります。内容を確認してください<ul>';
+    for(var i=0;i<list.length;i++) h += '<li>' + esc(list[i]) + '</li>';
+    h += '</ul>';
+  }
+  if(itemWarn && itemWarn.length){
+    h += '⚠ 記録項目が多いため印刷欄を確認してください（項目は削っていません。記録項目設定で不要な項目を OFF にするか、曜日を絞ってください）<ul>';
+    for(var k=0;k<itemWarn.length;k++) h += '<li>' + esc(itemWarn[k]) + '</li>';
+    h += '</ul>';
+  }
+  if(schedWarn && schedWarn.length){
+    h += '⚠ 本日の予定が多く、15 名分の行の高さが不足しています（内容は削っていません。予定欄の記載を短くするか、用紙を分けてください）<ul>';
+    for(var j=0;j<schedWarn.length;j++) h += '<li>' + esc(schedWarn[j]) + '</li>';
+    h += '</ul>';
+  }
+  if(!h) h = '<span class="none">✓ 文字量超過はありません（全員が印刷欄に収まります）</span>';
+  el.innerHTML = h;
+}
+
+/* プレビューを画面幅に合わせて縮小表示（印刷時は等倍） */
+function fitPreview(){
+  var host = document.getElementById("printArea");
+  if(!host) return;
+  var avail = host.clientWidth || 900;
+  var mm = 96/25.4;
+  var sheetW = 285*mm, sheetH = 197*mm;   // A4 横
+  var sc = Math.min(1, avail/sheetW);
+  document.documentElement.style.setProperty("--sc", sc);
+  var wraps = host.querySelectorAll(".sheetWrap");
+  for(var i=0;i<wraps.length;i++){
+    var sc2 = wraps[i].querySelector(".sheetScale");
+    if(sc2) sc2.style.height = (sheetH*sc + 4) + "px";
+  }
+  markOverflow();
+}
+
+/* =========================================================
+   render all
+   ========================================================= */
+function renderDateBar(){
+  var el = document.getElementById("dateLabel");
+  var fg = document.getElementById("dateFlag");
+  if(el) el.textContent = jpDate(UI.date);
+  if(fg){
+    var today = ymd(new Date());
+    fg.className = "dateflag";
+    if(UI.date < today){ fg.textContent = "過去日の記録を表示中"; fg.classList.add("on"); }
+    else if(UI.date > today){ fg.textContent = "先の日付を表示中"; fg.classList.add("on","future"); }
+    else fg.textContent = "";
+  }
+  var dl = document.getElementById("copyDstLabel");
+  if(dl) dl.textContent = jpDate(UI.date);
+  var ul = document.getElementById("copyUnitLabel");
+  if(ul) ul.textContent = "Unit " + UI.unit + " の入居者";
+}
+
+function renderAll(){
+  renderDateBar();
+  renderUnitBar();
+  renderInput();
+  renderMaster();
+  renderSched();
+  if(UI.tab==="print"){ renderPrint(); fitPreview(); }
+}
+
+/* =========================================================
+   events
+   ========================================================= */
+document.querySelector(".tabs").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-tab]"); if(!b) return;
+  switchTab(b.getAttribute("data-tab"));
+});
+
+document.getElementById("unitBar").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-unit]"); if(!b) return;
+  UI.unit = parseInt(b.getAttribute("data-unit"),10);
+  renderAll();
+});
+
+/* 対象日を変更する（常設重要メモは日付に依存せず、日次データだけ切り替わる） */
+function setDate(d){
+  if(!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) d = ymd(new Date());
+  UI.date = d;
+  var di = document.getElementById("theDate");
+  if(di) di.value = UI.date;
+  renderDateBar();
+  renderInput();
+  renderSched();
+  if(REC_UI.id) renderRecModal();   // 設定パネルの「この日は表示」も対象日に追従させる
+  if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+}
+document.getElementById("theDate").addEventListener("change", function(){ setDate(this.value); });
+document.getElementById("btnPrevDay").addEventListener("click", function(){ setDate(shiftDate(UI.date, -1)); });
+document.getElementById("btnNextDay").addEventListener("click", function(){ setDate(shiftDate(UI.date,  1)); });
+document.getElementById("btnToday").addEventListener("click", function(){ setDate(ymd(new Date())); });
+
+/* ---- 申し送り入力：入力・ボタン ---- */
+var saveTimer = null;
+function lazySave(){ setSave("busy"); clearTimeout(saveTimer); saveTimer = setTimeout(saveDB, 250); }
+
+document.getElementById("inputList").addEventListener("input", function(e){
+  var card = e.target.closest(".card"); if(!card) return;
+  var id = card.getAttribute("data-id");
+  var f = e.target.getAttribute("data-f"); if(!f) return;
+  var r = DB.residents.filter(function(x){ return x.id===id; })[0]; if(!r) return;
+
+  if(f==="room"||f==="name"||f==="permRaw"||f==="permShort"){
+    r[f] = e.target.value;
+  }else if(f==="todayRaw"){
+    dailyOf(UI.date, id).raw = e.target.value;
+  }else if(f==="todayShort"){
+    dailyOf(UI.date, id).short = e.target.value;
+  }
+  updWarns(card);
+  lazySave();
+});
+
+document.getElementById("inputList").addEventListener("change", function(e){
+  if(e.target.getAttribute("data-f") !== "empty") return;
+  var card = e.target.closest(".card");
+  var id = card.getAttribute("data-id");
+  var r = DB.residents.filter(function(x){ return x.id===id; })[0]; if(!r) return;
+  r.status = e.target.checked ? "empty" : "in";
+  card.classList.toggle("empty", e.target.checked);
+  saveDB(); renderUnitBar(); renderMaster();
+});
+
+document.getElementById("inputList").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-a]"); if(!b) return;
+  var card = b.closest(".card"); var id = card.getAttribute("data-id");
+  var r = DB.residents.filter(function(x){ return x.id===id; })[0]; if(!r) return;
+  var a = b.getAttribute("data-a");
+
+  if(a==="recOpen"){ openRecModal(id); return; }   // 記録項目設定パネルを開く
+  if(a==="permShort"){
+    var s = shortenPerm(r.permRaw);
+    r.permShort = s;
+    card.querySelector('[data-f="permShort"]').value = s;
+    updWarns(card); saveDB(); renderMaster();
+    toast(s ? "常設重要メモを簡潔化しました" : "入力がありません");
+  }
+  if(a==="todayShort"){
+    var d = dailyOf(UI.date, id);
+    var t = shortenToday(d.raw);
+    d.short = t;
+    card.querySelector('[data-f="todayShort"]').value = t;
+    updWarns(card); saveDB();
+    toast(t ? "本日の申し送りを作成しました（内容を確認して必要なら手直ししてください）" : "「今日あったこと」が未入力です");
+  }
+  if(a==="copyPrev"){
+    copyOneFrom(id, prevDate(UI.date));
+    return;
+  }
+
+  /* ---- 予定：追加フォームを開く ---- */
+  if(a==="schedAdd"){
+    var box = card.querySelector("[data-sform]");
+    box.removeAttribute("data-sid");
+    box.innerHTML = schedFormHTML({ date:UI.date }, "new");
+    box.classList.add("on");
+    card.querySelector("[data-cand]").innerHTML = "";
+    return;
+  }
+
+  /* ---- 予定：既存予定の編集 ---- */
+  if(a==="schedEdit"){
+    var chip = b.closest(".sched-chip");
+    var sid = chip.getAttribute("data-sid");
+    var sc = DB.schedules.filter(function(x){ return x.id === sid; })[0];
+    if(!sc) return;
+    var box2 = card.querySelector("[data-sform]");
+    box2.setAttribute("data-sid", sid);
+    box2.innerHTML = schedFormHTML(sc, "edit");
+    box2.classList.add("on");
+    return;
+  }
+
+  /* ---- 予定：保存（新規・編集） ---- */
+  if(a==="schedSave"){
+    var host = b.closest("[data-sform], [data-cand-item]");
+    if(!host) return;
+    var v = readSchedForm(host);
+    if(!v.date){ toast("日付を入力してください"); return; }
+    if(!v.kind && !v.title && !v.place && !v.note){ toast("予定の内容を入力してください"); return; }
+    var sid2 = host.getAttribute("data-sid");
+    if(sid2){
+      var t2 = DB.schedules.filter(function(x){ return x.id === sid2; })[0];
+      if(t2){ for(var kk in v) t2[kk] = v[kk]; t2.unit = r.unit; }
+    }else{
+      DB.schedules.push({
+        id:newId(), residentId:r.id, unit:r.unit,
+        date:v.date, kind:v.kind, start:v.start, end:v.end, title:v.title,
+        place:v.place, dept:v.dept, family:v.family, note:v.note
+      });
+    }
+    saveSchedules(); renderInput(); renderSched();
+    if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+    toast("✓ 予定保存済み（" + jpDate(v.date) + "）");
+    return;
+  }
+
+  if(a==="schedDelete"){
+    var host2 = b.closest("[data-sform]");
+    var sid3 = host2 ? host2.getAttribute("data-sid") : null;
+    if(!sid3) return;
+    if(!confirm("この予定を削除します。よろしいですか？")) return;
+    DB.schedules = DB.schedules.filter(function(x){ return x.id !== sid3; });
+    saveSchedules(); renderInput(); renderSched();
+    if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+    toast("予定を削除しました");
+    return;
+  }
+
+  if(a==="schedCancel"){
+    var hostC = b.closest("[data-sform], [data-cand-item]");
+    if(hostC && hostC.hasAttribute("data-cand-item")) hostC.parentNode.removeChild(hostC);
+    else if(hostC){ hostC.classList.remove("on"); hostC.innerHTML = ""; }
+    return;
+  }
+
+  /* ---- 予定：今日あったことから候補を抽出（自動確定はしない） ---- */
+  if(a==="schedExtract"){
+    var raw = card.querySelector('[data-f="todayRaw"]').value;
+    var cands = extractSchedules(raw, UI.date);
+    var cbox = card.querySelector("[data-cand]");
+    if(!cands.length){
+      cbox.innerHTML = '<div class="cand"><div class="ttl">予定として抽出できる日付が見つかりませんでした</div>'
+        + '<span class="hint">例）8/13 外出 9:00〜16:00 のように日付を含めて入力してください</span></div>';
+      return;
+    }
+    var ch = "";
+    for(var ci=0; ci<cands.length; ci++){
+      ch += '<div class="cand" data-cand-item>'
+          + '<div class="ttl">予定の候補です。内容を確認してから「予定に登録」を押してください（自動では保存されません）</div>'
+          + schedFormHTML(cands[ci], "cand")
+          + '</div>';
+    }
+    cbox.innerHTML = ch;
+    return;
+  }
+  if(a==="todayClear"){
+    var d2 = dailyOf(UI.date, id);
+    d2.raw = ""; d2.short = "";
+    card.querySelector('[data-f="todayRaw"]').value = "";
+    card.querySelector('[data-f="todayShort"]').value = "";
+    saveDB(); toast("本日分を消去しました");
+  }
+});
+
+document.getElementById("btnMakeAll").addEventListener("click", function(){
+  var list = residentsOf(UI.unit), n=0;
+  for(var i=0;i<list.length;i++){
+    var d = dailyOf(UI.date, list[i].id);
+    if(d.raw && d.raw.trim() && !(d.short && d.short.trim())){
+      d.short = shortenToday(d.raw); n++;
+    }
+  }
+  saveDB(); renderInput();
+  toast(n ? n+"名分の申し送りを作成しました" : "作成対象がありませんでした");
+});
+
+document.getElementById("btnShortAll").addEventListener("click", function(){
+  var list = residentsOf(UI.unit), n=0;
+  for(var i=0;i<list.length;i++){
+    var r = list[i];
+    if(r.permRaw && r.permRaw.trim() && !(r.permShort && r.permShort.trim())){
+      r.permShort = shortenPerm(r.permRaw); n++;
+    }
+  }
+  saveDB(); renderInput(); renderMaster();
+  toast(n ? n+"名分を簡潔化しました" : "対象がありませんでした");
+});
+
+/* =========================================================
+   日次申し送りのコピー
+   - コピー対象は「今日あったこと」「本日の申し送り」だけ
+   - 常設重要メモ / 入居者名 / 部屋番号 / Unit / 並び順 / 空床は変更しない
+   - 空床の人にはコピーしない
+   - 初期動作はコピー先が未入力の人だけ（勝手に上書きしない）
+   ========================================================= */
+function hasDaily(date, id){
+  var e = (DB.daily[date] && DB.daily[date][id]) || null;
+  return !!(e && ((e.raw && e.raw.trim()) || (e.short && e.short.trim())));
+}
+function overwriteMode(){
+  var el = document.querySelector('input[name="ovw"]:checked');
+  return el ? el.value : "skip";
+}
+/* 文字列としてコピーするので、コピー元とは完全に別データになる */
+function copyEntry(src, dst, id){
+  var e = DB.daily[src][id];
+  var t = dailyOf(dst, id);
+  t.raw   = String(e.raw   || "");
+  t.short = String(e.short || "");
+  t.copiedFrom = src;
+}
+
+function copyDayToCurrent(srcDate, mode){
+  if(!srcDate){ toast("コピー元の日付を指定してください"); return; }
+  if(srcDate === UI.date){ toast("コピー元とコピー先が同じ日付です"); return; }
+  if(!DB.daily[srcDate]){ toast(jpDate(srcDate) + " には申し送りがありません"); return; }
+
+  var list = residentsOf(UI.unit).filter(function(r){ return r.status !== "empty"; }); // 空床は除外
+  var targets = list.filter(function(r){ return hasDaily(srcDate, r.id); });           // 入力がある人だけ
+  if(!targets.length){
+    toast(jpDate(srcDate) + " の Unit " + UI.unit + " には、コピーできる申し送りがありません");
+    return;
+  }
+  if(!confirm(jpDate(srcDate) + " の Unit " + UI.unit + " の申し送りを、"
+            + jpDate(UI.date) + " へコピーしますか？\n\n対象 " + targets.length + " 名"
+            + (mode === "ask" ? "\n※ すでに入力がある人は 1 人ずつ確認します"
+                              : "\n※ コピー先が未入力の人だけコピーします（既存の入力は消しません）"))) return;
+
+  var copied = 0, skipped = [];
+  for(var i=0;i<targets.length;i++){
+    var r = targets[i];
+    if(hasDaily(UI.date, r.id)){
+      if(mode === "ask"){
+        if(!confirm((r.name || "（無名）") + " は " + jpDate(UI.date)
+                  + " に既に入力があります。上書きしますか？")){ skipped.push(r.name); continue; }
+      }else{
+        skipped.push(r.name); continue;
+      }
+    }
+    copyEntry(srcDate, UI.date, r.id);
+    copied++;
+  }
+  saveDB(); renderInput();
+  if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+  toast(copied + " 名をコピーしました" + (skipped.length ? "／既に入力があった " + skipped.length + " 名はそのまま" : ""));
+}
+
+function copyOneFrom(residentId, srcDate){
+  var r = DB.residents.filter(function(x){ return x.id === residentId; })[0];
+  if(!r) return;
+  if(r.status === "empty"){ toast("空床の入居者にはコピーしません"); return; }
+  if(srcDate === UI.date){ toast("コピー元とコピー先が同じ日付です"); return; }
+  if(!hasDaily(srcDate, residentId)){
+    toast(jpDate(srcDate) + " の " + (r.name || "この入居者") + " には申し送りがありません");
+    return;
+  }
+  var over = hasDaily(UI.date, residentId);
+  var msg = jpDate(srcDate) + " の " + (r.name || "この入居者") + " の申し送りを、"
+          + jpDate(UI.date) + " へコピーしますか？";
+  if(over) msg += "\n\n※ " + jpDate(UI.date) + " には既に入力があります。上書きされます。";
+  if(!confirm(msg)) return;
+  copyEntry(srcDate, UI.date, residentId);
+  saveDB(); renderInput();
+  toast("コピーしました。内容を確認してください");
+}
+
+document.getElementById("btnCopyPrev").addEventListener("click", function(){
+  copyDayToCurrent(prevDate(UI.date), "skip");
+});
+document.getElementById("btnCopyOther").addEventListener("click", function(){
+  var pn = document.getElementById("copyPanel");
+  pn.classList.toggle("on");
+  if(pn.classList.contains("on")){
+    var si = document.getElementById("copySrc");
+    if(!si.value) si.value = prevDate(UI.date);
+    renderDateBar();
+  }
+});
+document.getElementById("btnCopyClose").addEventListener("click", function(){
+  document.getElementById("copyPanel").classList.remove("on");
+});
+document.getElementById("btnCopyRun").addEventListener("click", function(){
+  copyDayToCurrent(document.getElementById("copySrc").value, overwriteMode());
+});
+
+/* ---- 入居者マスター ---- */
+document.getElementById("btnAdd").addEventListener("click", function(){
+  var list = residentsOf(UI.unit);
+  if(list.length >= MAX_UNIT){ toast("1 Unit の上限は "+MAX_UNIT+" 名です"); return; }
+  DB.residents.push({
+    id:newId(), unit:UI.unit, room:"", name:"", order:(list.length?Math.max.apply(null,list.map(function(r){return r.order||0;}))+1:0),
+    status:"in", permRaw:"", permShort:"", rec:defaultRec()
+  });
+  saveDB(); renderAll();
+  var rows = document.querySelectorAll("#masterBody tr");
+  if(rows.length){ var inp = rows[rows.length-1].querySelector('[data-f="room"]'); if(inp) inp.focus(); }
+});
+
+document.getElementById("btnSortRoom").addEventListener("click", function(){
+  var list = residentsOf(UI.unit);
+  list.sort(function(a,b){
+    var na = parseInt(String(a.room).replace(/[^0-9]/g,""),10);
+    var nb = parseInt(String(b.room).replace(/[^0-9]/g,""),10);
+    if(isNaN(na)&&isNaN(nb)) return String(a.room).localeCompare(String(b.room));
+    if(isNaN(na)) return 1;
+    if(isNaN(nb)) return -1;
+    if(na!==nb) return na-nb;
+    return String(a.room).localeCompare(String(b.room));
+  });
+  for(var i=0;i<list.length;i++) list[i].order = i;
+  saveDB(); renderAll(); toast("部屋番号順に並べ替えました");
+});
+
+document.getElementById("masterBody").addEventListener("input", function(e){
+  var tr = e.target.closest("tr"); if(!tr) return;
+  var f = e.target.getAttribute("data-f"); if(!f) return;
+  var r = DB.residents.filter(function(x){ return x.id===tr.getAttribute("data-id"); })[0];
+  if(!r) return;
+  r[f] = e.target.value;
+  lazySave();
+});
+
+document.getElementById("masterBody").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-a]"); if(!b) return;
+  var tr = b.closest("tr"); var id = tr.getAttribute("data-id");
+  var list = residentsOf(UI.unit);
+  var idx = -1;
+  for(var i=0;i<list.length;i++) if(list[i].id===id) idx=i;
+  if(idx<0) return;
+  var a = b.getAttribute("data-a");
+
+  if(a==="rec"){ openRecModal(id); return; }      // 記録項目設定パネルを開く
+  if(a==="up" && idx>0){ swapOrder(list, idx, idx-1); }
+  if(a==="down" && idx<list.length-1){ swapOrder(list, idx, idx+1); }
+  if(a==="toggle"){
+    list[idx].status = list[idx].status==="empty" ? "in" : "empty";
+  }
+  if(a==="del"){
+    var nm = list[idx].name || "（無名）";
+    if(!confirm(nm+" を削除します。よろしいですか？\n※この入居者の常設重要メモ・日次データも削除されます。")) return;
+    var delId = list[idx].id;
+    DB.residents = DB.residents.filter(function(x){ return x.id!==delId; });
+    DB.schedules = DB.schedules.filter(function(x){ return x.residentId!==delId; });
+    for(var dk in DB.daily){ if(DB.daily[dk][delId]) delete DB.daily[dk][delId]; }
+  }
+  saveDB(); renderAll();
+});
+
+function swapOrder(list, i, j){
+  var oi = list[i].order, oj = list[j].order;
+  if(oi===oj){ oi=i; oj=j; }
+  list[i].order = oj; list[j].order = oi;
+  for(var k=0;k<list.length;k++){ if(list[k].order==null) list[k].order = k; }
+}
+
+document.getElementById("btnClearDaily").addEventListener("click", function(){
+  if(!confirm(UI.date+" の「今日あったこと・本日の申し送り」を全 Unit 分消去します。\n常設重要メモは残ります。よろしいですか？")) return;
+  delete DB.daily[UI.date];
+  saveDB(); renderAll(); toast("消去しました");
+});
+
+document.getElementById("btnDemo18").addEventListener("click", function(){
+  var exist = residentsOf(3).length;
+  if(exist >= MAX_UNIT){ toast("Unit 3 は既に上限です"); return; }
+  var sei = ["田中","佐藤","鈴木","高橋","伊藤","渡辺","山本","中村","小林","加藤",
+             "吉田","山田","佐々木","山口","松本","井上","木村","林"];
+  var n = 0;
+  for(var i=0;i<18 && exist+n<MAX_UNIT;i++){
+    DB.residents.push({
+      id:newId(), unit:3, room:String(301+i), name:sei[i]+" 花子", order:exist+n,
+      status:"in", permRaw:"", permShort:(i%3===0 ? "転倒注意" : (i%3===1 ? "移乗2人介助" : "食事・水分トロミ")),
+      rec:defaultRec(), demo:true
+    });
+    n++;
+  }
+  saveDB(); UI.unit = 3; renderAll();
+  toast("Unit 3 に "+n+" 名を追加しました（印刷プレビューで A4 横 2 ページを確認できます）");
+});
+
+document.getElementById("btnDemoDel").addEventListener("click", function(){
+  var has = DB.residents.some(function(r){ return r.demo; });
+  if(!has){ toast("サンプルはありません"); return; }
+  if(!confirm("サンプル入居者を削除します。よろしいですか？")) return;
+  DB.residents = DB.residents.filter(function(r){ return !r.demo; });
+  saveDB(); renderAll(); toast("サンプルを削除しました");
+});
+
+/* ---- 予定一覧タブ ---- */
+document.getElementById("optPastSched").addEventListener("change", function(){
+  DB.settings.showPastSched = this.checked;
+  saveDB(); renderSched();
+});
+document.getElementById("schedList").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-a]"); if(!b) return;
+  var a = b.getAttribute("data-a");
+
+  if(a==="schedEditRow"){
+    var row = b.closest(".sched-row");
+    var sid = row.getAttribute("data-sid");
+    var sc = DB.schedules.filter(function(x){ return x.id === sid; })[0];
+    if(!sc) return;
+    var box = document.querySelector('[data-sform-row="' + sid + '"]');
+    if(box.classList.contains("on")){ box.classList.remove("on"); box.innerHTML = ""; return; }
+    box.setAttribute("data-sid", sid);
+    box.innerHTML = schedFormHTML(sc, "edit");
+    box.classList.add("on");
+    return;
+  }
+  var host = b.closest("[data-sform-row]");
+  if(!host) return;
+  var sid2 = host.getAttribute("data-sid");
+  var target = DB.schedules.filter(function(x){ return x.id === sid2; })[0];
+
+  if(a==="schedSave"){
+    if(!target) return;
+    var v = readSchedForm(host);
+    if(!v.date){ toast("日付を入力してください"); return; }
+    for(var kk in v) target[kk] = v[kk];
+    var rr = residentById(target.residentId);
+    if(rr) target.unit = rr.unit;
+    saveSchedules(); renderSched(); renderInput();
+    if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+    toast("✓ 予定保存済み");
+    return;
+  }
+  if(a==="schedDelete"){
+    if(!target) return;
+    if(!confirm("この予定を削除します。よろしいですか？")) return;
+    DB.schedules = DB.schedules.filter(function(x){ return x.id !== sid2; });
+    saveSchedules(); renderSched(); renderInput();
+    if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+    toast("予定を削除しました");
+    return;
+  }
+  if(a==="schedCancel"){ host.classList.remove("on"); host.innerHTML = ""; return; }
+});
+
+/* ---- 印刷 ---- */
+document.getElementById("optAllUnits").addEventListener("change", function(){
+  DB.settings.allUnits = this.checked; saveDB(); renderPrint(); fitPreview();
+});
+document.getElementById("optHideEmpty").addEventListener("change", function(){
+  DB.settings.hideEmpty = this.checked; saveDB(); renderPrint(); fitPreview();
+});
+document.getElementById("optAlwaysBack").addEventListener("change", function(){
+  DB.settings.alwaysBack = this.checked; saveDB(); renderPrint(); fitPreview();
+});
+document.getElementById("optPrintWarn").addEventListener("change", function(){
+  DB.settings.printWarn = this.checked;
+  document.body.classList.toggle("pw", this.checked);
+  saveDB();
+});
+document.getElementById("btnPrint").addEventListener("click", function(){
+  renderPrint();
+  fitPreview();          // 段階縮小（文字量・記録項目）を実測し直してから印刷する
+  setTimeout(function(){ window.print(); }, 60);
+});
+window.addEventListener("beforeprint", function(){ if(UI.tab!=="print") switchTab("print"); });
+window.addEventListener("resize", function(){ if(UI.tab==="print") fitPreview(); });
+
+/* ---- バックアップ（ローカルファイルのみ・通信なし） ---- */
+document.getElementById("btnExport").addEventListener("click", function(){
+  var blob = new Blob([JSON.stringify(DB, null, 2)], {type:"application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = "handover_backup_"+ymd(new Date())+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 500);
+  toast("バックアップを保存しました");
+});
+document.getElementById("btnImport").addEventListener("click", function(){
+  document.getElementById("fileImport").click();
+});
+document.getElementById("fileImport").addEventListener("change", function(e){
+  var f = e.target.files && e.target.files[0]; if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    try{
+      var obj = JSON.parse(fr.result);
+      if(!obj || !obj.residents) throw new Error("format");
+      if(!confirm("現在のデータを、読み込んだバックアップで置き換えます。よろしいですか？")) return;
+      DB = obj;
+      migrate();
+      saveDB(); initUIFromDB(); renderAll(); toast("復元しました");
+    }catch(err){ toast("読み込めませんでした（形式が違います）"); }
+  };
+  fr.readAsText(f);
+  e.target.value = "";
+});
+
+/* =========================================================
+   init
+   ========================================================= */
+window.addEventListener("error", function(ev){
+  var f = document.getElementById("fatal");
+  if(f){ f.textContent = "エラー: " + (ev.message || "不明") + "（この表示が出たままの場合はバックアップ復元をお試しください）"; f.classList.add("on"); }
+});
+
+function initUIFromDB(){
+  document.getElementById("optAllUnits").checked   = !!DB.settings.allUnits;
+  document.getElementById("optHideEmpty").checked  = DB.settings.hideEmpty !== false;
+  document.getElementById("optAlwaysBack").checked = !!DB.settings.alwaysBack;
+  document.getElementById("optPrintWarn").checked  = !!DB.settings.printWarn;
+  document.getElementById("optPastSched").checked  = !!DB.settings.showPastSched;
+  document.body.classList.toggle("pw", !!DB.settings.printWarn);
+}
+loadDB();
+UI.date = ymd(new Date());
+document.getElementById("theDate").value = UI.date;
+initUIFromDB();
+renderAll();
+</script>
+</body>
+</html>
