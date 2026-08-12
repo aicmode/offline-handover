@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>申し送り・勤務記録支援</title>
+<title>申し送りメーカー｜オフライン申し送り・勤務記録支援</title>
 <style>
 :root{
   --ink:#16202a;
@@ -36,7 +36,9 @@ header.top{
 }
 .title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .title h1{font-size:18px;margin:0;letter-spacing:.04em}
+.title .subtitle{font-size:12px;color:var(--sub);font-weight:600}
 .title .badge{font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:1px 6px}
+.title .title-actions{display:flex;gap:6px;margin-left:auto}
 .topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .topbar label{font-size:13px;color:var(--sub)}
 .topbar input[type=date]{padding:5px 8px;border:1px solid var(--line);border-radius:5px}
@@ -408,6 +410,55 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
   border-radius:4px;padding:2px 8px}
 .cust.off{background:#fafbfc}
 .custadd{padding:10px 12px}
+
+/* ---------- 使い方・ヘルプ ---------- */
+.section-title{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.section-title h2{margin:0}
+.help-dot{width:27px;height:27px;padding:0;border-radius:50%;font-weight:800;color:var(--accent);
+  border:1px solid var(--accent2);background:#eef4fb;line-height:1}
+.help-dot:hover{background:#dce9f7}
+.guidebox{max-width:920px}
+.guide-tools{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);
+  padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.guide-tools label{font-weight:800;color:var(--accent)}
+.guide-tools input{flex:1;min-width:220px;padding:8px 10px;border:1px solid var(--line);border-radius:6px}
+.guide-body{padding:14px 18px 24px;max-height:calc(100vh - 150px);overflow:auto;scroll-behavior:smooth}
+.guide-intro{background:#eef4fb;border:1px solid #a9c6e4;border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.guide-intro.doc-section{background:#eef4fb;border-color:#a9c6e4}
+.guide-intro h4{margin:0 0 6px;color:var(--accent);font-size:16px}
+.guide-intro ol{margin:6px 0 0;padding-left:24px;line-height:1.9}
+.guide-toc{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:12px;background:var(--soft)}
+.guide-toc h4{margin:0 0 8px;color:var(--accent)}
+.guide-toc .toc-links{display:flex;gap:6px;flex-wrap:wrap}
+.guide-toc button{border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:16px;padding:5px 10px;font-weight:700}
+.guide-toc button:hover{background:#eef4fb;border-color:var(--accent2)}
+.doc-section{border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:12px;background:#fff}
+.doc-section h4{margin:0 0 8px;color:var(--accent);font-size:16px}
+.doc-section h5{margin:13px 0 5px;font-size:14px}
+.doc-section p{margin:6px 0;line-height:1.75}
+.doc-section ul,.doc-section ol{margin:6px 0;padding-left:24px;line-height:1.8}
+.doc-section code{font-family:inherit;background:var(--soft);border-radius:3px;padding:1px 5px}
+.doc-section.is-hidden{display:none}
+.doc-note{border-left:5px solid var(--accent2);background:#eef4fb;padding:9px 11px;margin:9px 0;border-radius:4px}
+.doc-warn{border-left:5px solid var(--warn);background:#fdf1f1;color:#7d1c1c;padding:9px 11px;margin:9px 0;border-radius:4px;font-weight:700}
+.doc-example{background:var(--soft);border:1px solid var(--line);padding:8px 11px;border-radius:5px;margin:8px 0}
+.guide-empty{display:none;text-align:center;color:var(--sub);padding:30px 10px}
+.guide-empty.on{display:block}
+.faq-list details{border:1px solid var(--line);border-radius:7px;margin-bottom:8px;background:#fff}
+.faq-list summary{cursor:pointer;padding:11px 13px;font-weight:800;color:var(--accent)}
+.faq-list details p{margin:0;padding:0 13px 12px;line-height:1.7}
+.welcome-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+.welcome-step{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--soft)}
+.welcome-step b{display:block;color:var(--accent);margin-bottom:4px}
+.welcome-num{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border-radius:50%;
+  background:var(--accent);color:#fff;margin-right:5px}
+[title]{text-decoration-thickness:1px;text-underline-offset:2px}
+@media (max-width:700px){
+  .title .title-actions{width:100%;margin-left:0}
+  .welcome-steps{grid-template-columns:1fr 1fr}
+  .guide-body{padding:12px}
+}
+@media (max-width:430px){.welcome-steps{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -416,8 +467,13 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 
 <header class="top">
   <div class="title">
-    <h1>申し送り・勤務記録支援</h1>
+    <h1>申し送りメーカー</h1>
+    <span class="subtitle">オフライン申し送り・勤務記録支援</span>
     <span class="badge">オフライン動作／外部通信なし</span>
+    <div class="title-actions">
+      <button class="btn sm pri" id="btnGuide">？ 使い方</button>
+      <button class="btn sm" id="btnHelp">？ ヘルプ</button>
+    </div>
   </div>
   <div class="topbar">
     <label for="theDate">対象日</label>
@@ -450,12 +506,13 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 申し送り入力 ============ -->
 <section class="view on" id="v-input">
   <div class="panel">
+    <div class="section-title"><h2>申し送り入力</h2><button class="help-dot" data-guide="guide-input" title="申し送り入力の使い方" aria-label="申し送り入力の使い方">？</button></div>
     <div class="row-actions">
       <button class="btn pri" id="btnMakeAll">未作成をまとめて申し送り作成</button>
       <button class="btn" id="btnShortAll">常設重要メモを一括簡潔化（未作成のみ）</button>
       <button class="btn" id="btnCopyPrev">前日からコピー（この Unit）</button>
       <button class="btn" id="btnCopyOther">別の日からコピー…</button>
-      <label class="carryopt"><input type="checkbox" id="optAutoCarry" checked> 前日申し送り自動引継ぎ</label>
+      <label class="carryopt" title="前日の本日の申し送りを翌日へ自動コピーします。引き継いだ内容は必ず確認してください。"><input type="checkbox" id="optAutoCarry" checked> 前日申し送り自動引継ぎ</label>
       <span class="hint">入力は自動保存されます。常設重要メモは翌日以降も保持、本日の申し送りは対象日ごとの保存です。</span>
     </div>
     <div class="copypanel" id="copyPanel">
@@ -481,7 +538,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 入居者マスター ============ -->
 <section class="view" id="v-master">
   <div class="panel">
-    <h2>入居者マスター（<span id="mUnitLabel">Unit 2</span>）</h2>
+    <div class="section-title"><h2>入居者マスター（<span id="mUnitLabel">Unit 2</span>）</h2><button class="help-dot" data-guide="guide-master" title="入居者マスターの使い方" aria-label="入居者マスターの使い方">？</button></div>
     <div class="row-actions" style="margin-bottom:10px">
       <button class="btn pri" id="btnAdd">入居者を追加</button>
       <button class="btn" id="btnSortRoom">部屋番号順に並べ替え</button>
@@ -516,7 +573,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 予定一覧 ============ -->
 <section class="view" id="v-sched">
   <div class="panel">
-    <h2>予定一覧（<span id="sUnitLabel">Unit 2</span>）</h2>
+    <div class="section-title"><h2>予定一覧（<span id="sUnitLabel">Unit 2</span>）</h2><button class="help-dot" data-guide="guide-schedule" title="予定一覧の使い方" aria-label="予定一覧の使い方">？</button></div>
     <div class="row-actions" style="margin-bottom:8px">
       <label class="hint"><input type="checkbox" id="optPastSched"> 過去の予定も表示する</label>
       <label class="hint"><input type="checkbox" id="optSchedAllUnits"> 全Unit</label>
@@ -537,7 +594,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 印刷プレビュー ============ -->
 <section class="view" id="v-print">
   <div class="panel" id="pv-controls">
-    <h2>印刷プレビュー（A4 横 / 1 ページ 15 名）</h2>
+    <div class="section-title"><h2>印刷プレビュー（A4 横 / 1 ページ 15 名）</h2><button class="help-dot" data-guide="guide-print" title="印刷プレビューの使い方" aria-label="印刷プレビューの使い方">？</button></div>
     <div class="row-actions">
       <label class="hint"><input type="checkbox" id="optAllUnits"> Unit 2〜5 をまとめて出力</label>
       <span class="hint">入居人数を自動判定（空床は自動除外）</span>
@@ -561,7 +618,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 履歴検索 ============ -->
 <section class="view" id="v-history">
   <div class="panel">
-    <h2>履歴検索</h2>
+    <div class="section-title"><h2>履歴検索</h2><button class="help-dot" data-guide="guide-history" title="履歴検索の使い方" aria-label="履歴検索の使い方">？</button></div>
     <div class="history-tools">
       <label class="history-keyword">フリーワード
         <input type="search" id="historyKeyword" placeholder="入居者名・発熱・病院名・薬剤名など" autocomplete="off">
@@ -646,12 +703,199 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
   </div>
 </div>
 
+<!-- ============ 完全オフライン使い方 ============ -->
+<div class="modal noprint" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+  <div class="mbox guidebox">
+    <div class="mhead">
+      <h3 id="guideTitle">申し送りメーカー 使い方</h3>
+      <span class="sp"></span>
+      <button id="guideClose">閉じる</button>
+    </div>
+    <div class="guide-tools">
+      <label for="guideSearch">使い方を検索</label>
+      <input type="search" id="guideSearch" placeholder="例：BS、印刷、予定、バックアップ、履歴" autocomplete="off">
+      <button class="btn sm" id="guideSearchClear">クリア</button>
+    </div>
+    <div class="guide-body" id="guideBody">
+      <section class="guide-intro doc-section" id="guide-first" data-guide-section>
+        <h4>初めて使う方へ — まずこれだけ</h4>
+        <p><b>毎日の基本操作は次の7つです。</b></p>
+        <ol>
+          <li>画面上部で対象日を確認</li>
+          <li>使用するUnitを選択</li>
+          <li>「申し送り入力」を開く</li>
+          <li>変更があった入居者だけ内容を確認・修正</li>
+          <li>必要に応じて予定を登録</li>
+          <li>印刷プレビューを確認</li>
+          <li>印刷</li>
+        </ol>
+        <div class="doc-note"><b>毎日ゼロから入力する必要はありません。</b> 前日の申し送りは翌日に自動で引き継がれます。変更がある部分だけ修正してください。</div>
+        <div class="doc-warn">前日から引き継がれた内容は必ず確認し、古い情報を残さず、現在の状態に合わせて修正してください。</div>
+        <button class="btn sm" id="guideReplayWelcome">初回ガイドをもう一度見る</button>
+      </section>
+
+      <nav class="guide-toc" aria-label="使い方の目次">
+        <h4>目次</h4>
+        <div class="toc-links">
+          <button data-guide-jump="guide-first">初めて使う方へ</button>
+          <button data-guide-jump="guide-input">毎日の申し送り</button>
+          <button data-guide-jump="guide-master">入居者マスター</button>
+          <button data-guide-jump="guide-records">記録項目設定</button>
+          <button data-guide-jump="guide-records">BS / BW</button>
+          <button data-guide-jump="guide-schedule">予定</button>
+          <button data-guide-jump="guide-history">履歴検索</button>
+          <button data-guide-jump="guide-print">印刷</button>
+          <button data-guide-jump="guide-backup">バックアップ</button>
+          <button data-guide-jump="faq">よくある質問</button>
+        </div>
+      </nav>
+
+      <section class="doc-section" id="guide-date-unit" data-guide-section>
+        <h4>対象日とUnitの選び方</h4>
+        <ul>
+          <li><b>← 前日：</b>対象日を1日前へ移動します。</li>
+          <li><b>翌日 →：</b>対象日を1日後へ移動します。</li>
+          <li><b>今日：</b>今日の日付へ戻ります。</li>
+          <li><b>カレンダー：</b>日付欄から確認したい日を直接選びます。</li>
+        </ul>
+        <p>過去の日付へ戻ると、その日に保存した申し送りや予定を確認できます。より広く探すときは「履歴検索」を使います。</p>
+        <p><b>Unit 2・3・4・5</b>のボタンで操作対象を切り替えます。現在選択中のUnitは濃い色で表示されます。</p>
+      </section>
+
+      <section class="doc-section" id="guide-input" data-guide-section>
+        <h4>申し送り入力</h4>
+        <p>入居者ごとに、常設重要メモ、今日あったこと、本日の申し送り、前日引継ぎ、予定追加を操作します。入力はこのPCのブラウザ内へ自動保存されます。</p>
+        <h5>常設重要メモ</h5>
+        <p>転倒注意、左上肢BP不可、食事トロミ、移乗見守りなど、<b>毎日引き継ぐ重要事項</b>です。日付が変わっても保持されます。</p>
+        <h5>今日あったこと</h5>
+        <p>発熱や転倒など、その日に起きた事実を入力します。<b>日付が変わっても自動コピーされません。</b></p>
+        <h5>本日の申し送り</h5>
+        <p>他スタッフへ伝える内容で、用紙へ印刷されます。自動引継ぎがONの入居者は、前日の内容が翌日へ引き継がれます。引継ぎ後は「確認済み」を押す前に必ず内容を見直してください。</p>
+        <h5>簡潔化する／申し送り作成</h5>
+        <p>入力した内容を短く整理する補助機能です。処理はこのHTML内のルールで行い、<b>外部AIへ送信していません。</b></p>
+        <div class="doc-warn">自動生成された内容は必ず確認し、意味や最新の状態が正しいか確かめてから使用してください。</div>
+        <p>「前日からコピー」は現在Unitの未入力者へ、「別の日からコピー」は選んだ日の内容をコピーします。既存の内容を不用意に上書きしないため、画面の確認に従ってください。</p>
+      </section>
+
+      <section class="doc-section" id="guide-master" data-guide-section>
+        <h4>入居者マスター</h4>
+        <p>入居者追加、部屋番号、入居者名、空床、並び順、常設重要メモ、自動引継ぎ対象、記録項目設定、履歴を管理します。1 Unitは最大30名です。</p>
+        <ul>
+          <li><b>↑↓：</b>印刷時の並び順を変更します。「部屋番号順に並べ替え」も使えます。</li>
+          <li><b>自動引継ぎ対象：</b>ONの入居者だけ前日の本日の申し送りを翌日へ自動で引き継ぎます。</li>
+          <li><b>履歴を見る：</b>その入居者に絞って履歴検索を開きます。</li>
+        </ul>
+        <div class="doc-note"><b>空床：</b>「空床」にすると、実入居人数の計算と印刷対象から自動的に除外されます。</div>
+      </section>
+
+      <section class="doc-section" id="guide-records" data-guide-section>
+        <h4>記録項目設定（日勤・夜勤）</h4>
+        <p>入居者ごとに、日勤と夜勤で必要な記録項目を個別にON/OFFできます。OFFの項目は印刷欄に出ません。</p>
+        <ul>
+          <li><b>T：</b>体温</li><li><b>P：</b>脈拍</li><li><b>BP：</b>血圧</li>
+          <li><b>SpO2：</b>経皮的酸素飽和度</li><li><b>食事：</b>朝・昼・夕</li>
+          <li><b>Hr：</b>指定された回数（1回目・2回目）の記録欄</li>
+          <li><b>BS：</b>血糖測定（通常BS・ターゲスBS・翌朝BSなど）</li>
+          <li><b>BW：</b>体重</li><li><b>メモ：</b>自由記入</li>
+        </ul>
+        <h5>曜日指定</h5>
+        <p>P・BP・BS・BWなどは必要な曜日だけ表示できます。「毎日」を外し、曜日を選択してください。</p>
+        <div class="doc-example"><b>例：</b>BPを「月・木」に設定 → 月曜日と木曜日だけ印刷欄にBPが表示されます。</div>
+        <h5>BSターゲス（設定画面では「ターゲスBS」）</h5>
+        <p>指定曜日の日勤欄に、<b>1回目・2回目・3回目</b>の3枠を表示します。</p>
+        <h5>翌朝BS</h5>
+        <p>測定する朝の曜日を指定します。たとえば木曜日の朝にBS測定が必要な入居者は、水曜日の夜勤欄に<b>「翌朝BS（木）」</b>が自動表示されます。曜日計算はアプリが行うため、スタッフが前日を計算する必要はありません。</p>
+        <h5>カスタム項目</h5>
+        <p>施設独自の水分量、排便、尿量、疼痛、酸素流量、睡眠時間などを追加できます。項目名・勤務帯・曜日・単位・入力欄サイズを設定できます。</p>
+      </section>
+
+      <section class="doc-section" id="guide-schedule" data-guide-section>
+        <h4>予定の登録と予定一覧</h4>
+        <p>予定一覧は、受診、外出、外泊、面会、行事、その他を管理する場所です。</p>
+        <div class="doc-warn">申し送り文章へ入力しただけでは、予定一覧へ自動登録されません。入居者カードの「＋予定を追加」または「今日あったことから予定として抽出」を使って登録してください。</div>
+        <p>予定には、日付、種別、開始時間、終了時間、内容、病院名／場所、診療科、家族付き添い、補足メモを登録できます。</p>
+        <h5>過去予定</h5>
+        <p>予定日を過ぎると通常一覧では非表示になりますが、データは残ります。「過去の予定も表示する」をONにすると見返せます。</p>
+        <p>過去予定が増えると整理を提案しますが、<b>勝手に自動削除はしません。</b>「過去予定を整理」で対象を確認してから削除してください。</p>
+      </section>
+
+      <section class="doc-section" id="guide-history" data-guide-section>
+        <h4>履歴検索</h4>
+        <p>過去の出来事、過去の申し送り、受診、外出、外泊、面会、行事、その他予定などを検索できます。</p>
+        <p><b>検索例：</b>「発熱」「転倒」「カロナール」「○○病院」「山田太郎」</p>
+        <p>フリーワード、Unit、開始日・終了日、種別で絞り込み、新しい順／古い順を選べます。検索結果を押すと、その日や入居者の内容を確認できます。</p>
+      </section>
+
+      <section class="doc-section" id="guide-print" data-guide-section>
+        <h4>印刷プレビューと印刷</h4>
+        <p>実入居人数を自動判定し、空床を除外して、人数に応じて表裏へできるだけ均等に分割します。1ページ最大15名で、Unitごとのページを生成します。</p>
+        <div class="doc-example"><b>自動分割例</b><br>20名 → 表10名／裏10名<br>21名 → 表11名／裏10名<br>29名 → 表15名／裏14名</div>
+        <p>用紙は<b>A4横</b>が基本です。「印刷する」を押した後、ブラウザの印刷画面でA4・横向きを確認し、必要に応じて両面印刷を選択してください。</p>
+        <div class="doc-warn">アプリはプリンターの両面印刷ON/OFF、長辺とじ、短辺とじなどを自動変更しません。印刷画面でスタッフが選択してください。A4横の両面印刷は通常「短辺とじ」ですが、機種のプレビューで向きを確認してください。</div>
+      </section>
+
+      <section class="doc-section" id="guide-backup" data-guide-section>
+        <h4>保存・バックアップ・別PCへの移行</h4>
+        <p>データは<b>このPCのブラウザ内</b>に保存され、外部サーバーへ自動アップロードされません。</p>
+        <ul>
+          <li><b>バックアップ保存：</b>現在のアプリデータをJSONファイルとして保存します。</li>
+          <li><b>バックアップ復元：</b>保存済みバックアップファイルからデータを戻します。現在のデータは読み込んだ内容へ置き換わります。</li>
+        </ul>
+        <div class="doc-warn">バックアップには入居者情報、申し送り、過去履歴、予定、設定などが含まれます。個人情報を含む可能性があるため、保管場所・持ち出し・廃棄に注意してください。</div>
+        <h5>別PCへ移すとき</h5>
+        <p>index.htmlを別PCへコピーしただけでは、現在PCのブラウザ内のデータは移りません。</p>
+        <div class="doc-example"><b>バックアップ保存</b> → バックアップファイルを別PCへ安全に移動 → 別PCで<b>バックアップ復元</b></div>
+        <p>アプリHTMLを更新版へ差し替える前にも、念のためバックアップ保存を推奨します。同じPC・同じブラウザでも、ブラウザデータの消去や保存場所の違いでデータが見えなくなることがあります。</p>
+      </section>
+      <p class="guide-empty" id="guideEmpty">該当する説明がありません。別の言葉で検索してください。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 困ったときのFAQ ============ -->
+<div class="modal noprint" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="mbox guidebox">
+    <div class="mhead"><h3 id="helpTitle">？ ヘルプ — 今困っていることから探す</h3><span class="sp"></span><button id="helpClose">閉じる</button></div>
+    <div class="guide-body faq-list">
+      <details><summary>昨日の申し送りが表示されない</summary><p>前日データが存在するか、画面上部の「前日申し送り自動引継ぎ」と、入居者マスターの「自動引継ぎ対象」がONか確認してください。</p></details>
+      <details><summary>BSが表示されない</summary><p>入居者マスターの記録項目設定で、該当するBSがONか、対象曜日が正しいか確認してください。</p></details>
+      <details><summary>木曜朝BSが水曜夜勤に出ない</summary><p>夜勤の「翌朝BS」がONで、測定する朝の曜日が木曜日に設定されているか確認してください。</p></details>
+      <details><summary>入居者が印刷されない</summary><p>入居者マスターまたは申し送り入力で「空床」になっていないか確認してください。</p></details>
+      <details><summary>予定一覧に予定が出ない</summary><p>申し送り欄に書くだけでは予定登録されません。入居者カードの「＋予定を追加」から登録してください。</p></details>
+      <details><summary>過去予定が見えない</summary><p>予定一覧の「過去の予定も表示する」をONにしてください。</p></details>
+      <details><summary>過去の申し送りを探したい</summary><p>「履歴検索」を使用し、名前や言葉、Unit、日付範囲、種別で絞り込んでください。</p></details>
+      <details><summary>別PCへデータを移したい</summary><p>現在PCでバックアップ保存 → ファイルを別PCへ移動 → 別PCでバックアップ復元、の順に行ってください。</p></details>
+      <details><summary>印刷が横にならない</summary><p>ブラウザの印刷設定で用紙がA4、向きが「横」になっているか確認してください。</p></details>
+      <details><summary>データが消えた</summary><p>使用しているPC・ブラウザ・index.htmlの保存場所が以前と同じか確認してください。バックアップがあれば復元してください。</p></details>
+      <div class="doc-note"><button class="btn pri" id="helpOpenGuide">詳しい使い方を開く</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 初回起動ガイド ============ -->
+<div class="modal noprint" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+  <div class="mbox" style="max-width:820px">
+    <div class="mhead"><h3 id="welcomeTitle">申し送りメーカーへようこそ</h3><span class="sp"></span><button id="welcomeCloseX">閉じる</button></div>
+    <div class="mbody">
+      <p style="margin-top:0">最初に次の4つだけ設定すれば、毎日の操作はかんたんです。</p>
+      <div class="welcome-steps">
+        <div class="welcome-step"><b><span class="welcome-num">1</span>入居者マスター</b>部屋番号・名前・空床を設定</div>
+        <div class="welcome-step"><b><span class="welcome-num">2</span>記録項目</b>日勤・夜勤で必要な欄を設定</div>
+        <div class="welcome-step"><b><span class="welcome-num">3</span>毎日の入力</b>変更がある申し送りだけ確認・修正</div>
+        <div class="welcome-step"><b><span class="welcome-num">4</span>印刷</b>印刷プレビューを確認してA4横で印刷</div>
+      </div>
+      <div class="doc-note">詳しい説明は画面上部の「？ 使い方」、困ったときは「？ ヘルプ」から、インターネットなしでいつでも確認できます。</div>
+    </div>
+    <div class="mfoot"><button class="btn pri" id="welcomeStart">使い始める</button><button class="btn" id="welcomeGuide">使い方を見る</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 "use strict";
 /* =========================================================
-   申し送り・勤務記録支援ソフト  (完全オフライン / 単一HTML)
+   申し送りメーカー（オフライン申し送り・勤務記録支援 / 単一HTML）
    - fetch / XMLHttpRequest / WebSocket / CDN / 外部AI は不使用
    ========================================================= */
 
@@ -1675,7 +1919,7 @@ function renderInput(){
       + '<div class="card-head">'
         + '<input class="room" type="text" value="'+esc(r.room)+'" data-f="room" placeholder="部屋">'
         + '<input class="name" type="text" value="'+esc(r.name)+'" data-f="name" placeholder="入居者名">'
-        + '<label class="st"><input type="checkbox" data-f="empty" '+(r.status==="empty"?"checked":"")+'> 空床</label>'
+        + '<label class="st" title="空床にすると、入居人数の計算と印刷対象から除外されます。"><input type="checkbox" data-f="empty" '+(r.status==="empty"?"checked":"")+'> 空床</label>'
         + '<button class="btn sm historybtn" data-a="history">履歴を見る</button>'
         + '<button class="recbtn" data-a="recOpen">記録項目設定</button>'
       + '</div>'
@@ -1833,9 +2077,9 @@ function renderMaster(){
       + '</td>'
       + '<td><input type="text" data-f="room" value="'+esc(r.room)+'"></td>'
       + '<td><input type="text" data-f="name" value="'+esc(r.name)+'"></td>'
-      + '<td><button class="pill '+(r.status==="empty"?"out":"in")+'" data-a="toggle">'+(r.status==="empty"?"空床":"入居中")+'</button></td>'
+      + '<td><button class="pill '+(r.status==="empty"?"out":"in")+'" data-a="toggle" title="空床にすると、入居人数の計算と印刷対象から除外されます。">'+(r.status==="empty"?"空床":"入居中")+'</button></td>'
       + '<td><input type="text" data-f="permShort" value="'+esc(r.permShort)+'" placeholder="（申し送り入力タブで作成できます）"></td>'
-      + '<td><label class="hint"><input type="checkbox" data-f="autoCarry" '+(r.autoCarry!==false?"checked":"")+'> 対象にする</label></td>'
+      + '<td><label class="hint" title="ONの入居者は、前日の本日の申し送りが翌日へ自動で引き継がれます。"><input type="checkbox" data-f="autoCarry" '+(r.autoCarry!==false?"checked":"")+'> 対象にする</label></td>'
       + '<td><button class="recbtn" data-a="rec">記録項目設定</button>'
         + '<div class="recsum">'+recSummary(r)+'</div></td>'
       + '<td><button class="btn sm historybtn" data-a="history">履歴を見る</button></td>'
@@ -1957,14 +2201,14 @@ function renderRecModal(){
   h += '</div>';
 
   /* ---- カスタム項目 ---- */
-  h += '<div class="custbox"><h4>カスタム項目（施設独自の項目）</h4>';
+  h += '<div class="custbox"><h4 title="水分量・排便・尿量など、施設独自の記録欄を追加できます。">カスタム項目（施設独自の項目）</h4>';
   if(!rec.custom.length){
     h += '<div class="custadd hint">まだ登録がありません。「＋カスタム項目追加」で、排便・水分量・尿量・酸素流量・疼痛・吸引・睡眠時間などを自由に追加できます。</div>';
   }else{
     for(var c=0;c<rec.custom.length;c++) h += recCustomRowHTML(rec.custom[c], dow);
   }
   h += '<div class="custadd">'
-    + '<button class="btn pri" data-a="custAdd">＋カスタム項目追加</button>'
+    + '<button class="btn pri" data-a="custAdd" title="項目名・勤務帯・曜日・単位・入力欄サイズを自由に設定できます。">＋カスタム項目追加</button>'
     + '<span class="hint" style="margin-left:10px">項目名・勤務帯・曜日・単位・入力欄サイズを設定できます（上限 '+MAX_CUSTOM+' 件）。</span>'
     + '</div></div>';
 
@@ -1994,8 +2238,11 @@ function daysOnlyHTML(st, disabled, title){
 
 function recItemRowHTML(shift, def, st, dow){
   var act = itemActive(st, def.g === "nextMorningBS" ? nextDowOf(UI.date) : dow);
+  var tip = def.g === "targetBS" ? "指定曜日の日勤欄に1回目・2回目・3回目の3枠を表示します。"
+          : def.g === "nextMorningBS" ? "測定する朝の曜日を指定すると、その前日の夜勤欄へ自動表示します。"
+          : "";
   var h = '<div class="ri'+(st.on?"":" off")+'" data-shift="'+shift+'" data-k="'+def.k+'">'
-    + '<label class="sw"><input type="checkbox" data-x="on"'+(st.on?" checked":"")+'>'
+    + '<label class="sw"'+(tip?' title="'+tip+'"':'')+'><input type="checkbox" data-x="on"'+(st.on?" checked":"")+'>'
       + esc(def.lb) + (def.unit ? '<span style="font-weight:400">（'+esc(def.unit)+'）</span>' : '')
     + '</label>';
   if(def.noWd){
@@ -3360,6 +3607,103 @@ document.getElementById("fileImport").addEventListener("change", function(e){
 });
 
 /* =========================================================
+   使い方・FAQ・初回ガイド（すべて単一HTML内 / 外部通信なし）
+   ========================================================= */
+var WELCOME_KEY = "kaigo_handover_welcome_seen_v1";
+
+function setModalOpen(id, on){
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.classList.toggle("on", !!on);
+  if(on){
+    var close = el.querySelector(".mhead button");
+    if(close) setTimeout(function(){ close.focus(); }, 0);
+  }
+}
+
+function filterGuide(){
+  var q = String(document.getElementById("guideSearch").value || "").trim().toLowerCase();
+  var sections = document.querySelectorAll("#guideBody [data-guide-section]");
+  var shown = 0;
+  for(var i=0;i<sections.length;i++){
+    var hit = !q || sections[i].textContent.toLowerCase().indexOf(q) >= 0;
+    sections[i].classList.toggle("is-hidden", !hit);
+    if(hit) shown++;
+  }
+  document.getElementById("guideEmpty").classList.toggle("on", shown === 0);
+}
+
+function openGuide(sectionId){
+  setModalOpen("helpModal", false);
+  var search = document.getElementById("guideSearch");
+  search.value = "";
+  filterGuide();
+  setModalOpen("guideModal", true);
+  var body = document.getElementById("guideBody");
+  body.scrollTop = 0;
+  if(sectionId){
+    setTimeout(function(){
+      var sec = document.getElementById(sectionId);
+      if(sec) sec.scrollIntoView({block:"start"});
+    }, 0);
+  }
+}
+
+function welcomeSeen(){
+  try{ return localStorage.getItem(WELCOME_KEY) === "1"; }
+  catch(e){ return false; }
+}
+function markWelcomeSeen(){
+  try{ localStorage.setItem(WELCOME_KEY, "1"); }catch(e){}
+}
+function closeWelcome(){ markWelcomeSeen(); setModalOpen("welcomeModal", false); }
+function openWelcome(){ setModalOpen("guideModal", false); setModalOpen("helpModal", false); setModalOpen("welcomeModal", true); }
+
+document.getElementById("btnGuide").addEventListener("click", function(){ openGuide("guide-first"); });
+document.getElementById("btnHelp").addEventListener("click", function(){ setModalOpen("helpModal", true); });
+document.getElementById("guideClose").addEventListener("click", function(){ setModalOpen("guideModal", false); });
+document.getElementById("helpClose").addEventListener("click", function(){ setModalOpen("helpModal", false); });
+document.getElementById("guideSearch").addEventListener("input", filterGuide);
+document.getElementById("guideSearchClear").addEventListener("click", function(){
+  document.getElementById("guideSearch").value = "";
+  filterGuide();
+  document.getElementById("guideSearch").focus();
+});
+document.getElementById("guideReplayWelcome").addEventListener("click", openWelcome);
+document.getElementById("helpOpenGuide").addEventListener("click", function(){ openGuide("guide-first"); });
+document.querySelector(".guide-toc").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-guide-jump]");
+  if(!b) return;
+  var id = b.getAttribute("data-guide-jump");
+  if(id === "faq"){
+    setModalOpen("guideModal", false);
+    setModalOpen("helpModal", true);
+    return;
+  }
+  var sec = document.getElementById(id);
+  if(sec) sec.scrollIntoView({block:"start"});
+});
+document.querySelectorAll("[data-guide]").forEach(function(btn){
+  btn.addEventListener("click", function(){ openGuide(btn.getAttribute("data-guide")); });
+});
+document.getElementById("welcomeCloseX").addEventListener("click", closeWelcome);
+document.getElementById("welcomeStart").addEventListener("click", closeWelcome);
+document.getElementById("welcomeGuide").addEventListener("click", function(){ closeWelcome(); openGuide("guide-first"); });
+
+["guideModal","helpModal","welcomeModal"].forEach(function(id){
+  document.getElementById(id).addEventListener("click", function(e){
+    if(e.target !== this) return;
+    if(id === "welcomeModal") closeWelcome(); else setModalOpen(id, false);
+  });
+});
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Escape") return;
+  if(document.getElementById("welcomeModal").classList.contains("on")) closeWelcome();
+  else if(document.getElementById("helpModal").classList.contains("on")) setModalOpen("helpModal", false);
+  else if(document.getElementById("guideModal").classList.contains("on")) setModalOpen("guideModal", false);
+});
+
+/* =========================================================
    init
    ========================================================= */
 window.addEventListener("error", function(ev){
@@ -3382,6 +3726,7 @@ document.getElementById("theDate").value = UI.date;
 initUIFromDB();
 autoCarryForDate(UI.date);
 renderAll();
+if(!welcomeSeen()) setTimeout(openWelcome, 80);
 </script>
 </body>
 </html>
