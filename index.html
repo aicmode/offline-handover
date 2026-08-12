@@ -105,6 +105,9 @@ table.master td.act{width:64px;white-space:nowrap}
 .pill{font-size:11px;border-radius:10px;padding:1px 8px;border:1px solid}
 .pill.in{color:var(--accent2);border-color:var(--accent2);background:#eef4fb}
 .pill.out{color:var(--sub);border-color:var(--line);background:var(--soft)}
+.pill.left{color:#7a4a12;border-color:#d8b06a;background:#fdf6e8;font-weight:700}
+tr.left-row{background:#fbf8f2}
+tr.left-row input[type=text]{color:#6a7581}
 
 /* ---------- Preview ---------- */
 .pv-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -132,12 +135,8 @@ table.master td.act{width:64px;white-space:nowrap}
 .sh-head .sig{font-size:7.4pt;letter-spacing:.02em;white-space:nowrap}
 .sh-head .sig span{display:inline-block;border-bottom:.6pt solid #000;width:20mm;margin:0 2mm 0 1mm}
 
-/* 本日の予定：各Unitの表面（1ページ目）上部にのみ表示。予定が無い日は欄自体を出さない */
-.sched-box{border:.9pt solid #000;margin-bottom:.6mm;padding:.5mm 1.2mm;font-size:7pt;line-height:1.22}
-.sched-box .hd{font-weight:800;font-size:7.2pt;letter-spacing:.08em;margin-right:1.5mm;display:inline}
-.sched-box .it{display:inline-block;margin-right:4mm;white-space:nowrap}
-.sched-box .it b{font-weight:800}
-.sched-box .it .fam{margin-left:1.5mm}
+/* 予定は「予定一覧」タブの専用用紙（A4横・別紙）へ印刷する。
+   申し送り用紙には予定欄を出さず、その分の高さを記録欄・申し送り欄へ回す。 */
 
 .rows{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;border:.8pt solid #000;overflow:hidden}
 
@@ -222,6 +221,37 @@ table.master td.act{width:64px;white-space:nowrap}
 .sheet.blank-sheet{display:flex;align-items:center;justify-content:center;border-color:#bbb}
 .blank-note{font-size:9pt;color:#555;letter-spacing:.08em}
 
+/* ================= 予定一覧 印刷用紙（A4 横 / 別紙） =================
+   申し送り用紙とは別の用紙として印刷する。白黒印刷でも判読できるよう
+   罫線と太字だけで区別し、背景色には依存しない。
+   行数が多い日は表がそのまま次ページへ流れ、見出し行が各ページで繰り返される。 */
+.ssheet{
+  width:285mm;background:#fff;color:#000;border:1px solid #999;
+  padding:2mm 2.5mm;font-size:9pt;line-height:1.35;
+}
+.ssheet .ss-head{display:flex;align-items:flex-end;justify-content:space-between;gap:3mm;
+  border-bottom:1.1pt solid #000;padding-bottom:1mm;margin-bottom:1.5mm}
+.ssheet .ss-head .t{font-size:13pt;font-weight:800;letter-spacing:.06em;white-space:nowrap}
+.ssheet .ss-head .t small{font-size:9pt;font-weight:700;margin-left:3mm;letter-spacing:.02em}
+.ssheet .ss-head .d{font-size:11pt;font-weight:700;white-space:nowrap}
+.ssheet .ss-head .sig{font-size:8.5pt;white-space:nowrap}
+.ssheet .ss-head .sig span{display:inline-block;border-bottom:.6pt solid #000;width:22mm;margin:0 3mm 0 1mm}
+.ssheet .ss-unit{font-size:10.5pt;font-weight:800;letter-spacing:.08em;
+  border-left:2.5mm solid #000;padding:.4mm 0 .4mm 2mm;margin:2.5mm 0 1mm}
+.ssheet .ss-unit:first-of-type{margin-top:0}
+.ssheet table{width:100%;border-collapse:collapse;table-layout:fixed}
+.ssheet th,.ssheet td{border:.7pt solid #000;padding:1mm 1.2mm;text-align:left;
+  vertical-align:top;word-break:break-word;overflow-wrap:anywhere}
+.ssheet th{font-size:8pt;font-weight:800;letter-spacing:.04em;background:#e8e8e8}
+.ssheet td{font-size:9pt}
+.ssheet td.nm{font-weight:800}
+.ssheet .none{font-size:10pt;font-weight:700;padding:6mm 0;text-align:center}
+.ssheet .ss-foot{display:flex;justify-content:space-between;align-items:center;
+  font-size:8pt;margin-top:1.5mm;padding-top:1mm;border-top:.7pt solid #000}
+.ssheet .ss-foot .l{font-weight:700;letter-spacing:.06em}
+.ssheetScale{transform:scale(var(--ssc,1));transform-origin:top left}
+#schedPrintArea{margin-top:12px}
+
 /* ---------- print ---------- */
 #printArea{display:none}
 .view.on #printArea{display:block}
@@ -244,6 +274,20 @@ table.master td.act{width:64px;white-space:nowrap}
   }
   .sheet.last{break-after:auto;page-break-after:auto}
   .prow,.sheet,.rows{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* 予定一覧を別紙として印刷する間だけ、予定一覧の印刷領域だけを出す
+     （操作ボタン・チェックボックス・ヘルプ・ナビゲーションは出力しない） */
+  body.printing-sched .app > #v-print{display:none !important}
+  body.printing-sched #printArea{display:none !important}
+  body.printing-sched .app > #v-sched{display:block !important}
+  body.printing-sched #v-sched > .panel{display:none !important}
+  body.printing-sched #schedPrintArea{display:block !important;margin:0}
+  body.printing-sched .ssheetScale{transform:none !important;height:auto !important}
+  body.printing-sched .ssheet{width:auto;border:none;padding:0}
+  body.printing-sched .ssheet thead{display:table-header-group}
+  body.printing-sched .ssheet tr{break-inside:avoid;page-break-inside:avoid}
+  body.printing-sched .ssheet .ss-unit{break-after:avoid;page-break-after:avoid}
+  body.printing-sched .ssheet th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 .toast{
   position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
@@ -341,8 +385,20 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 @media (max-width:560px){.history-tools{grid-template-columns:1fr}.history-tools .history-keyword{grid-column:auto}.history-item{grid-template-columns:1fr;gap:4px}}
 #fatal{display:none;background:#c62828;color:#fff;padding:8px 14px;font-size:13px;font-weight:700}
 #fatal.on{display:block}
-#memnote{display:none;font-size:11px;color:var(--warn);margin-top:4px}
+/* 保存に失敗している間だけ出す警告。通常時は非表示 */
+#memnote{display:none;margin:6px 0 2px;padding:9px 12px;border:2px solid var(--warn);
+  border-left-width:7px;border-radius:6px;background:#fdf1f1;color:#7d1c1c;
+  font-size:13px;font-weight:700;line-height:1.7}
 #memnote.on{display:block}
+#memnote .sub{display:block;font-weight:400;font-size:12px;margin-top:3px}
+#memnote .btn{margin-top:6px}
+
+/* 管理用操作（本運用では通常使わない・誤操作しにくい位置へ隔離） */
+.adminbox{margin-top:12px;border:1px solid #e2b7ae;border-radius:7px;background:#fdf7f6}
+.adminbox > summary{cursor:pointer;padding:9px 12px;font-weight:700;color:var(--warn);font-size:13px}
+.adminbox .abody{padding:4px 12px 12px;border-top:1px solid #eec2c2}
+.adminbox .arow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.adminbox select{padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;max-width:100%}
 .savest.busy{color:var(--sub)}
 .caution{font-size:11px;color:var(--warn);margin-top:4px}
 .warnmsg{display:none;font-size:12px;color:var(--warn);font-weight:700;margin-top:4px;
@@ -492,7 +548,11 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
   </div>
   <div class="caution">バックアップには入居者情報・過去履歴が含まれます。取り扱い注意（保存先はこのPC内のみ／自動アップロードは行いません）。</div>
   <div id="capacityWarning">履歴データが増えています。バックアップ・整理を検討してください</div>
-  <div id="memnote">※ このブラウザでは保存領域が使えないため、一時的にメモリ内だけで動作しています（ページを閉じると消えます）。</div>
+  <div id="memnote" role="alert">
+    ⚠ 現在データをこのPCへ保存できていません。このページを閉じると入力内容が失われる可能性があります。
+    <span class="sub">バックアップ保存を行うか、保存環境（ブラウザのプライベートモード・保存容量・サイト設定）を確認してください。保存できるようになると、この警告は自動的に消えます。</span>
+    <button class="btn sm pri" id="btnExportFromWarn">いますぐバックアップ保存</button>
+  </div>
   <div class="tabs">
     <button data-tab="input" class="on">申し送り入力</button>
     <button data-tab="master">入居者マスター</button>
@@ -512,8 +572,9 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       <button class="btn" id="btnShortAll">常設重要メモを一括簡潔化（未作成のみ）</button>
       <button class="btn" id="btnCopyPrev">前日からコピー（この Unit）</button>
       <button class="btn" id="btnCopyOther">別の日からコピー…</button>
-      <label class="carryopt" title="前日の本日の申し送りを翌日へ自動コピーします。引き継いだ内容は必ず確認してください。"><input type="checkbox" id="optAutoCarry" checked> 前日申し送り自動引継ぎ</label>
-      <span class="hint">入力は自動保存されます。常設重要メモは翌日以降も保持、本日の申し送りは対象日ごとの保存です。</span>
+      <button class="btn" id="btnCarryNow" title="前日の「本日の申し送り」を、この対象日へ引き継ぎます（すでに入力がある人は上書きしません）。">前日の申し送りをこの日に引き継ぐ</button>
+      <label class="carryopt" title="今日を初めて開いたときだけ、前日の「本日の申し送り」を今日へ自動コピーします。過去日・未来日は開いても自動生成しません。引き継いだ内容は必ず確認してください。"><input type="checkbox" id="optAutoCarry" checked> 前日申し送り自動引継ぎ（今日のみ）</label>
+      <span class="hint">入力は自動保存されます。常設重要メモは翌日以降も保持、本日の申し送りは対象日ごとの保存です。過去日・未来日は表示するだけではデータが作られません。</span>
     </div>
     <div class="copypanel" id="copyPanel">
       <div class="rowline">
@@ -542,6 +603,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
     <div class="row-actions" style="margin-bottom:10px">
       <button class="btn pri" id="btnAdd">入居者を追加</button>
       <button class="btn" id="btnSortRoom">部屋番号順に並べ替え</button>
+      <label class="hint"><input type="checkbox" id="optShowLeft"> 退居した入居者も表示する</label>
       <span class="hint">並び順は ↑↓ で変更でき、そのまま固定保存されます（用紙の並び順に反映）。「記録項目設定」はこの入居者マスターに固定保存され、日付が変わっても維持されます。</span>
     </div>
     <div style="overflow-x:auto">
@@ -551,22 +613,39 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
             <th class="ord">並び</th><th style="width:110px">部屋番号</th><th>入居者名</th>
             <th style="width:110px">在床状況</th><th>常設重要メモ（表示用）</th>
             <th style="width:140px">自動引継ぎ対象</th>
-            <th style="width:190px">記録項目（日勤／夜勤）</th><th style="width:100px">履歴</th><th class="act">削除</th>
+            <th style="width:190px">記録項目（日勤／夜勤）</th><th style="width:100px">履歴</th><th style="width:96px">退居</th>
           </tr>
         </thead>
         <tbody id="masterBody"></tbody>
       </table>
     </div>
-    <p class="hint" style="margin-top:10px">上限：1 Unit あたり 30 名（印刷時は入居人数に応じ、各面最大15名で表裏へ自動分割）。31 名以上は追加できません。</p>
+    <p class="hint" style="margin-top:10px">上限：1 Unit あたり 30 名（印刷時は入居人数に応じ、各面最大15名で表裏へ自動分割）。31 名以上は追加できません。<br>
+      <b>退居</b>にすると、申し送り入力・実入居人数・印刷・自動引継ぎの対象から外れます。<b>過去の申し送り・予定・履歴はそのまま残り、履歴検索で確認できます。</b>退居した入居者は「退居した入居者も表示する」で一覧に出せ、「復帰」で戻せます。</p>
   </div>
   <div class="panel">
     <h2>データ管理</h2>
     <div class="row-actions">
-      <button class="btn danger" id="btnClearDaily">この対象日の「今日あったこと・申し送り」を全消去</button>
-      <button class="btn" id="btnDemo18">動作確認用に Unit 3 へ 18 名を追加（A4横 2 ページ分）</button>
-      <button class="btn danger" id="btnDemoDel">サンプル入居者を削除</button>
+      <button class="btn danger" id="btnClearDaily">この Unit の対象日データを全消去</button>
+      <span class="hint">現在表示中の Unit・対象日の「今日あったこと・本日の申し送り」だけを消去します（他の Unit は変更しません）。</span>
     </div>
     <p class="hint" style="margin-top:8px">常設重要メモは入居者マスター側に保存されるため、日次データを消しても残ります。</p>
+
+    <details class="adminbox" id="adminBox">
+      <summary>管理用操作（取り扱い注意・通常業務では使用しません）</summary>
+      <div class="abody">
+        <p class="hint" style="margin-top:8px">ここでの操作は<b>取り消せません</b>。実行前にバックアップ保存を行ってください。</p>
+        <div class="arow">
+          <button class="btn danger" id="btnClearDailyAll">対象日の日次データを全 Unit 分削除</button>
+          <span class="hint">対象日（画面上部の日付）の「今日あったこと・本日の申し送り」を Unit 2〜5 すべて削除します。</span>
+        </div>
+        <div class="arow">
+          <label class="hint" for="admDelSel">完全削除する入居者</label>
+          <select id="admDelSel"></select>
+          <button class="btn danger" id="btnHardDelete">この入居者を完全削除</button>
+        </div>
+        <p class="hint" style="margin-top:6px">完全削除すると、その入居者の<b>過去の申し送り・予定・履歴もすべて消え、元に戻せません</b>。通常は「退居」を使用してください（退居なら履歴は残ります）。</p>
+      </div>
+    </details>
   </div>
 </section>
 
@@ -577,8 +656,11 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
     <div class="row-actions" style="margin-bottom:8px">
       <label class="hint"><input type="checkbox" id="optPastSched"> 過去の予定も表示する</label>
       <label class="hint"><input type="checkbox" id="optSchedAllUnits"> 全Unit</label>
-      <span class="hint">予定は登録した日付に紐づきます。「前日からコピー」ではコピーされません。</span>
+      <span style="flex:1"></span>
+      <button class="btn pri" id="btnSchedPrint">予定一覧を印刷（A4 横・別紙）</button>
     </div>
+    <p class="hint" style="margin:0 0 8px">予定は登録した日付に紐づきます。「前日からコピー」ではコピーされません。<br>
+      印刷されるのは<b>対象日（画面上部の日付）1日分</b>です。「全Unit」がONのときは Unit 2〜5 をまとめて、OFF のときは現在の Unit だけを印刷します。申し送り用紙とは<b>別紙</b>になります。</p>
     <div class="sched-result" id="schedCleanupResult" role="status"></div>
     <div class="sched-summary" id="schedPastSummary"></div>
     <div class="sched-notice" id="schedCleanupNotice">
@@ -589,6 +671,8 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
     </div>
     <div id="schedList"></div>
   </div>
+  <div class="pv-label" id="schedPrintLabel"></div>
+  <div id="schedPrintArea"></div>
 </section>
 
 <!-- ============ 印刷プレビュー ============ -->
@@ -608,6 +692,8 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       両面印刷：ブラウザの印刷画面で「両面印刷（A4 横なので「短辺とじ」）」を選ぶと、Unit 2 表 → Unit 2 裏 → Unit 3 表 → Unit 3 裏 … の順に、同じ Unit の裏面がそのまま裏に印刷されます。<br>
       用紙サイズは A4、向きは「横」、倍率は「100%（既定）」、余白は「既定」のままにしてください。<br>
       「各Unitを必ず新しい用紙から開始」がONの場合、表面だけのUnitには小さな案内だけの空白裏面を自動挿入します。プリンターの両面設定自体はブラウザの印刷画面で選択してください。<br>
+      <b>予定（外出・受診・面会など）は申し送り用紙には印刷されません。</b>「予定一覧」タブの「予定一覧を印刷」から、A4横の別紙として印刷してください。<br>
+      空床・退居の入居者は、入居人数の計算にも印刷にも含まれません。<br>
       日勤・夜勤欄に出る項目は、入居者マスターの「記録項目設定」と<b>対象日の曜日</b>で決まります（翌朝BSのみ対象日の翌朝の曜日で判定。OFF の項目・該当しない項目は印刷されません）。
     </p>
     <div class="ovlist" id="ovList"></div>
@@ -729,8 +815,9 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
           <li>印刷プレビューを確認</li>
           <li>印刷</li>
         </ol>
-        <div class="doc-note"><b>毎日ゼロから入力する必要はありません。</b> 前日の申し送りは翌日に自動で引き継がれます。変更がある部分だけ修正してください。</div>
+        <div class="doc-note"><b>毎日ゼロから入力する必要はありません。</b> 前日の申し送りは、<b>今日を初めて開いたとき</b>に自動で引き継がれます。変更がある部分だけ修正してください。</div>
         <div class="doc-warn">前日から引き継がれた内容は必ず確認し、古い情報を残さず、現在の状態に合わせて修正してください。</div>
+        <div class="doc-note"><b>過去日・未来日は「見るだけ」では何も作られません。</b> カレンダーで別の日を開いても、申し送りが自動で作られたり書き換わったりすることはありません。先の日付へ引き継ぎたいときだけ「前日の申し送りをこの日に引き継ぐ」を押してください。</div>
         <button class="btn sm" id="guideReplayWelcome">初回ガイドをもう一度見る</button>
       </section>
 
@@ -770,7 +857,16 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <h5>今日あったこと</h5>
         <p>発熱や転倒など、その日に起きた事実を入力します。<b>日付が変わっても自動コピーされません。</b></p>
         <h5>本日の申し送り</h5>
-        <p>他スタッフへ伝える内容で、用紙へ印刷されます。自動引継ぎがONの入居者は、前日の内容が翌日へ引き継がれます。引継ぎ後は「確認済み」を押す前に必ず内容を見直してください。</p>
+        <p>他スタッフへ伝える内容で、用紙へ印刷されます。自動引継ぎがONの入居者は、前日の内容が引き継がれます。引継ぎ後は「確認済み」を押す前に必ず内容を見直してください。</p>
+        <h5>前日申し送りの自動引継ぎ</h5>
+        <ul>
+          <li>自動で引き継ぐのは<b>「今日」を初めて開いたときだけ</b>です。</li>
+          <li><b>過去日・未来日を開いただけでは引継ぎされません。</b>先の日付を続けて確認しても、申し送りが次々と作られることはありません。</li>
+          <li>すでにその日に入力がある入居者は<b>上書きしません</b>。</li>
+          <li>空床・退居の入居者は対象外です。</li>
+          <li>入居者ごとのON/OFFは入居者マスターの「自動引継ぎ対象」で設定します。</li>
+        </ul>
+        <p>今日以外の日付へ引き継ぎたいときは、<b>「前日の申し送りをこの日に引き継ぐ」</b>を押してください。この操作でだけ、その日のデータが作られます。</p>
         <h5>簡潔化する／申し送り作成</h5>
         <p>入力した内容を短く整理する補助機能です。処理はこのHTML内のルールで行い、<b>外部AIへ送信していません。</b></p>
         <div class="doc-warn">自動生成された内容は必ず確認し、意味や最新の状態が正しいか確かめてから使用してください。</div>
@@ -786,6 +882,20 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
           <li><b>履歴を見る：</b>その入居者に絞って履歴検索を開きます。</li>
         </ul>
         <div class="doc-note"><b>空床：</b>「空床」にすると、実入居人数の計算と印刷対象から自動的に除外されます。</div>
+        <h5>退居（通常はこちらを使います）</h5>
+        <p>入居者が退居したときは、一覧右端の<b>「退居」</b>を押します。</p>
+        <ul>
+          <li>申し送り入力の一覧に表示されなくなります</li>
+          <li>実入居人数・申し送り印刷・前日自動引継ぎの対象から外れます</li>
+          <li><b>過去の申し送り・過去の予定・履歴はそのまま残ります</b>（履歴検索で確認できます）</li>
+          <li>退居時点で残っている今後の予定も<b>削除しません</b>。件数を確認のうえ保持します</li>
+          <li>「退居した入居者も表示する」にチェックを入れると一覧に表示され、「復帰」で在籍へ戻せます</li>
+        </ul>
+        <h5>完全削除（管理用操作・取り消せません）</h5>
+        <p>完全削除は「データ管理」の<b>「管理用操作」</b>の中にあります。過去の申し送り・予定・履歴まですべて消え、<b>元に戻せません</b>。二段階の確認が必要です。</p>
+        <div class="doc-warn">記録を残す必要がある場合は、完全削除ではなく<b>「退居」</b>を使用してください。完全削除の前には必ずバックアップ保存を行ってください。</div>
+        <h5>この Unit の対象日データを全消去</h5>
+        <p>「データ管理」の削除ボタンは、<b>いま表示している Unit・対象日の日次データだけ</b>を消去します。他の Unit は変更されません。全 Unit をまとめて消す操作は「管理用操作」の中にあります（二段階確認）。</p>
       </section>
 
       <section class="doc-section" id="guide-records" data-guide-section>
@@ -814,9 +924,20 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <p>予定一覧は、受診、外出、外泊、面会、行事、その他を管理する場所です。</p>
         <div class="doc-warn">申し送り文章へ入力しただけでは、予定一覧へ自動登録されません。入居者カードの「＋予定を追加」または「今日あったことから予定として抽出」を使って登録してください。</div>
         <p>予定には、日付、種別、開始時間、終了時間、内容、病院名／場所、診療科、家族付き添い、補足メモを登録できます。</p>
+        <h5>予定一覧の印刷（申し送り用紙とは別紙）</h5>
+        <p>予定は<b>申し送り用紙には印刷されません</b>。「予定一覧」タブの<b>「予定一覧を印刷」</b>から、A4横の専用用紙として印刷します。申し送り用紙は、その分だけ記録欄・申し送り欄を広く使えます。</p>
+        <ul>
+          <li>印刷されるのは<b>対象日（画面上部の日付）の1日分</b>です。</li>
+          <li>「全Unit」がONのときは Unit 2〜5 をまとめて印刷し、Unitごとの見出しで区別します。OFF のときは現在の Unit だけを印刷します。</li>
+          <li>Unit・部屋番号・入居者名・予定種別・開始時間・終了時間・予定内容・病院名／場所・診療科・家族付き添い・補足メモを一覧で印刷します（未入力の項目は「−」）。</li>
+          <li>並び順は Unit → 開始時間 → 入居者の並び順です。</li>
+          <li>予定が1件もない日は「この日の予定はありません」と印刷されます。</li>
+          <li>編集ボタン・チェックボックスなどの操作画面は印刷されません。</li>
+        </ul>
         <h5>過去予定</h5>
         <p>予定日を過ぎると通常一覧では非表示になりますが、データは残ります。「過去の予定も表示する」をONにすると見返せます。</p>
         <p>過去予定が増えると整理を提案しますが、<b>勝手に自動削除はしません。</b>「過去予定を整理」で対象を確認してから削除してください。</p>
+        <p>退居した入居者の予定も削除されません。予定一覧・予定一覧印刷では<b>「退居」</b>と表示されるので、対応が必要か確認してください。</p>
       </section>
 
       <section class="doc-section" id="guide-history" data-guide-section>
@@ -824,6 +945,8 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <p>過去の出来事、過去の申し送り、受診、外出、外泊、面会、行事、その他予定などを検索できます。</p>
         <p><b>検索例：</b>「発熱」「転倒」「カロナール」「○○病院」「山田太郎」</p>
         <p>フリーワード、Unit、開始日・終了日、種別で絞り込み、新しい順／古い順を選べます。検索結果を押すと、その日や入居者の内容を確認できます。</p>
+        <div class="doc-note"><b>退居した入居者の履歴も検索できます。</b>結果には「退居」と表示され、Unit・部屋番号・氏名も当時の記録から表示されます。</div>
+        <p><b>履歴検索は「見るだけ」の機能です。</b>検索しても、結果を開いても、新しい申し送り・予定・入居者データは作られません。</p>
       </section>
 
       <section class="doc-section" id="guide-print" data-guide-section>
@@ -831,21 +954,42 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <p>実入居人数を自動判定し、空床を除外して、人数に応じて表裏へできるだけ均等に分割します。1ページ最大15名で、Unitごとのページを生成します。</p>
         <div class="doc-example"><b>自動分割例</b><br>20名 → 表10名／裏10名<br>21名 → 表11名／裏10名<br>29名 → 表15名／裏14名</div>
         <p>用紙は<b>A4横</b>が基本です。「印刷する」を押した後、ブラウザの印刷画面でA4・横向きを確認し、必要に応じて両面印刷を選択してください。</p>
+        <div class="doc-note"><b>予定は申し送り用紙に印刷されません。</b>予定は「予定一覧」タブの「予定一覧を印刷」から<b>別紙（A4横）</b>として印刷します。申し送り用紙は予定欄がなくなった分、記録欄・申し送り欄を広く使えます。</div>
+        <p><b>空床・退居</b>の入居者は、入居人数の計算からも印刷からも除外されます。</p>
         <div class="doc-warn">アプリはプリンターの両面印刷ON/OFF、長辺とじ、短辺とじなどを自動変更しません。印刷画面でスタッフが選択してください。A4横の両面印刷は通常「短辺とじ」ですが、機種のプレビューで向きを確認してください。</div>
       </section>
 
       <section class="doc-section" id="guide-backup" data-guide-section>
         <h4>保存・バックアップ・別PCへの移行</h4>
-        <p>データは<b>このPCのブラウザ内</b>に保存され、外部サーバーへ自動アップロードされません。</p>
+        <h5>データはどこに保存されるか</h5>
+        <ul>
+          <li>データは<b>このPCの、いま使っているブラウザの中</b>（localStorage）に保存されます。外部サーバーへ自動アップロードされません。</li>
+          <li><b>index.html というファイルの中に入居者データが書き込まれるわけではありません。</b></li>
+          <li>そのため、<b>HTMLファイルだけを別のPCへコピーしてもデータは移りません。</b></li>
+          <li>同じPCでも、別のブラウザ（Edge / Chrome など）で開くと別の保存場所になります。</li>
+          <li>ブラウザの「閲覧データの削除」「サイトデータの削除」や、プライベート（シークレット）ウィンドウでの使用により、<b>保存データが失われることがあります。</b></li>
+        </ul>
+        <div class="doc-warn"><b>定期的なバックアップ保存を強くおすすめします。</b>バックアップがあれば、PCの入れ替えやデータ消失からも復旧できます。</div>
+        <h5>バックアップ保存・復元</h5>
         <ul>
           <li><b>バックアップ保存：</b>現在のアプリデータをJSONファイルとして保存します。</li>
-          <li><b>バックアップ復元：</b>保存済みバックアップファイルからデータを戻します。現在のデータは読み込んだ内容へ置き換わります。</li>
+          <li><b>バックアップ復元：</b>保存済みバックアップファイルからデータを戻します。<b>現在のデータは読み込んだ内容へ完全に置き換わり、元に戻せない場合があります。</b></li>
+          <li>復元の操作では、先に<b>「現在のデータをバックアップ保存してから復元する」</b>かを確認します。迷ったときは保存してから進めてください。</li>
+          <li>ファイルの形式が違う場合は「読み込めませんでした（形式が違います）」と表示され、<b>現在のデータは変更されません。</b></li>
         </ul>
         <div class="doc-warn">バックアップには入居者情報、申し送り、過去履歴、予定、設定などが含まれます。個人情報を含む可能性があるため、保管場所・持ち出し・廃棄に注意してください。</div>
         <h5>別PCへ移すとき</h5>
         <p>index.htmlを別PCへコピーしただけでは、現在PCのブラウザ内のデータは移りません。</p>
         <div class="doc-example"><b>バックアップ保存</b> → バックアップファイルを別PCへ安全に移動 → 別PCで<b>バックアップ復元</b></div>
         <p>アプリHTMLを更新版へ差し替える前にも、念のためバックアップ保存を推奨します。同じPC・同じブラウザでも、ブラウザデータの消去や保存場所の違いでデータが見えなくなることがあります。</p>
+        <h5>保存状態の表示</h5>
+        <ul>
+          <li><b>保存中…：</b>入力内容を保存しています（数百ミリ秒で終わります）。</li>
+          <li><b>✓ 保存済み：</b>このPCへ保存できています。</li>
+          <li><b>メモリ保存：</b>このPCへ<b>保存できていません</b>。画面上部に赤い警告が出ます。</li>
+        </ul>
+        <div class="doc-warn"><b>「⚠ 現在データをこのPCへ保存できていません」</b>と表示された場合、そのページを閉じると入力内容が失われる可能性があります。すぐに「いますぐバックアップ保存」でファイルへ保存し、保存環境（プライベートモード・保存容量・ブラウザのサイト設定）を確認してください。保存できる状態に戻ると、警告は自動的に消えます。</div>
+        <p>入力は自動保存されますが、<b>タブの切り替え・最小化・ページを閉じるとき</b>にも未保存の変更を自動で保存します。</p>
       </section>
       <p class="guide-empty" id="guideEmpty">該当する説明がありません。別の言葉で検索してください。</p>
     </div>
@@ -857,14 +1001,23 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
   <div class="mbox guidebox">
     <div class="mhead"><h3 id="helpTitle">？ ヘルプ — 今困っていることから探す</h3><span class="sp"></span><button id="helpClose">閉じる</button></div>
     <div class="guide-body faq-list">
-      <details><summary>昨日の申し送りが表示されない</summary><p>前日データが存在するか、画面上部の「前日申し送り自動引継ぎ」と、入居者マスターの「自動引継ぎ対象」がONか確認してください。</p></details>
+      <details><summary>昨日の申し送りが表示されない</summary><p>前日データが存在するか、画面上部の「前日申し送り自動引継ぎ」と、入居者マスターの「自動引継ぎ対象」がONか確認してください。自動引継ぎは「今日を初めて開いたとき」だけ動きます。あとから引き継ぎたいときは「前日の申し送りをこの日に引き継ぐ」を押してください。</p></details>
+      <details><summary>未来日を開いたら申し送りは作られる？</summary><p>作られません。過去日・未来日は<b>開いて見るだけでは何も作成・変更されません</b>。先の日付を続けて開いても、申し送りが連鎖して作られることはありません。その日へ引き継ぎたいときだけ「前日の申し送りをこの日に引き継ぐ」を押してください。</p></details>
+      <details><summary>退居した人の履歴を見たい</summary><p>「履歴検索」で名前や言葉を入力すれば、退居した入居者の過去の申し送り・出来事・予定もそのまま検索できます（結果に「退居」と表示されます）。入居者マスターで「退居した入居者も表示する」にチェックを入れ、その人の「履歴を見る」からも開けます。</p></details>
+      <details><summary>入居者を間違えて退居にした</summary><p>入居者マスターで「退居した入居者も表示する」にチェックを入れ、その人の「復帰」を押すと在籍へ戻ります。退居中もデータは何も失われていません。</p></details>
+      <details><summary>入居者を完全に削除したい</summary><p>通常は「退居」を使ってください（履歴が残ります）。どうしても消す場合は、入居者マスターの「データ管理 → 管理用操作」にある「この入居者を完全削除」を使います。二段階の確認があり、<b>過去の申し送り・予定・履歴も消えて元に戻せません</b>。実行前にバックアップ保存を行ってください。</p></details>
+      <details><summary>1つの Unit の日次データだけ消したい</summary><p>入居者マスターの「データ管理 → この Unit の対象日データを全消去」を使います。<b>表示中の Unit・対象日だけ</b>が消え、他の Unit は変更されません。全 Unit をまとめて消す操作は「管理用操作」の中にあります。</p></details>
+      <details><summary>予定一覧を印刷したい</summary><p>「予定一覧」タブの「予定一覧を印刷（A4 横・別紙）」を押します。印刷されるのは対象日1日分です。「全Unit」がONなら Unit 2〜5 をまとめて、OFF なら現在の Unit だけを印刷します。申し送り用紙とは別紙になります。</p></details>
+      <details><summary>申し送り用紙に予定が出なくなった</summary><p>仕様変更です。予定は「予定一覧」タブから<b>別紙（A4横）</b>として印刷します。申し送り用紙はその分、記録欄・申し送り欄を広く使えます。予定のデータは削除されていません。</p></details>
+      <details><summary>保存できていない警告が出た</summary><p>「⚠ 現在データをこのPCへ保存できていません」と出たときは、そのページを閉じると入力内容が失われる可能性があります。まず「いますぐバックアップ保存」でファイルへ保存し、プライベート（シークレット）モードで開いていないか、ブラウザの保存容量やサイト設定を確認してください。保存できる状態に戻ると警告は自動的に消えます。</p></details>
       <details><summary>BSが表示されない</summary><p>入居者マスターの記録項目設定で、該当するBSがONか、対象曜日が正しいか確認してください。</p></details>
       <details><summary>木曜朝BSが水曜夜勤に出ない</summary><p>夜勤の「翌朝BS」がONで、測定する朝の曜日が木曜日に設定されているか確認してください。</p></details>
       <details><summary>入居者が印刷されない</summary><p>入居者マスターまたは申し送り入力で「空床」になっていないか確認してください。</p></details>
       <details><summary>予定一覧に予定が出ない</summary><p>申し送り欄に書くだけでは予定登録されません。入居者カードの「＋予定を追加」から登録してください。</p></details>
       <details><summary>過去予定が見えない</summary><p>予定一覧の「過去の予定も表示する」をONにしてください。</p></details>
       <details><summary>過去の申し送りを探したい</summary><p>「履歴検索」を使用し、名前や言葉、Unit、日付範囲、種別で絞り込んでください。</p></details>
-      <details><summary>別PCへデータを移したい</summary><p>現在PCでバックアップ保存 → ファイルを別PCへ移動 → 別PCでバックアップ復元、の順に行ってください。</p></details>
+      <details><summary>別PCへデータを移したい</summary><p>現在PCでバックアップ保存 → ファイルを別PCへ移動 → 別PCでバックアップ復元、の順に行ってください。<b>index.html だけをコピーしてもデータは移りません</b>（データはHTMLの中ではなく、そのPCのブラウザ内に保存されています）。</p></details>
+      <details><summary>バックアップ復元が不安</summary><p>復元すると現在のデータは読み込んだ内容へ完全に置き換わり、元へ戻せない場合があります。復元の操作では「先に現在のデータをバックアップ保存するか」を確認しますので、迷ったときは保存してから進めてください。ファイル形式が違う場合は「読み込めませんでした（形式が違います）」と表示され、現在のデータは変更されません。</p></details>
       <details><summary>印刷が横にならない</summary><p>ブラウザの印刷設定で用紙がA4、向きが「横」になっているか確認してください。</p></details>
       <details><summary>データが消えた</summary><p>使用しているPC・ブラウザ・index.htmlの保存場所が以前と同じか確認してください。バックアップがあれば復元してください。</p></details>
       <div class="doc-note"><button class="btn pri" id="helpOpenGuide">詳しい使い方を開く</button></div>
@@ -879,12 +1032,13 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
     <div class="mbody">
       <p style="margin-top:0">最初に次の4つだけ設定すれば、毎日の操作はかんたんです。</p>
       <div class="welcome-steps">
-        <div class="welcome-step"><b><span class="welcome-num">1</span>入居者マスター</b>部屋番号・名前・空床を設定</div>
+        <div class="welcome-step"><b><span class="welcome-num">1</span>入居者マスター</b>「入居者を追加」から部屋番号・名前を登録</div>
         <div class="welcome-step"><b><span class="welcome-num">2</span>記録項目</b>日勤・夜勤で必要な欄を設定</div>
         <div class="welcome-step"><b><span class="welcome-num">3</span>毎日の入力</b>変更がある申し送りだけ確認・修正</div>
         <div class="welcome-step"><b><span class="welcome-num">4</span>印刷</b>印刷プレビューを確認してA4横で印刷</div>
       </div>
       <div class="doc-note">詳しい説明は画面上部の「？ 使い方」、困ったときは「？ ヘルプ」から、インターネットなしでいつでも確認できます。</div>
+      <div class="doc-warn">データはこのPCの、いま使っているブラウザ内に保存されます。HTMLファイルの中には保存されません。定期的に「バックアップ保存」を行ってください。</div>
     </div>
     <div class="mfoot"><button class="btn pri" id="welcomeStart">使い始める</button><button class="btn" id="welcomeGuide">使い方を見る</button></div>
   </div>
@@ -1087,11 +1241,12 @@ function wdLabel(dow){
   return "";
 }
 
-var SEED_VER = 3;   // サンプル入居者の世代（既存サンプルを不用意に入れ替えない）
-
+/* 本番運用のため、架空のサンプル入居者は作成しない。
+   新規利用時は「入居者マスター → 入居者を追加」から登録して開始する。 */
 function defaultDB(){
-  return { v:6, seedVer:SEED_VER, residents:[], daily:{}, schedules:[], history:{version:1},
-           settings:{ hideEmpty:true, alwaysBack:true, allUnits:false, showAllUnitSched:false, autoCarry:true }, demo:true };
+  return { v:7, residents:[], daily:{}, schedules:[], history:{version:1},
+           settings:{ hideEmpty:true, alwaysBack:true, allUnits:false, showAllUnitSched:false,
+                      autoCarry:true, showLeft:false, lastAutoCarry:"" } };
 }
 
 var STORAGE_OK = true;
@@ -1106,23 +1261,19 @@ function storeSet(v){
 
 function loadDB(){
   var raw = storeGet();
-  var fresh = false;
-  if(!raw){ DB = defaultDB(); fresh = true; }
+  if(!raw){ DB = defaultDB(); }
   else{
     try{ DB = JSON.parse(raw); }catch(e){ DB = null; }
-    if(!DB || typeof DB!=="object" || Array.isArray(DB)){ DB = defaultDB(); fresh = true; }
+    if(!DB || typeof DB!=="object" || Array.isArray(DB)){ DB = defaultDB(); }
   }
   migrate();                      // 旧データでも止まらないよう不足分を安全に補完
-  if(fresh && !DB.residents.length){ seedDemo(); }
-  else if(DB.seedVer !== SEED_VER){ reseedDemo(); }  // 旧サンプルを新サンプルへ入れ替え
-  DB.seedVer = SEED_VER;
   saveDB();
 }
 
 /* 旧バージョンのデータ構造でもアプリが停止しないように補正する
    （既存データは消さず、不足しているプロパティだけ初期値で補う） */
 function migrate(){
-  DB.v = 6;
+  DB.v = 7;
   if(!Array.isArray(DB.residents)) DB.residents = [];
   DB.residents = DB.residents.filter(function(r){ return r && typeof r === "object"; });
   var seen = {};
@@ -1135,7 +1286,11 @@ function migrate(){
     r.room = (r.room == null) ? "" : String(r.room);
     r.name = (r.name == null) ? "" : String(r.name);
     if(typeof r.order !== "number" || isNaN(r.order)) r.order = i;
-    r.status = (r.status === "empty") ? "empty" : "in";
+    /* 在床状況：入居中 / 空床 / 退居（out）。旧データは従来どおり入居中・空床のまま */
+    r.status = (r.status === "empty") ? "empty" : (r.status === "out" ? "out" : "in");
+    if(r.status === "out"){
+      if(typeof r.leftAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(r.leftAt)) r.leftAt = "";
+    }else if(r.leftAt != null && typeof r.leftAt !== "string"){ delete r.leftAt; }
     if(typeof r.permRaw !== "string")   r.permRaw = "";
     if(typeof r.permShort !== "string") r.permShort = "";
     if(typeof r.permUpdated !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(r.permUpdated)) r.permUpdated = ymd(new Date());
@@ -1200,23 +1355,41 @@ function migrate(){
     printWarn : !!st.printWarn,
     showPastSched : !!st.showPastSched,
     showAllUnitSched : !!st.showAllUnitSched,
-    autoCarry : st.autoCarry !== false
+    autoCarry : st.autoCarry !== false,
+    showLeft  : !!st.showLeft,
+    /* 「今日を初めて開いたか」の判定。過去日・未来日は対象外 */
+    lastAutoCarry : (typeof st.lastAutoCarry === "string" && /^\d{4}-\d{2}-\d{2}$/.test(st.lastAutoCarry)) ? st.lastAutoCarry : ""
   };
 }
+
+/* 未保存の変更があるか。250ms の遅延保存中／保存前の状態を明示的に管理する。
+   タブ切替・最小化・ページ離脱時（visibilitychange / pagehide）に即時保存する保険に使う。 */
+var DIRTY = false;
+var saveTimer = null;
 
 function saveDB(){
   var okFlag = false;
   var json = "";
+  clearTimeout(saveTimer);
   try{ json = JSON.stringify(DB); okFlag = storeSet(json); }catch(e){ okFlag = false; }
   HISTORY_CACHE = null;
   updateCapacityWarning(json);
-  if(okFlag){ setSave("ok"); }
-  else{
+  var mn = document.getElementById("memnote");
+  if(okFlag){
+    DIRTY = false;
+    STORAGE_OK = true;
+    setSave("ok");
+    if(mn) mn.classList.remove("on");   // 保存が回復したら警告を解除する
+  }else{
+    DIRTY = true;                        // 保存できていないので未保存のまま扱う
     setSave("mem");
-    var mn = document.getElementById("memnote");
     if(mn) mn.classList.add("on");
   }
 }
+/* 入力中の頻繁な保存を抑えるための遅延保存（従来どおり 250ms） */
+function lazySave(){ DIRTY = true; setSave("busy"); clearTimeout(saveTimer); saveTimer = setTimeout(saveDB, 250); }
+/* 未保存があるときだけ即時保存する（同じ内容を何度も保存しない） */
+function flushSave(){ if(DIRTY) saveDB(); }
 function updateCapacityWarning(json){
   var el = document.getElementById("capacityWarning");
   if(!el) return;
@@ -1230,164 +1403,6 @@ function setSave(state){
   else if(state === "mem"){ el.textContent = "メモリ保存"; el.className = "savest busy"; }
   else if(state === "err"){ el.textContent = "保存エラー"; el.className = "savest busy"; }
   else { el.textContent = "✓ 保存済み"; el.className = "savest"; }
-}
-
-/* サンプル入居者（すべて架空のデータ）
-   ※ 実在の人物・実際の入居者の情報は一切含みません
-   ※ 印刷レイアウト検証用に 1 Unit あたり 15 名（合計 60 名）を用意しています */
-var SEED_RESIDENTS = [
-  {unit:2, room:"201", name:"高橋 和子",   perm:"歩行時は職員が横について見守り。転倒注意。"},
-  {unit:2, room:"202", name:"中村 正志",   perm:"食事・水分はトロミをつけて提供。義歯あり。"},
-  {unit:2, room:"203", name:"井上 美代子", perm:"車椅子使用。移乗は見守り。"},
-  {unit:2, room:"204", name:"松本 一郎",   perm:"左上肢は血圧測定不可。眼鏡使用。"},
-  {unit:2, room:"205", name:"加藤 静江",   perm:"歩行器使用。"},
-  {unit:2, room:"206", name:"木村 徳夫",   perm:"車椅子使用。移乗は見守り。"},
-  {unit:2, room:"207", name:"清水 富子",   perm:"食事は一部介助。"},
-  {unit:2, room:"208", name:"山口 幸三",   perm:"右上肢は血圧測定不可。"},
-  {unit:2, room:"209", name:"池田 芳江",   perm:"水分はトロミをつけて提供。"},
-  {unit:2, room:"210", name:"阿部 康男",   perm:"定時のトイレ誘導をお願いします。"},
-  {unit:2, room:"211", name:"石川 千鶴",   perm:"義歯あり。"},
-  {unit:2, room:"212", name:"前田 敏夫",   perm:"移乗は2人介助。"},
-  {unit:2, room:"213", name:"長谷川 光子", perm:"歩行時は付き添い。転倒注意。"},
-  {unit:2, room:"214", name:"村上 貞夫",   perm:"補聴器あり。"},
-  {unit:2, room:"215", name:"近藤 妙子",   perm:"食事は全介助。"},
-
-  {unit:3, room:"301", name:"田中 久美子", perm:"食事は一部介助。むせ込みに注意。"},
-  {unit:3, room:"302", name:"山本 英夫",   perm:"歩行器使用。ふらつきあり見守り。"},
-  {unit:3, room:"303", name:"小林 京子",   perm:"定時のトイレ誘導をお願いします。"},
-  {unit:3, room:"304", name:"佐々木 隆",   perm:"移乗は2人介助。"},
-  {unit:3, room:"305", name:"坂本 文江",   perm:"車椅子使用。"},
-  {unit:3, room:"306", name:"遠藤 政雄",   perm:"歩行器使用。転倒注意。"},
-  {unit:3, room:"307", name:"青木 満枝",   perm:"食事・水分はトロミをつけて提供。"},
-  {unit:3, room:"308", name:"福田 稔",     perm:"左上肢は血圧測定不可。"},
-  {unit:3, room:"309", name:"西村 節子",   perm:"移乗は見守り。"},
-  {unit:3, room:"310", name:"太田 忠雄",   perm:"義歯あり。補聴器あり。"},
-  {unit:3, room:"311", name:"三浦 富美子", perm:"食事は一部介助。誤嚥に注意。"},
-  {unit:3, room:"312", name:"藤井 勝行",   perm:"定時のトイレ誘導をお願いします。"},
-  {unit:3, room:"313", name:"岡本 秀子",   perm:"歩行時は横について見守り。"},
-  {unit:3, room:"314", name:"中島 昭三",   perm:"移乗は2人介助。"},
-  {unit:3, room:"315", name:"原田 千代美", perm:"水分はトロミをつけて提供。"},
-
-  {unit:4, room:"401", name:"渡辺 良子",   perm:"義歯あり。食後に洗浄。"},
-  {unit:4, room:"402", name:"吉田 誠",     perm:"夜間はセンサーマット使用。離床時は訪室。"},
-  {unit:4, room:"403", name:"伊藤 千代",   perm:"水分のみトロミ。食事は自立。"},
-  {unit:4, room:"404", name:"山田 孝雄",   perm:"車椅子自走可。移動時は見守り。"},
-  {unit:4, room:"405", name:"小川 康子",   perm:"歩行時は見守り。転倒注意。"},
-  {unit:4, room:"406", name:"竹内 正夫",   perm:"車椅子使用。移乗は2人介助。"},
-  {unit:4, room:"407", name:"金子 和江",   perm:"食事は全介助。"},
-  {unit:4, room:"408", name:"和田 清一",   perm:"右上肢は血圧測定不可。"},
-  {unit:4, room:"409", name:"中山 澄子",   perm:"歩行器使用。"},
-  {unit:4, room:"410", name:"石田 幸一",   perm:"義歯あり。"},
-  {unit:4, room:"411", name:"上田 民子",   perm:"定時のトイレ誘導をお願いします。"},
-  {unit:4, room:"412", name:"森本 治郎",   perm:"移乗は見守り。"},
-  {unit:4, room:"413", name:"柴田 雪子",   perm:"食事・水分はトロミをつけて提供。"},
-  {unit:4, room:"414", name:"宮崎 元治",   perm:"補聴器あり。"},
-  {unit:4, room:"415", name:"大野 里子",   perm:"食事は一部介助。"},
-
-  {unit:5, room:"501", name:"斉藤 恵子",   perm:"転倒歴あり。歩行時は見守り。"},
-  {unit:5, room:"502", name:"森田 修",     perm:"補聴器あり。声かけは右側から。"},
-  {unit:5, room:"503", name:"藤田 和美",   perm:"入浴は機械浴。皮膚状態を確認。"},
-  {unit:5, room:"504", name:"岡田 正雄",   perm:"右上肢は血圧測定不可。歩行器使用。"},
-  {unit:5, room:"505", name:"河野 芳子",   perm:"車椅子使用。移乗は見守り。"},
-  {unit:5, room:"506", name:"内田 三郎",   perm:"歩行器使用。転倒注意。"},
-  {unit:5, room:"507", name:"高木 春江",   perm:"水分はトロミをつけて提供。"},
-  {unit:5, room:"508", name:"安藤 義明",   perm:"左上肢は血圧測定不可。"},
-  {unit:5, room:"509", name:"島田 房子",   perm:"食事は全介助。"},
-  {unit:5, room:"510", name:"谷口 健次",   perm:"移乗は2人介助。"},
-  {unit:5, room:"511", name:"今井 悦子",   perm:"義歯あり。"},
-  {unit:5, room:"512", name:"千葉 誠一",   perm:"歩行時は付き添い。転倒注意。"},
-  {unit:5, room:"513", name:"平野 米子",   perm:"定時のトイレ誘導をお願いします。"},
-  {unit:5, room:"514", name:"増田 五郎",   perm:"補聴器あり。"},
-  {unit:5, room:"515", name:"野口 敏子",   perm:"食事は一部介助。誤嚥に注意。"}
-];
-
-/* 印刷時の文字量確認用サンプル（各Unit 3名・すべて架空）
-   「今日あったこと」は空欄のまま、「本日の申し送り」だけを設定する */
-var SEED_DAILY = {
-  "202":"昼食5割。午後より微熱あり。経過観察中。",
-  "207":"午前中に入浴実施。皮膚トラブルなし。",
-  "213":"夜間不眠あり。日中傾眠傾向のため様子観察。",
-
-  "301":"朝食全量。水分摂取良好。",
-  "309":"午後に軽度のふらつきあり。歩行時は付き添い継続。",
-  "314":"入浴実施。背部に発赤なし。",
-
-  "404":"昼食3割。食欲低下傾向のため水分を追加提供。",
-  "406":"午前中に居室で転倒なし。センサー反応2回、訪室にて対応。",
-  "412":"夕方より咳込みあり。水分をこまめに提供。",
-
-  "502":"日中は穏やかに過ごされる。レクへ参加。",
-  "508":"午前中に爪切り実施。皮膚状態良好。",
-  "515":"昼食後に嘔気の訴えあり。臥床にて経過観察。"
-};
-
-/* 予定機能の印刷確認用サンプル（各Unit 1名・すべて架空） */
-var SEED_SCHED = [
-  {room:"205", kind:"外出",     start:"10:00", end:"15:00", title:"家族と外出", place:"", dept:"", family:"あり", note:"昼食は外食予定"},
-  {room:"310", kind:"受診",     start:"11:00", end:"",      title:"定期受診",   place:"みどり内科クリニック", dept:"内科", family:"あり", note:"家族付き添いあり"},
-  {room:"407", kind:"家族面会", start:"14:00", end:"",      title:"家族面会",   place:"1階面会室", dept:"", family:"", note:""},
-  {room:"512", kind:"外出",     start:"13:00", end:"16:00", title:"美容室",     place:"", dept:"", family:"なし", note:"送迎は施設車両"}
-];
-
-function seedDemo(){
-  var idx = {}, byRoom = {};
-  for(var i=0;i<SEED_RESIDENTS.length;i++){
-    var s = SEED_RESIDENTS[i];
-    if(idx[s.unit] == null) idx[s.unit] = 0;
-    var r = {
-      id:newId(), unit:s.unit, room:s.room, name:s.name, order:idx[s.unit],
-      status:"in", permRaw:s.perm, permShort:shortenPerm(s.perm), rec:defaultRec(), autoCarry:true, demo:true
-    };
-    DB.residents.push(r);
-    byRoom[s.room] = r;
-    idx[s.unit]++;
-  }
-  seedDemoDaily(byRoom);
-  seedDemoSched(byRoom);
-}
-
-/* サンプルの「本日の申し送り」（対象日は起動日） */
-function seedDemoDaily(byRoom){
-  var today = ymd(new Date());
-  if(!DB.daily[today]) DB.daily[today] = {};
-  for(var room in SEED_DAILY){
-    var r = byRoom[room];
-    if(!r) continue;
-    DB.daily[today][r.id] = { raw:"", short:SEED_DAILY[room], h:[r.unit,r.room,r.name] };
-  }
-}
-
-/* サンプルの予定（対象日は起動日） */
-function seedDemoSched(byRoom){
-  var today = ymd(new Date());
-  for(var i=0;i<SEED_SCHED.length;i++){
-    var s = SEED_SCHED[i], r = byRoom[s.room];
-    if(!r) continue;
-    DB.schedules.push({
-      id:newId(), residentId:r.id, unit:r.unit, h:[r.unit,r.room,r.name], date:today,
-      kind:s.kind, start:s.start, end:s.end, title:s.title,
-      place:s.place, dept:s.dept, family:s.family, note:s.note
-    });
-  }
-}
-
-/* 旧サンプル（localStorage に残っている古いデモ入居者）を安全に入れ替える。
-   ・demo フラグの付いた入居者だけを対象にし、利用者が自分で登録した入居者は消さない
-   ・削除した入居者に紐づく申し送り・予定も併せて片付ける
-   ・利用者の入居者が 1 名でも残っている場合は新しいサンプルを追加しない */
-function reseedDemo(){
-  var removed = {}, hadDemo = false;
-  DB.residents = DB.residents.filter(function(r){
-    if(r.demo){ removed[r.id] = 1; hadDemo = true; return false; }
-    return true;
-  });
-  if(hadDemo){
-    for(var d in DB.daily){
-      for(var id in DB.daily[d]){ if(removed[id]) delete DB.daily[d][id]; }
-    }
-    DB.schedules = DB.schedules.filter(function(sc){ return !removed[sc.residentId]; });
-  }
-  if(!DB.residents.length) seedDemo();
 }
 
 /* ---------------- date utils ---------------- */
@@ -1686,13 +1701,12 @@ function schedOfResident(id, date){
     return s.residentId === id && (!date || s.date === date);
   }).sort(sortSched);
 }
-/* 指定Unit・指定日の予定（空床・退居者は除外） */
-function schedOfUnitDate(unit, date, includeEmpty){
+/* 指定Unit・指定日の予定（予定一覧の印刷用）。
+   空床・退居の入居者の予定も、現場で見落とさないよう印は付けたうえで残す。 */
+function schedOfUnitDate(unit, date){
   return DB.schedules.filter(function(s){
     var r = residentById(s.residentId);
-    if(!r || r.unit !== unit) return false;
-    if(!includeEmpty && r.status === "empty") return false;
-    return s.date === date;
+    return !!r && r.unit === unit && s.date === date;
   }).sort(sortSched);
 }
 function sortSched(a,b){
@@ -1811,15 +1825,38 @@ var SCHED_UI = { cleanupDismissed:false, cleanupOpen:false, result:"" };
 var HISTORY_UI = { residentId:"" };
 var HISTORY_CACHE = null;
 
+/* 退居者を含む全件（入居者マスター・管理用操作で使用） */
 function residentsOf(unit){
   return DB.residents
     .filter(function(r){ return r.unit === unit; })
     .sort(function(a,b){ return (a.order||0) - (b.order||0); });
 }
+/* 現在このUnitに在籍している人（退居者を除外）。
+   申し送り入力・人数計算・印刷・自動引継ぎはすべてこちらを使う。 */
+function isLeft(r){ return !!r && r.status === "out"; }
+function activeResidentsOf(unit){
+  return residentsOf(unit).filter(function(r){ return !isLeft(r); });
+}
 function printableOf(unit){
-  return residentsOf(unit)
+  return activeResidentsOf(unit)
     .filter(function(r){ return r.status !== "empty"; })
     .slice(0, MAX_UNIT);
+}
+/* 完全削除の確認に出す「失われるデータ量」 */
+function residentDataCounts(id){
+  var daily = 0, sched = 0;
+  for(var d in DB.daily){ if(DB.daily[d] && DB.daily[d][id]) daily++; }
+  for(var i=0;i<DB.schedules.length;i++){ if(DB.schedules[i].residentId === id) sched++; }
+  return { daily:daily, sched:sched };
+}
+/* 退居時の案内に使う「今後（対象日以降）の予定件数」 */
+function futureSchedCount(id, fromDate){
+  var n = 0;
+  for(var i=0;i<DB.schedules.length;i++){
+    var s = DB.schedules[i];
+    if(s.residentId === id && s.date >= fromDate) n++;
+  }
+  return n;
 }
 function dailyOf(date, id){
   if(!DB.daily[date]) DB.daily[date] = {};
@@ -1836,16 +1873,19 @@ function hasDailyEntry(date, id){
   return !!(DB.daily[date] && Object.prototype.hasOwnProperty.call(DB.daily[date], id));
 }
 
-/* 対象日を初めて開いた時だけ、前日の最終「本日の申し送り」を独立した日付データへ複製する。
-   今日あったこと（raw）・予定・常設メモ・記録項目設定には触れない。 */
-function autoCarryForDate(date){
-  if(!DB.settings.autoCarry) return 0;
+/* 前日の最終「本日の申し送り」を、指定日の独立した日付データへ複製する。
+   今日あったこと（raw）・予定・常設メモ・記録項目設定には触れない。
+   ★ 呼び出しは「今日を初めて開いた時（autoCarryToday）」と
+     「前日の申し送りをこの日に引き継ぐ（明示操作）」だけ。
+     日付を閲覧しただけでは絶対に実行しない（未来日への連鎖生成を防ぐ）。 */
+function autoCarryForDate(date, force){
+  if(!force && !DB.settings.autoCarry) return 0;
   var src = prevDate(date), srcDay = DB.daily[src];
   if(!srcDay || typeof srcDay !== "object") return 0;
   var copied = 0;
   for(var i=0;i<DB.residents.length;i++){
     var r = DB.residents[i];
-    if(r.status === "empty" || r.autoCarry === false || hasDailyEntry(date, r.id)) continue;
+    if(r.status === "empty" || isLeft(r) || r.autoCarry === false || hasDailyEntry(date, r.id)) continue;
     var from = srcDay[r.id];
     if(!from || typeof from.short !== "string" || !from.short.trim()) continue;
     if(!DB.daily[date]) DB.daily[date] = {};
@@ -1857,6 +1897,19 @@ function autoCarryForDate(date){
   }
   if(copied) saveDB();
   return copied;
+}
+/* 今日を初めて開いたときだけ自動引継ぎする。
+   ・同じ日に2回目以降は実行しない（消した申し送りが復活しない）
+   ・すでに当日データがある入居者は上書きしない
+   ・過去日・未来日は対象外 */
+function autoCarryToday(){
+  var today = ymd(new Date());
+  if(!DB.settings.autoCarry) return 0;
+  if(DB.settings.lastAutoCarry === today) return 0;
+  var n = autoCarryForDate(today);
+  DB.settings.lastAutoCarry = today;
+  saveDB();
+  return n;
 }
 function esc(s){
   return String(s==null?"":s)
@@ -1878,7 +1931,7 @@ function renderUnitBar(){
   var h = "";
   for(var i=0;i<UNITS.length;i++){
     var u = UNITS[i];
-    var n = residentsOf(u).filter(function(r){ return r.status!=="empty"; }).length;
+    var n = activeResidentsOf(u).filter(function(r){ return r.status!=="empty"; }).length;
     h += '<button data-unit="'+u+'" class="'+(u===UI.unit?"on":"")+'">Unit '+u+'<span class="cnt">'+n+'名</span></button>';
   }
   document.getElementById("unitBar").innerHTML = h;
@@ -1886,6 +1939,7 @@ function renderUnitBar(){
 
 function switchTab(t){
   UI.tab = t;
+  document.body.classList.remove("printing-sched");   // 別紙印刷モードを持ち越さない
   var tb = document.querySelectorAll(".tabs button");
   for(var i=0;i<tb.length;i++) tb[i].classList.toggle("on", tb[i].getAttribute("data-tab")===t);
   document.getElementById("v-input").classList.toggle("on", t==="input");
@@ -1905,7 +1959,7 @@ function switchTab(t){
    render : 申し送り入力
    ========================================================= */
 function renderInput(){
-  var list = residentsOf(UI.unit);
+  var list = activeResidentsOf(UI.unit);   // 退居者は申し送り入力に出さない（履歴は保持）
   var host = document.getElementById("inputList");
   if(!list.length){
     host.innerHTML = '<div class="panel"><p class="hint">この Unit にはまだ入居者が登録されていません。「入居者マスター」タブから追加してください。</p></div>';
@@ -2066,28 +2120,49 @@ function updAllWarns(){
    ========================================================= */
 function renderMaster(){
   document.getElementById("mUnitLabel").textContent = "Unit " + UI.unit;
-  var list = residentsOf(UI.unit);
+  var all = residentsOf(UI.unit);
+  var showLeft = !!DB.settings.showLeft;
+  var leftCount = all.filter(isLeft).length;
+  var list = showLeft ? all : all.filter(function(r){ return !isLeft(r); });
   var h = "";
   for(var i=0;i<list.length;i++){
     var r = list[i];
-    h += '<tr data-id="'+r.id+'">'
+    var left = isLeft(r);
+    var stLb = left ? "退居" : (r.status==="empty" ? "空床" : "入居中");
+    var stCls = left ? "left" : (r.status==="empty" ? "out" : "in");
+    h += '<tr data-id="'+r.id+'"'+(left?' class="left-row"':'')+'>'
       + '<td class="ord">'
         + '<button class="iconbtn" data-a="up" '+(i===0?"disabled":"")+'>↑</button> '
         + '<button class="iconbtn" data-a="down" '+(i===list.length-1?"disabled":"")+'>↓</button>'
       + '</td>'
       + '<td><input type="text" data-f="room" value="'+esc(r.room)+'"></td>'
       + '<td><input type="text" data-f="name" value="'+esc(r.name)+'"></td>'
-      + '<td><button class="pill '+(r.status==="empty"?"out":"in")+'" data-a="toggle" title="空床にすると、入居人数の計算と印刷対象から除外されます。">'+(r.status==="empty"?"空床":"入居中")+'</button></td>'
+      + '<td><button class="pill '+stCls+'" data-a="toggle"'
+        + (left ? ' disabled title="退居中の入居者です。「復帰」で在籍へ戻せます。"'
+                : ' title="空床にすると、入居人数の計算と印刷対象から除外されます。"')
+        + '>'+stLb+'</button>'
+        + (left && r.leftAt ? '<div class="mini">'+esc(r.leftAt)+' 退居</div>' : '') + '</td>'
       + '<td><input type="text" data-f="permShort" value="'+esc(r.permShort)+'" placeholder="（申し送り入力タブで作成できます）"></td>'
-      + '<td><label class="hint" title="ONの入居者は、前日の本日の申し送りが翌日へ自動で引き継がれます。"><input type="checkbox" data-f="autoCarry" '+(r.autoCarry!==false?"checked":"")+'> 対象にする</label></td>'
+      + '<td><label class="hint" title="ONの入居者は、前日の本日の申し送りが翌日へ自動で引き継がれます。"><input type="checkbox" data-f="autoCarry" '+(r.autoCarry!==false?"checked":"")+(left?" disabled":"")+'> 対象にする</label></td>'
       + '<td><button class="recbtn" data-a="rec">記録項目設定</button>'
         + '<div class="recsum">'+recSummary(r)+'</div></td>'
       + '<td><button class="btn sm historybtn" data-a="history">履歴を見る</button></td>'
-      + '<td class="act"><button class="iconbtn" data-a="del" title="削除">✕</button></td>'
+      + '<td>' + (left
+          ? '<button class="btn sm" data-a="return" title="在籍へ戻します。">復帰</button>'
+          : '<button class="btn sm danger" data-a="leave" title="退居にします。申し送り入力・人数・印刷から外れますが、過去の履歴・予定は残ります。">退居</button>')
+        + '</td>'
       + '</tr>';
   }
-  if(!list.length) h = '<tr><td colspan="9" class="hint" style="padding:14px">入居者がいません。「入居者を追加」から登録してください。</td></tr>';
+  if(!list.length){
+    h = '<tr><td colspan="9" class="hint" style="padding:14px">'
+      + (leftCount ? '在籍中の入居者がいません（退居 '+leftCount+' 名）。「退居した入居者も表示する」で確認できます。'
+                   : '入居者がいません。「入居者を追加」から登録してください。')
+      + '</td></tr>';
+  }else if(!showLeft && leftCount){
+    h += '<tr><td colspan="9" class="hint" style="padding:9px">退居した入居者が '+leftCount+' 名います（過去の履歴・予定は保持されています）。「退居した入居者も表示する」で一覧に表示できます。</td></tr>';
+  }
   document.getElementById("masterBody").innerHTML = h;
+  renderAdminDeleteList();
 }
 
 /* マスター表に出す設定の要約（ON の数と、曜日を絞っている項目） */
@@ -2392,6 +2467,7 @@ document.getElementById("recBody").addEventListener("click", function(e){
 function renderSched(){
   var lb = document.getElementById("sUnitLabel");
   if(lb) lb.textContent = DB.settings.showAllUnitSched ? "全Unit" : "Unit " + UI.unit;
+  renderSchedPrint();          // 対象日・Unitに合わせて印刷プレビューも更新する
   var host = document.getElementById("schedList");
   if(!host) return;
   var showPast = !!(DB.settings && DB.settings.showPastSched);
@@ -2429,7 +2505,8 @@ function renderSched(){
       + '<div class="body">'
         + '<div class="who">' + (DB.settings.showAllUnitSched ? 'Unit ' + r.unit + '　' : '')
         + esc(r.room) + '　' + esc(r.name || "（無名）")
-        + (r.status === "empty" ? '　<span class="pill out">空床</span>' : '') + '</div>'
+        + (isLeft(r) ? '　<span class="pill left">退居</span>'
+                     : (r.status === "empty" ? '　<span class="pill out">空床</span>' : '')) + '</div>'
         + '<div class="det">' + esc(schedBody(s) || "（内容未入力）") + (fam ? '　' + esc(fam) : '')
         + (s.note && s.note !== s.title ? '　<span style="color:#8794a1">' + esc(s.note) + '</span>' : '') + '</div>'
       + '</div>'
@@ -2438,6 +2515,97 @@ function renderSched(){
       + '<div class="sched-form" data-sform-row="' + s.id + '"></div>';
   }
   host.innerHTML = h;
+}
+
+/* =========================================================
+   予定一覧の印刷（A4 横・申し送り用紙とは別紙）
+   - 対象は「対象日（UI.date）の1日分」
+   - 「全Unit」ON なら Unit 2〜5 をまとめ、Unit ごとの見出しで区別する
+   - 空欄の項目は「−」で埋め、列がずれて崩れないようにする
+   - 操作UI（編集・削除・チェックボックス・ヘルプ・ナビゲーション）は印刷しない
+   ========================================================= */
+function schedCell(v){
+  var s = String(v == null ? "" : v).trim();
+  return s ? esc(s) : "−";
+}
+function schedPrintRows(unit, date){
+  var list = schedOfUnitDate(unit, date);
+  var h = "";
+  for(var i=0;i<list.length;i++){
+    var s = list[i], r = residentById(s.residentId);
+    if(!r) continue;
+    var mark = isLeft(r) ? "（退居）" : (r.status === "empty" ? "（空床）" : "");
+    h += '<tr>'
+      + '<td>Unit ' + r.unit + '</td>'
+      + '<td>' + schedCell(r.room) + '</td>'
+      + '<td class="nm">' + esc(r.name || "（無名）") + esc(mark) + '</td>'
+      + '<td>' + schedCell(s.kind) + '</td>'
+      + '<td>' + schedCell(s.start) + '</td>'
+      + '<td>' + schedCell(s.end) + '</td>'
+      + '<td>' + schedCell(s.title) + '</td>'
+      + '<td>' + schedCell(s.place) + '</td>'
+      + '<td>' + schedCell(s.dept) + '</td>'
+      + '<td>' + schedCell(s.family) + '</td>'
+      + '<td>' + schedCell(s.note) + '</td>'
+      + '</tr>';
+  }
+  return { html:h, count:list.length };
+}
+function schedPrintTableHTML(){
+  return '<thead><tr>'
+    + '<th style="width:7%">Unit</th><th style="width:6%">部屋</th><th style="width:11%">入居者名</th>'
+    + '<th style="width:7%">予定種別</th><th style="width:6%">開始</th><th style="width:6%">終了</th>'
+    + '<th style="width:13%">予定内容</th><th style="width:13%">病院名 / 場所</th>'
+    + '<th style="width:9%">診療科</th><th style="width:7%">家族付添</th><th>補足メモ</th>'
+    + '</tr></thead>';
+}
+function renderSchedPrint(){
+  var host = document.getElementById("schedPrintArea");
+  if(!host) return;
+  var all = !!DB.settings.showAllUnitSched;
+  var units = all ? UNITS.slice() : [UI.unit];
+  var body = "", total = 0;
+  for(var i=0;i<units.length;i++){
+    var got = schedPrintRows(units[i], UI.date);
+    total += got.count;
+    if(all){
+      body += '<div class="ss-unit">Unit ' + units[i] + '　（' + got.count + ' 件）</div>'
+        + (got.count
+            ? '<table>' + schedPrintTableHTML() + '<tbody>' + got.html + '</tbody></table>'
+            : '<div class="none">この日の予定はありません</div>');
+    }else if(got.count){
+      body += '<table>' + schedPrintTableHTML() + '<tbody>' + got.html + '</tbody></table>';
+    }
+  }
+  if(!total && !all) body = '<div class="none">この日の予定はありません</div>';
+
+  var scope = all ? "全Unit（Unit 2〜5）" : "Unit " + UI.unit;
+  var sheet = '<div class="ssheet">'
+    + '<div class="ss-head">'
+      + '<div class="t">予定一覧<small>' + esc(scope) + '</small></div>'
+      + '<div class="d">' + esc(jpDate(UI.date)) + '</div>'
+      + '<div class="sig">確認<span></span>日勤<span></span>夜勤<span></span></div>'
+    + '</div>'
+    + body
+    + '<div class="ss-foot"><div class="l">予定一覧（申し送り用紙とは別紙）</div>'
+      + '<div>' + esc(jpDate(UI.date)) + '　' + esc(scope) + '　合計 ' + total + ' 件</div></div>'
+  + '</div>';
+
+  host.innerHTML = '<div class="ssheetScale">' + sheet + '</div>';
+  var lb = document.getElementById("schedPrintLabel");
+  if(lb) lb.textContent = "予定一覧 印刷プレビュー（A4 横）　" + jpDate(UI.date) + "　" + scope + "　" + total + " 件";
+  fitSchedPreview();
+}
+/* プレビューを画面幅に合わせて縮小表示（印刷時は等倍） */
+function fitSchedPreview(){
+  var host = document.getElementById("schedPrintArea");
+  if(!host || !host.clientWidth) return;
+  var mm = 96/25.4;
+  var sc = Math.min(1, host.clientWidth / (285*mm));
+  document.documentElement.style.setProperty("--ssc", sc);
+  var box = host.querySelector(".ssheetScale");
+  var sheet = host.querySelector(".ssheet");
+  if(box && sheet) box.style.height = (sheet.offsetHeight * sc + 4) + "px";
 }
 
 function renderSchedCleanup(){
@@ -2527,6 +2695,7 @@ function historyWordMatches(text, word){
 function historyPerson(src, r){
   var snap = src && Array.isArray(src.h) && src.h.length >= 3 ? src.h : null;
   return {
+    left: isLeft(r),
     unit: snap && UNITS.indexOf(parseInt(snap[0],10)) >= 0 ? parseInt(snap[0],10)
       : (UNITS.indexOf(parseInt(src && src.unit,10)) >= 0 ? parseInt(src.unit,10) : (r ? r.unit : UNITS[0])),
     room: snap ? String(snap[1] || "") : ((src && typeof src.room === "string") ? src.room : (r ? r.room : "")),
@@ -2568,7 +2737,7 @@ function buildHistoryIndex(){
       if(raw && handover && historyNorm(raw) !== historyNorm(handover)){
         content = "今日あったこと\n" + raw + "\n\n本日の申し送り\n" + handover;
       }else content = handover || raw;
-      out.push(addHistorySearchText({date:date, unit:p.unit, room:p.room, name:p.name,
+      out.push(addHistorySearchText({date:date, unit:p.unit, room:p.room, name:p.name, left:p.left,
         residentId:id, type:type, kinds:kinds, content:content, source:"daily", sourceId:""},
         r ? [r.name,r.room,"Unit "+r.unit].join(" ") : ""));
     }
@@ -2585,7 +2754,7 @@ function buildHistoryIndex(){
     var fm = schedFamily(s); if(fm) lines.push(fm);
     if(s.note && lines.join(" ").indexOf(s.note) < 0) lines.push(s.note);
     if(!lines.length) lines.push(s.kind || "（内容未入力）");
-    out.push(addHistorySearchText({date:s.date, unit:p.unit, room:p.room, name:p.name,
+    out.push(addHistorySearchText({date:s.date, unit:p.unit, room:p.room, name:p.name, left:p.left,
       residentId:s.residentId, type:sk, kinds:[sk], content:lines.join("\n"), source:"schedule", sourceId:s.id},
       [s.kind,s.title,s.place,s.dept,s.family,s.note,s.start,s.end,
        r?r.name:"",r?r.room:"",r?("Unit "+r.unit):""].join(" ")));
@@ -2597,7 +2766,7 @@ function buildHistoryIndex(){
     if(raw && handover && historyNorm(raw) !== historyNorm(handover)) content = raw + "\n" + handover;
     else content = handover || raw;
     out.push(addHistorySearchText({date:r.permUpdated || ymd(new Date()), unit:r.unit, room:r.room,
-      name:r.name, residentId:r.id, type:"常設重要メモ", kinds:["申し送り"], content:content,
+      name:r.name, left:isLeft(r), residentId:r.id, type:"常設重要メモ", kinds:["申し送り"], content:content,
       source:"permanent", sourceId:""}));
   }
   HISTORY_CACHE = out;
@@ -2634,7 +2803,8 @@ function renderHistory(){
   var person = document.getElementById("historyPerson");
   if(HISTORY_UI.residentId){
     var pr = residentById(HISTORY_UI.residentId);
-    person.textContent = pr ? ("入居者別履歴：Unit " + pr.unit + "　" + pr.room + " " + (pr.name || "（無名）")) : "入居者別履歴";
+    person.textContent = pr ? ("入居者別履歴：Unit " + pr.unit + "　" + pr.room + " " + (pr.name || "（無名）")
+      + (isLeft(pr) ? "（退居）" : "")) : "入居者別履歴";
     person.classList.add("on");
   }else{ person.textContent = ""; person.classList.remove("on"); }
   if(!list.length){ host.innerHTML = '<div class="history-empty">該当する履歴はありません</div>'; return; }
@@ -2643,7 +2813,8 @@ function renderHistory(){
     var x = shown[i];
     h += '<article class="history-item" role="button" tabindex="0" data-history-index="'+i+'">'
       + '<div><div class="date">'+esc(x.date.replace(/-/g,"/"))+'</div><div class="meta">Unit '+x.unit+' ／ '+esc(x.room || "部屋未設定")+'</div></div>'
-      + '<div><div class="who">'+esc(x.room)+' '+esc(x.name || "（無名）")+'</div>'
+      + '<div><div class="who">'+esc(x.room)+' '+esc(x.name || "（無名）")
+      + (x.left ? ' <span class="pill left">退居</span>' : '')+'</div>'
       + '<div class="kind">'+esc(x.type)+'</div><div class="content">'+esc(x.content)+'</div></div></article>';
   }
   if(list.length > shown.length) h += '<div class="history-limit">先頭'+shown.length+'件を表示中（全'+list.length+'件）。条件を絞ると残りも確認できます。</div>';
@@ -2663,6 +2834,13 @@ function openResidentHistory(id){
 }
 function openHistorySource(item){
   if(!item) return;
+  /* 退居した入居者は申し送り入力に表示されない。履歴の閲覧だけに留め、
+     画面を移動して「見つからない」状態にしない（データは変更しない）。 */
+  var target = residentById(item.residentId);
+  if(isLeft(target)){
+    toast("退居した入居者の履歴です（申し送り入力には表示されません）");
+    return;
+  }
   UI.unit = item.unit;
   setDate(item.date);
   switchTab("input");
@@ -2751,22 +2929,6 @@ function rowHTML(r, date){
     + '</div>';
 }
 
-function schedBoxHTML(unit, date){
-  var list = schedOfUnitDate(unit, date, !DB.settings.hideEmpty);
-  if(!list.length) return "";                       // 予定なしの日は欄自体を出さない
-  var items = "";
-  for(var i=0;i<list.length;i++){
-    var s = list[i], r = residentById(s.residentId);
-    if(!r) continue;
-    var fam = schedFamily(s);
-    items += '<span class="it"><b>' + esc(r.room) + ' ' + esc(r.name) + '</b>　'
-           + esc(schedBody(s)) + (fam ? '<span class="fam">' + esc(fam) + '</span>' : '')
-           + '</span>';
-  }
-  if(!items) return "";
-  return '<div class="sched-box"><div class="hd">【本日の予定】</div>' + items + '</div>';
-}
-
 /* ページ見出し用のラベル（例：Unit 2 表（1〜7名）） */
 function pageRangeLabel(startIdx, count){
   return (startIdx+1) + '〜' + (startIdx+count) + '名';
@@ -2787,7 +2949,8 @@ function splitResidentsForPrint(list){
   ];
 }
 
-function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, withSched, totalResidents){
+/* 予定は「予定一覧」タブから A4 横の別紙として印刷する（申し送り用紙には出さない） */
+function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, totalResidents){
   var rows = "";
   for(var i=0;i<people.length && i<PER_PAGE;i++) rows += rowHTML(people[i], date);
 
@@ -2797,7 +2960,6 @@ function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, withSched, t
       + '<div class="d">'+esc(jpDate(date))+'</div>'
       + '<div class="sig">日勤<span></span>夜勤<span></span></div>'
     + '</div>'
-    + (withSched ? schedBoxHTML(unit, date) : "")   // 本日の予定は各Unitの表面（1ページ目）のみ
     + '<div class="rows">'
       + '<div class="rhead">'
         + '<div class="pc">部屋・入居者／重要・本日</div>'
@@ -2832,7 +2994,7 @@ function renderPrint(){
       var page = pages[q];
       var lbl = pageTitle(u, q+1) + '（' + pageRangeLabel(page.start, page.people.length) + '）　入居' + list.length + '名　' + (q+1) + ' / ' + total;
       html += '<div class="sheetWrap"><div class="pv-label">'+lbl+'</div>'
-            + '<div class="sheetScale">' + sheetHTML(u, page.people, page.start, q+1, total, UI.date, q===0, list.length) + '</div></div>';
+            + '<div class="sheetScale">' + sheetHTML(u, page.people, page.start, q+1, total, UI.date, list.length) + '</div></div>';
     }
     if(DB.settings.alwaysBack && total % 2 === 1){
       html += '<div class="sheetWrap"><div class="pv-label">Unit '+u+' 裏面（空白）</div>'
@@ -2885,27 +3047,7 @@ function markOverflow(){
       list.push(rowLabel(row));
     }
   }
-  /* 本日の予定が多い日は行の高さが削られる。日勤／夜勤欄（文字量が固定の欄）が
-     実際に欠け始めたら、情報は削らずに警告だけを出す */
-  var schedWarn = [];
-  var boxes = host.querySelectorAll(".sched-box");
-  for(var s2=0;s2<boxes.length;s2++){
-    var bx = boxes[s2];
-    var shx = bx.closest ? bx.closest(".sheet") : null;
-    if(!shx) continue;
-    var cells2 = shx.querySelectorAll(".prow .p-day, .prow .p-ni");
-    var tight = false;
-    for(var c2=0;c2<cells2.length;c2++){
-      var pr = cells2[c2].parentNode;
-      if(pr && pr._itemOver) continue;            // 記録項目が多い行は別の警告で知らせる
-      if(cells2[c2].scrollHeight > cells2[c2].clientHeight + 1){ tight = true; break; }
-    }
-    if(tight){
-      var lbx = shx.querySelector(".sh-foot .l");
-      schedWarn.push(lbx ? lbx.textContent.trim() : "");
-    }
-  }
-  renderOvList(list, schedWarn, itemWarn);
+  renderOvList(list, itemWarn);
 }
 /* 警告一覧に出す「Unit 2　201 高橋 和子」形式のラベル */
 function rowLabel(row){
@@ -2915,7 +3057,7 @@ function rowLabel(row){
   var name = nm ? nm.textContent.replace(/\s+/g," ").trim() : "";
   return (lb ? lb.textContent.trim() : "") + "　" + (name || "（予備行）");
 }
-function renderOvList(list, schedWarn, itemWarn){
+function renderOvList(list, itemWarn){
   var el = document.getElementById("ovList");
   if(!el) return;
   var h = "";
@@ -2927,11 +3069,6 @@ function renderOvList(list, schedWarn, itemWarn){
   if(itemWarn && itemWarn.length){
     h += '⚠ 記録項目が多いため印刷欄を確認してください（項目は削っていません。記録項目設定で不要な項目を OFF にするか、曜日を絞ってください）<ul>';
     for(var k=0;k<itemWarn.length;k++) h += '<li>' + esc(itemWarn[k]) + '</li>';
-    h += '</ul>';
-  }
-  if(schedWarn && schedWarn.length){
-    h += '⚠ 本日の予定が多く、15 名分の行の高さが不足しています（内容は削っていません。予定欄の記載を短くするか、用紙を分けてください）<ul>';
-    for(var j=0;j<schedWarn.length;j++) h += '<li>' + esc(schedWarn[j]) + '</li>';
     h += '</ul>';
   }
   if(!h) h = '<span class="none">✓ 文字量超過はありません（全員が印刷欄に収まります）</span>';
@@ -3027,10 +3164,12 @@ document.getElementById("historyResults").addEventListener("keydown", function(e
 });
 
 /* 対象日を変更する（常設重要メモは日付に依存せず、日次データだけ切り替わる） */
+/* ★ 日付を「見るだけ」では、いかなるデータも作らない・変えない（read-only）。
+   自動引継ぎは今日を初めて開いた時だけ（autoCarryToday）、
+   それ以外は「前日の申し送りをこの日に引き継ぐ」ボタンなど明示操作でのみ行う。 */
 function setDate(d){
   if(!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) d = ymd(new Date());
   UI.date = d;
-  var carried = autoCarryForDate(UI.date);
   var di = document.getElementById("theDate");
   if(di) di.value = UI.date;
   renderDateBar();
@@ -3038,7 +3177,6 @@ function setDate(d){
   renderSched();
   if(REC_UI.id) renderRecModal();   // 設定パネルの「この日は表示」も対象日に追従させる
   if(UI.tab === "print"){ renderPrint(); fitPreview(); }
-  if(carried) toast(carried + "名の申し送りを前日から引き継ぎました");
 }
 document.getElementById("theDate").addEventListener("change", function(){ setDate(this.value); });
 document.getElementById("btnPrevDay").addEventListener("click", function(){ setDate(shiftDate(UI.date, -1)); });
@@ -3046,9 +3184,6 @@ document.getElementById("btnNextDay").addEventListener("click", function(){ setD
 document.getElementById("btnToday").addEventListener("click", function(){ setDate(ymd(new Date())); });
 
 /* ---- 申し送り入力：入力・ボタン ---- */
-var saveTimer = null;
-function lazySave(){ setSave("busy"); clearTimeout(saveTimer); saveTimer = setTimeout(saveDB, 250); }
-
 document.getElementById("inputList").addEventListener("input", function(e){
   var card = e.target.closest(".card"); if(!card) return;
   var id = card.getAttribute("data-id");
@@ -3209,19 +3344,34 @@ document.getElementById("inputList").addEventListener("click", function(e){
 });
 
 document.getElementById("btnMakeAll").addEventListener("click", function(){
-  var list = residentsOf(UI.unit), n=0;
+  var list = activeResidentsOf(UI.unit), n=0;
   for(var i=0;i<list.length;i++){
+    /* 入力がある人だけを対象にし、閲覧しただけの人に空データを作らない */
+    var cur = dailyGet(UI.date, list[i].id);
+    if(!(cur.raw && cur.raw.trim()) || (cur.short && cur.short.trim())) continue;
     var d = dailyOf(UI.date, list[i].id);
-    if(d.raw && d.raw.trim() && !(d.short && d.short.trim())){
-      d.short = shortenToday(d.raw); n++;
-    }
+    d.short = shortenToday(d.raw); n++;
   }
   saveDB(); renderInput();
   toast(n ? n+"名分の申し送りを作成しました" : "作成対象がありませんでした");
 });
 
+/* 前日の申し送りを、この対象日へ明示的に引き継ぐ（未来日・過去日でも操作した時だけ実行） */
+document.getElementById("btnCarryNow").addEventListener("click", function(){
+  var src = prevDate(UI.date);
+  if(!DB.daily[src]){ toast(jpDate(src) + " には申し送りがありません"); return; }
+  if(!confirm(jpDate(src) + " の「本日の申し送り」を " + jpDate(UI.date) + " へ引き継ぎます。\n\n"
+            + "・自動引継ぎ対象の入居者のみが対象です\n"
+            + "・すでに " + jpDate(UI.date) + " に入力がある人は上書きしません\n"
+            + "・退居・空床の入居者は対象外です\n\nよろしいですか？")) return;
+  var n = autoCarryForDate(UI.date, true);
+  saveDB(); renderInput();
+  if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+  toast(n ? n + "名の申し送りを前日から引き継ぎました（内容を確認してください）" : "引き継ぐ申し送りがありませんでした");
+});
+
 document.getElementById("btnShortAll").addEventListener("click", function(){
-  var list = residentsOf(UI.unit), n=0;
+  var list = activeResidentsOf(UI.unit), n=0;
   for(var i=0;i<list.length;i++){
     var r = list[i];
     if(r.permRaw && r.permRaw.trim() && !(r.permShort && r.permShort.trim())){
@@ -3263,7 +3413,7 @@ function copyDayToCurrent(srcDate, mode){
   if(srcDate === UI.date){ toast("コピー元とコピー先が同じ日付です"); return; }
   if(!DB.daily[srcDate]){ toast(jpDate(srcDate) + " には申し送りがありません"); return; }
 
-  var list = residentsOf(UI.unit).filter(function(r){ return r.status !== "empty"; }); // 空床は除外
+  var list = activeResidentsOf(UI.unit).filter(function(r){ return r.status !== "empty"; }); // 空床・退居は除外
   var targets = list.filter(function(r){ return hasDaily(srcDate, r.id); });           // 入力がある人だけ
   if(!targets.length){
     toast(jpDate(srcDate) + " の Unit " + UI.unit + " には、コピーできる申し送りがありません");
@@ -3297,6 +3447,7 @@ function copyOneFrom(residentId, srcDate){
   var r = DB.residents.filter(function(x){ return x.id === residentId; })[0];
   if(!r) return;
   if(r.status === "empty"){ toast("空床の入居者にはコピーしません"); return; }
+  if(isLeft(r)){ toast("退居した入居者にはコピーしません"); return; }
   if(srcDate === UI.date){ toast("コピー元とコピー先が同じ日付です"); return; }
   if(!hasDaily(srcDate, residentId)){
     toast(jpDate(srcDate) + " の " + (r.name || "この入居者") + " には申し送りがありません");
@@ -3333,16 +3484,26 @@ document.getElementById("btnCopyRun").addEventListener("click", function(){
 
 document.getElementById("optAutoCarry").addEventListener("change", function(){
   DB.settings.autoCarry = this.checked;
-  var copied = this.checked ? autoCarryForDate(UI.date) : 0;
+  /* ONにした時、対象日が「今日」の場合だけその場で引き継ぐ。
+     過去日・未来日を表示中は生成せず、必要なら「前日の申し送りをこの日に引き継ぐ」で行う。 */
+  var today = ymd(new Date());
+  var copied = 0;
+  if(this.checked && UI.date === today){
+    copied = autoCarryForDate(today);
+    DB.settings.lastAutoCarry = today;
+  }
   saveDB(); renderInput();
-  toast(this.checked ? (copied ? copied + "名の申し送りを前日から引き継ぎました" : "自動引継ぎをONにしました")
-                     : "自動引継ぎをOFFにしました");
+  toast(this.checked
+    ? (copied ? copied + "名の申し送りを前日から引き継ぎました"
+              : (UI.date === today ? "自動引継ぎをONにしました"
+                                   : "自動引継ぎをONにしました（今日を開いたときに引き継ぎます）"))
+    : "自動引継ぎをOFFにしました");
 });
 
 /* ---- 入居者マスター ---- */
 document.getElementById("btnAdd").addEventListener("click", function(){
   var list = residentsOf(UI.unit);
-  if(list.length >= MAX_UNIT){ toast("1 Unit の上限は "+MAX_UNIT+" 名です"); return; }
+  if(activeResidentsOf(UI.unit).length >= MAX_UNIT){ toast("1 Unit の上限は "+MAX_UNIT+" 名です（退居者は含みません）"); return; }
   DB.residents.push({
     id:newId(), unit:UI.unit, room:"", name:"", order:(list.length?Math.max.apply(null,list.map(function(r){return r.order||0;}))+1:0),
     status:"in", permRaw:"", permShort:"", rec:defaultRec(), autoCarry:true
@@ -3385,7 +3546,8 @@ document.getElementById("masterBody").addEventListener("input", function(e){
 document.getElementById("masterBody").addEventListener("click", function(e){
   var b = e.target.closest("button[data-a]"); if(!b) return;
   var tr = b.closest("tr"); var id = tr.getAttribute("data-id");
-  var list = residentsOf(UI.unit);
+  var all = residentsOf(UI.unit);
+  var list = DB.settings.showLeft ? all : all.filter(function(r){ return !isLeft(r); });
   var idx = -1;
   for(var i=0;i<list.length;i++) if(list[i].id===id) idx=i;
   if(idx<0) return;
@@ -3396,17 +3558,45 @@ document.getElementById("masterBody").addEventListener("click", function(e){
   if(a==="up" && idx>0){ swapOrder(list, idx, idx-1); }
   if(a==="down" && idx<list.length-1){ swapOrder(list, idx, idx+1); }
   if(a==="toggle"){
+    if(isLeft(list[idx])) return;                 // 退居中は空床トグルの対象外
     list[idx].status = list[idx].status==="empty" ? "in" : "empty";
   }
-  if(a==="del"){
-    var nm = list[idx].name || "（無名）";
-    if(!confirm(nm+" を削除します。よろしいですか？\n※この入居者の常設重要メモ・日次データも削除されます。")) return;
-    var delId = list[idx].id;
-    DB.residents = DB.residents.filter(function(x){ return x.id!==delId; });
-    DB.schedules = DB.schedules.filter(function(x){ return x.residentId!==delId; });
-    for(var dk in DB.daily){ if(DB.daily[dk][delId]) delete DB.daily[dk][delId]; }
+  /* 退居：通常操作での「削除」に代わる扱い。過去の申し送り・予定・履歴は消さない。 */
+  if(a==="leave"){
+    var r = list[idx];
+    var nm = (r.room ? r.room + " " : "") + (r.name || "（無名）");
+    var fut = futureSchedCount(r.id, ymd(new Date()));
+    var msg = nm + " を「退居」にします。\n\n"
+      + "・申し送り入力の一覧に表示されなくなります\n"
+      + "・実入居人数・申し送り印刷・前日自動引継ぎの対象から外れます\n"
+      + "・過去の申し送り／予定／履歴はそのまま残り、履歴検索で確認できます\n"
+      + "・入居者マスターの「退居した入居者も表示する」から、いつでも復帰できます\n";
+    if(fut) msg += "\nこの入居者には今後の予定が " + fut + " 件あります。予定は削除せず保持します。\n";
+    msg += "\nよろしいですか？";
+    if(!confirm(msg)) return;
+    r.status = "out";
+    r.leftAt = ymd(new Date());
+    saveDB(); renderAll();
+    toast(nm + " を退居にしました（過去の履歴は保持されます）"
+      + (fut ? "／今後の予定 " + fut + " 件は保持しています" : ""));
+    return;
+  }
+  if(a==="return"){
+    var r2 = list[idx];
+    var nm2 = (r2.room ? r2.room + " " : "") + (r2.name || "（無名）");
+    if(!confirm(nm2 + " を在籍（入居中）へ戻します。よろしいですか？")) return;
+    r2.status = "in";
+    delete r2.leftAt;
+    saveDB(); renderAll();
+    toast(nm2 + " を在籍へ戻しました");
+    return;
   }
   saveDB(); renderAll();
+});
+
+document.getElementById("optShowLeft").addEventListener("change", function(){
+  DB.settings.showLeft = this.checked;
+  saveDB(); renderMaster();
 });
 
 function swapOrder(list, i, j){
@@ -3416,36 +3606,73 @@ function swapOrder(list, i, j){
   for(var k=0;k<list.length;k++){ if(list[k].order==null) list[k].order = k; }
 }
 
-document.getElementById("btnClearDaily").addEventListener("click", function(){
-  if(!confirm(UI.date+" の「今日あったこと・本日の申し送り」を全 Unit 分消去します。\n常設重要メモは残ります。よろしいですか？")) return;
-  delete DB.daily[UI.date];
-  saveDB(); renderAll(); toast("消去しました");
-});
-
-document.getElementById("btnDemo18").addEventListener("click", function(){
-  var exist = residentsOf(3).length;
-  if(exist >= MAX_UNIT){ toast("Unit 3 は既に上限です"); return; }
-  var sei = ["田中","佐藤","鈴木","高橋","伊藤","渡辺","山本","中村","小林","加藤",
-             "吉田","山田","佐々木","山口","松本","井上","木村","林"];
+/* 対象日の日次データ削除は「表示中の Unit だけ」。他 Unit のデータには触れない。 */
+function clearDailyOfUnit(date, unit){
+  var day = DB.daily[date];
+  if(!day) return 0;
   var n = 0;
-  for(var i=0;i<18 && exist+n<MAX_UNIT;i++){
-    DB.residents.push({
-      id:newId(), unit:3, room:String(301+i), name:sei[i]+" 花子", order:exist+n,
-      status:"in", permRaw:"", permShort:(i%3===0 ? "転倒注意" : (i%3===1 ? "移乗2人介助" : "食事・水分トロミ")),
-      rec:defaultRec(), autoCarry:true, demo:true
-    });
-    n++;
+  for(var i=0;i<DB.residents.length;i++){
+    var r = DB.residents[i];
+    if(r.unit !== unit) continue;
+    if(Object.prototype.hasOwnProperty.call(day, r.id)){ delete day[r.id]; n++; }
   }
-  saveDB(); UI.unit = 3; renderAll();
-  toast("Unit 3 に "+n+" 名を追加しました（印刷プレビューで A4 横 2 ページを確認できます）");
+  var rest = 0;
+  for(var k in day){ if(Object.prototype.hasOwnProperty.call(day, k)) rest++; }
+  if(!rest) delete DB.daily[date];
+  return n;
+}
+
+document.getElementById("btnClearDaily").addEventListener("click", function(){
+  if(!confirm(UI.date + " の Unit " + UI.unit + " の「今日あったこと・本日の申し送り」を全消去します。\n"
+            + "他の Unit のデータは削除されません。常設重要メモは残ります。\n\nよろしいですか？")) return;
+  var n = clearDailyOfUnit(UI.date, UI.unit);
+  saveDB(); renderAll();
+  toast(n ? ("Unit " + UI.unit + " の " + n + " 名分を消去しました") : "消去する日次データはありませんでした");
 });
 
-document.getElementById("btnDemoDel").addEventListener("click", function(){
-  var has = DB.residents.some(function(r){ return r.demo; });
-  if(!has){ toast("サンプルはありません"); return; }
-  if(!confirm("サンプル入居者を削除します。よろしいですか？")) return;
-  DB.residents = DB.residents.filter(function(r){ return !r.demo; });
-  saveDB(); renderAll(); toast("サンプルを削除しました");
+/* ---- 管理用操作（通常業務では使用しない・二段階確認） ---- */
+document.getElementById("btnClearDailyAll").addEventListener("click", function(){
+  if(!confirm("【管理用操作】" + UI.date + " の「今日あったこと・本日の申し送り」を全 Unit 分（Unit 2〜5）削除します。\nよろしいですか？")) return;
+  if(!confirm("この操作は取り消せません。\n" + UI.date + " の全 Unit の日次データを本当に削除しますか？")) return;
+  var n = 0;
+  for(var i=0;i<UNITS.length;i++) n += clearDailyOfUnit(UI.date, UNITS[i]);
+  delete DB.daily[UI.date];
+  saveDB(); renderAll();
+  toast(UI.date + " の日次データを全 Unit 分削除しました（" + n + " 名分）");
+});
+
+/* 完全削除の対象一覧（現在 Unit・退居者も含む） */
+function renderAdminDeleteList(){
+  var sel = document.getElementById("admDelSel");
+  if(!sel) return;
+  var list = residentsOf(UI.unit);
+  var h = '<option value="">（選択してください）</option>';
+  for(var i=0;i<list.length;i++){
+    var r = list[i];
+    h += '<option value="'+esc(r.id)+'">Unit '+r.unit+'　'+esc(r.room || "部屋未設定")+'　'
+       + esc(r.name || "（無名）") + (r.status === "out" ? "（退居）" : (r.status === "empty" ? "（空床）" : "")) + '</option>';
+  }
+  sel.innerHTML = h;
+}
+
+document.getElementById("btnHardDelete").addEventListener("click", function(){
+  var sel = document.getElementById("admDelSel");
+  var id = sel ? sel.value : "";
+  var r = id ? residentById(id) : null;
+  if(!r){ toast("完全削除する入居者を選択してください"); return; }
+  var nm = (r.room ? r.room + " " : "") + (r.name || "（無名）");
+  var counts = residentDataCounts(r.id);
+  if(!confirm("この入居者を完全削除しますか？\n\n対象：Unit " + r.unit + "　" + nm)) return;
+  if(!confirm("過去の申し送り・予定・履歴も削除されます。この操作は取り消せません。\n\n"
+            + "対象：Unit " + r.unit + "　" + nm + "\n"
+            + "日次データ " + counts.daily + " 日分／予定 " + counts.sched + " 件\n\n"
+            + "本当に完全削除しますか？（履歴を残したい場合は「退居」を使用してください）")) return;
+  DB.residents = DB.residents.filter(function(x){ return x.id !== r.id; });
+  DB.schedules = DB.schedules.filter(function(x){ return x.residentId !== r.id; });
+  for(var dk in DB.daily){ if(DB.daily[dk] && DB.daily[dk][r.id]) delete DB.daily[dk][r.id]; }
+  if(HISTORY_UI.residentId === r.id) HISTORY_UI.residentId = "";
+  saveDB(); renderAll(); renderAdminDeleteList();
+  toast(nm + " を完全削除しました");
 });
 
 /* ---- 予定一覧タブ ---- */
@@ -3569,15 +3796,30 @@ document.getElementById("optPrintWarn").addEventListener("change", function(){
   saveDB();
 });
 document.getElementById("btnPrint").addEventListener("click", function(){
+  document.body.classList.remove("printing-sched");
   renderPrint();
   fitPreview();          // 段階縮小（文字量・記録項目）を実測し直してから印刷する
   setTimeout(function(){ window.print(); }, 60);
 });
-window.addEventListener("beforeprint", function(){ if(UI.tab!=="print") switchTab("print"); });
-window.addEventListener("resize", function(){ if(UI.tab==="print") fitPreview(); });
+/* 予定一覧を別紙として印刷する（申し送り用紙は出力しない） */
+document.getElementById("btnSchedPrint").addEventListener("click", function(){
+  renderSchedPrint();
+  document.body.classList.add("printing-sched");
+  setTimeout(function(){ window.print(); }, 60);
+});
+window.addEventListener("afterprint", function(){ document.body.classList.remove("printing-sched"); });
+window.addEventListener("beforeprint", function(){
+  if(document.body.classList.contains("printing-sched")) return;   // 予定一覧の別紙印刷中は切り替えない
+  if(UI.tab!=="print") switchTab("print");
+});
+window.addEventListener("resize", function(){
+  if(UI.tab==="print") fitPreview();
+  if(UI.tab==="sched") fitSchedPreview();
+});
 
 /* ---- バックアップ（ローカルファイルのみ・通信なし） ---- */
-document.getElementById("btnExport").addEventListener("click", function(){
+function exportBackup(){
+  flushSave();
   var blob = new Blob([JSON.stringify(DB, null, 2)], {type:"application/json"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
@@ -3585,22 +3827,63 @@ document.getElementById("btnExport").addEventListener("click", function(){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(function(){ URL.revokeObjectURL(url); }, 500);
   toast("バックアップを保存しました");
-});
+}
+document.getElementById("btnExport").addEventListener("click", exportBackup);
+document.getElementById("btnExportFromWarn").addEventListener("click", exportBackup);
+
+/* 読み込んだJSONが「アプリのバックアップとして最低限成立しているか」を確認する。
+   ここを通らないファイルでは現在のデータを一切変更しない。 */
+function validBackup(obj){
+  if(!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
+  if(!Array.isArray(obj.residents)) return false;
+  if(obj.daily != null && (typeof obj.daily !== "object" || Array.isArray(obj.daily))) return false;
+  if(obj.schedules != null && !Array.isArray(obj.schedules)) return false;
+  if(obj.settings != null && (typeof obj.settings !== "object" || Array.isArray(obj.settings))) return false;
+  for(var i=0;i<obj.residents.length;i++){
+    var r = obj.residents[i];
+    if(!r || typeof r !== "object" || Array.isArray(r)) return false;
+  }
+  return true;
+}
+
 document.getElementById("btnImport").addEventListener("click", function(){
+  if(!confirm("【バックアップ復元】\n\n"
+            + "・現在このPCに保存されているデータは、読み込んだバックアップの内容へ完全に置き換わります\n"
+            + "・置き換えた後、元のデータへ戻せない場合があります\n"
+            + "・復元の前に、現在のデータのバックアップ保存を強くおすすめします\n\n"
+            + "続けてバックアップファイルを選びますか？")) return;
+  if(confirm("先に「現在のデータ」をバックアップ保存しますか？\n\n"
+           + "［OK］現在のデータを保存してから復元へ進む\n［キャンセル］保存せずに復元へ進む")){
+    exportBackup();
+  }
   document.getElementById("fileImport").click();
 });
 document.getElementById("fileImport").addEventListener("change", function(e){
   var f = e.target.files && e.target.files[0]; if(!f) return;
   var fr = new FileReader();
   fr.onload = function(){
+    var obj = null;
+    try{ obj = JSON.parse(fr.result); }catch(err){ obj = null; }
+    if(!validBackup(obj)){
+      alert("読み込めませんでした（形式が違います）。\n現在のデータは変更していません。");
+      toast("読み込めませんでした（形式が違います）");
+      return;
+    }
+    var counts = "入居者 " + obj.residents.length + " 名／予定 "
+      + (Array.isArray(obj.schedules) ? obj.schedules.length : 0) + " 件";
+    if(!confirm("このバックアップで現在のデータを置き換えます。\n\n"
+              + "読み込む内容：" + counts + "\n\nこの操作は取り消せません。よろしいですか？")) return;
+    var prev = DB;
     try{
-      var obj = JSON.parse(fr.result);
-      if(!obj || !obj.residents) throw new Error("format");
-      if(!confirm("現在のデータを、読み込んだバックアップで置き換えます。よろしいですか？")) return;
       DB = obj;
-      migrate();
-      saveDB(); initUIFromDB(); renderAll(); toast("復元しました");
-    }catch(err){ toast("読み込めませんでした（形式が違います）"); }
+      migrate();                 // 途中で失敗した場合は元のデータへ戻す
+    }catch(err2){
+      DB = prev;
+      alert("読み込めませんでした（形式が違います）。\n現在のデータは変更していません。");
+      toast("読み込めませんでした（形式が違います）");
+      return;
+    }
+    saveDB(); initUIFromDB(); renderAll(); toast("復元しました");
   };
   fr.readAsText(f);
   e.target.value = "";
@@ -3711,6 +3994,16 @@ window.addEventListener("error", function(ev){
   if(f){ f.textContent = "エラー: " + (ev.message || "不明") + "（この表示が出たままの場合はバックアップ復元をお試しください）"; f.classList.add("on"); }
 });
 
+/* 最後の入力を失わないための保険。
+   ・通常は 250ms の遅延保存（lazySave）
+   ・タブ切替 / 最小化 / ページ離脱（visibilitychange の hidden）で即時保存
+   ・pagehide は補助。unload には依存しない */
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "hidden") flushSave();
+});
+window.addEventListener("pagehide", flushSave);
+window.addEventListener("blur", flushSave);
+
 function initUIFromDB(){
   document.getElementById("optAllUnits").checked   = !!DB.settings.allUnits;
   document.getElementById("optAlwaysBack").checked = !!DB.settings.alwaysBack;
@@ -3718,13 +4011,14 @@ function initUIFromDB(){
   document.getElementById("optPastSched").checked  = !!DB.settings.showPastSched;
   document.getElementById("optSchedAllUnits").checked = !!DB.settings.showAllUnitSched;
   document.getElementById("optAutoCarry").checked = DB.settings.autoCarry !== false;
+  document.getElementById("optShowLeft").checked = !!DB.settings.showLeft;
   document.body.classList.toggle("pw", !!DB.settings.printWarn);
 }
 loadDB();
 UI.date = ymd(new Date());
 document.getElementById("theDate").value = UI.date;
 initUIFromDB();
-autoCarryForDate(UI.date);
+autoCarryToday();     // 今日を初めて開いた時だけ引き継ぐ（未来日・過去日では生成しない）
 renderAll();
 if(!welcomeSeen()) setTimeout(openWelcome, 80);
 </script>
