@@ -292,6 +292,51 @@ table.master td.act{width:64px;white-space:nowrap}
 .sched-row .who{font-weight:700}
 .sched-row .det{font-size:13px;color:var(--sub);margin-top:2px}
 .schedsave{font-size:12px;font-weight:700;color:var(--accent2)}
+.sched-summary{display:none;margin:0 0 8px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;
+  background:var(--soft);font-size:12px;color:var(--sub);font-weight:700}
+.sched-summary.on{display:block}
+.sched-notice{display:none;margin:0 0 10px;padding:8px 10px;border:1px solid #d8c27c;border-radius:6px;
+  background:#fffdf3;font-size:13px}
+.sched-notice.on{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sched-notice .msg{font-weight:700;color:#6b5312;margin-right:auto}
+.sched-result{display:none;margin:0 0 8px;padding:5px 9px;border:1px solid #a9d9bc;border-radius:5px;
+  background:#e9f6ee;color:#185f38;font-size:12px;font-weight:700}
+.sched-result.on{display:block}
+.cleanup-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.cleanup-tools select{padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff}
+.cleanup-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:6px}
+table.cleanup-table{width:100%;border-collapse:collapse;font-size:13px;min-width:850px}
+table.cleanup-table th,table.cleanup-table td{padding:6px 7px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.cleanup-table th{background:var(--soft);font-size:12px;color:var(--sub);white-space:nowrap}
+table.cleanup-table tr:last-child td{border-bottom:none}
+table.cleanup-table .sel{width:38px;text-align:center}
+table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{white-space:nowrap}
+.cleanup-count{font-size:12px;color:var(--sub);font-weight:700}
+#capacityWarning{display:none;font-size:12px;color:#8a5a00;margin-top:5px;padding:5px 8px;
+  background:#fff8e6;border:1px solid #e2c46f;border-radius:5px;font-weight:700}
+#capacityWarning.on{display:block}
+
+/* ---- 履歴検索 ---- */
+.history-tools{display:grid;grid-template-columns:minmax(220px,2fr) repeat(4,minmax(125px,1fr));gap:9px;align-items:end}
+.history-tools label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--sub)}
+.history-tools input,.history-tools select{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:14px}
+.history-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.history-count{font-size:15px;font-weight:800;color:var(--accent);margin-right:auto}
+.history-person{display:none;background:#eef4fb;border:1px solid #a9c6e4;color:var(--accent);border-radius:14px;padding:3px 10px;font-size:12px;font-weight:700}
+.history-person.on{display:inline-block}
+.history-item{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.history-item:last-child{border-bottom:none}
+.history-item:hover{background:var(--soft)}
+.history-item .date{font-weight:800;color:var(--accent)}
+.history-item .meta{font-size:12px;color:var(--sub);margin-top:3px}
+.history-item .who{font-weight:800;margin-bottom:4px}
+.history-item .kind{display:inline-block;font-size:12px;font-weight:800;color:var(--accent2);border:1px solid #a9c6e4;background:#eef4fb;border-radius:4px;padding:1px 7px;margin-bottom:5px}
+.history-item .content{white-space:pre-wrap;word-break:break-word;line-height:1.65}
+.history-empty{padding:28px 8px;text-align:center;color:var(--sub)}
+.history-limit{font-size:12px;color:var(--sub);padding:8px 4px}
+.historybtn{white-space:nowrap}
+@media (max-width:900px){.history-tools{grid-template-columns:1fr 1fr}.history-tools .history-keyword{grid-column:1/-1}}
+@media (max-width:560px){.history-tools{grid-template-columns:1fr}.history-tools .history-keyword{grid-column:auto}.history-item{grid-template-columns:1fr;gap:4px}}
 #fatal{display:none;background:#c62828;color:#fff;padding:8px 14px;font-size:13px;font-weight:700}
 #fatal.on{display:block}
 #memnote{display:none;font-size:11px;color:var(--warn);margin-top:4px}
@@ -389,13 +434,15 @@ table.master td.act{width:64px;white-space:nowrap}
     <button class="btn sm" id="btnImport">バックアップ復元</button>
     <input type="file" id="fileImport" accept="application/json" style="display:none">
   </div>
-  <div class="caution">バックアップには入居者情報が含まれます。取り扱い注意（保存先はこのPC内のみ／自動アップロードは行いません）。</div>
+  <div class="caution">バックアップには入居者情報・過去履歴が含まれます。取り扱い注意（保存先はこのPC内のみ／自動アップロードは行いません）。</div>
+  <div id="capacityWarning">履歴データが増えています。バックアップ・整理を検討してください</div>
   <div id="memnote">※ このブラウザでは保存領域が使えないため、一時的にメモリ内だけで動作しています（ページを閉じると消えます）。</div>
   <div class="tabs">
     <button data-tab="input" class="on">申し送り入力</button>
     <button data-tab="master">入居者マスター</button>
     <button data-tab="print">印刷プレビュー</button>
     <button data-tab="sched">予定一覧</button>
+    <button data-tab="history">履歴検索</button>
   </div>
   <div class="units" id="unitBar"></div>
 </header>
@@ -447,7 +494,7 @@ table.master td.act{width:64px;white-space:nowrap}
             <th class="ord">並び</th><th style="width:110px">部屋番号</th><th>入居者名</th>
             <th style="width:110px">在床状況</th><th>常設重要メモ（表示用）</th>
             <th style="width:140px">自動引継ぎ対象</th>
-            <th style="width:190px">記録項目（日勤／夜勤）</th><th class="act">削除</th>
+            <th style="width:190px">記録項目（日勤／夜勤）</th><th style="width:100px">履歴</th><th class="act">削除</th>
           </tr>
         </thead>
         <tbody id="masterBody"></tbody>
@@ -472,7 +519,16 @@ table.master td.act{width:64px;white-space:nowrap}
     <h2>予定一覧（<span id="sUnitLabel">Unit 2</span>）</h2>
     <div class="row-actions" style="margin-bottom:8px">
       <label class="hint"><input type="checkbox" id="optPastSched"> 過去の予定も表示する</label>
+      <label class="hint"><input type="checkbox" id="optSchedAllUnits"> 全Unit</label>
       <span class="hint">予定は登録した日付に紐づきます。「前日からコピー」ではコピーされません。</span>
+    </div>
+    <div class="sched-result" id="schedCleanupResult" role="status"></div>
+    <div class="sched-summary" id="schedPastSummary"></div>
+    <div class="sched-notice" id="schedCleanupNotice">
+      <span class="msg" id="schedCleanupMessage"></span>
+      <button class="btn sm" data-cleanup-a="viewPast">過去予定を見る</button>
+      <button class="btn sm pri" data-cleanup-a="open">過去予定を整理</button>
+      <button class="btn sm" data-cleanup-a="dismiss">今はしない</button>
     </div>
     <div id="schedList"></div>
   </div>
@@ -502,7 +558,74 @@ table.master td.act{width:64px;white-space:nowrap}
   <div id="printArea"></div>
 </section>
 
+<!-- ============ 履歴検索 ============ -->
+<section class="view" id="v-history">
+  <div class="panel">
+    <h2>履歴検索</h2>
+    <div class="history-tools">
+      <label class="history-keyword">フリーワード
+        <input type="search" id="historyKeyword" placeholder="入居者名・発熱・病院名・薬剤名など" autocomplete="off">
+      </label>
+      <label>Unit
+        <select id="historyUnit"><option value="">全Unit</option><option value="2">Unit 2</option><option value="3">Unit 3</option><option value="4">Unit 4</option><option value="5">Unit 5</option></select>
+      </label>
+      <label>開始日
+        <input type="date" id="historyFrom" aria-label="開始日">
+      </label>
+      <label>終了日
+        <input type="date" id="historyTo" aria-label="終了日">
+      </label>
+      <label>種別
+        <select id="historyKind"><option value="">すべて</option><option value="出来事">出来事</option><option value="申し送り">申し送り</option><option value="受診">受診</option><option value="外出">外出</option><option value="外泊">外泊</option><option value="面会">面会</option><option value="行事">行事</option><option value="その他予定">その他予定</option></select>
+      </label>
+    </div>
+    <div class="history-toolbar">
+      <span class="history-person" id="historyPerson"></span>
+      <button class="btn sm" id="historyClear">条件をクリア</button>
+      <span class="hint">日次データと削除されていない予定を履歴として自動保存・検索します</span>
+      <span class="history-count" id="historyCount">0件</span>
+      <label class="hint">並び順
+        <select id="historyOrder"><option value="new">新しい順</option><option value="old">古い順</option></select>
+      </label>
+    </div>
+  </div>
+  <div class="panel" id="historyResults" aria-live="polite"></div>
+</section>
+
 <p class="foot noprint">データはこのブラウザ内（localStorage）にのみ保存されます。外部API・外部AI・サーバー・CDN・通信は一切使用していません。</p>
+</div>
+
+<!-- ============ 過去予定の整理 ============ -->
+<div class="modal noprint" id="schedCleanupModal" role="dialog" aria-modal="true" aria-labelledby="schedCleanupTitle">
+  <div class="mbox">
+    <div class="mhead">
+      <h3 id="schedCleanupTitle">過去予定の整理</h3>
+      <span class="cleanup-count" id="schedCleanupCount" style="color:#fff"></span>
+      <span class="sp"></span>
+      <button id="schedCleanupClose">閉じる</button>
+    </div>
+    <div class="mbody">
+      <div class="cleanup-tools">
+        <label class="hint">期間指定：
+          <select id="schedCleanupAge">
+            <option value="30">30日以前</option>
+            <option value="90" selected>90日以前</option>
+            <option value="180">180日以前</option>
+            <option value="365">1年以上前</option>
+          </select>
+        </label>
+        <button class="btn danger" id="schedDeleteByAge">指定期間より前を削除</button>
+        <span class="hint">最近の予定は自動選択されません。削除する予定を必ず確認してください。</span>
+      </div>
+      <div id="schedCleanupList"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn danger" id="schedDeleteSelected" disabled>選択した予定を削除</button>
+      <button class="btn danger" id="schedDeleteAllPast">過去予定をすべて削除</button>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn pri" id="schedCleanupClose2">閉じる</button>
+    </div>
+  </div>
 </div>
 
 <!-- ============ 記録項目設定（入居者ごと） ============ -->
@@ -723,8 +846,8 @@ function wdLabel(dow){
 var SEED_VER = 3;   // サンプル入居者の世代（既存サンプルを不用意に入れ替えない）
 
 function defaultDB(){
-  return { v:5, seedVer:SEED_VER, residents:[], daily:{}, schedules:[],
-           settings:{ hideEmpty:true, alwaysBack:true, allUnits:false, autoCarry:true }, demo:true };
+  return { v:6, seedVer:SEED_VER, residents:[], daily:{}, schedules:[], history:{version:1},
+           settings:{ hideEmpty:true, alwaysBack:true, allUnits:false, showAllUnitSched:false, autoCarry:true }, demo:true };
 }
 
 var STORAGE_OK = true;
@@ -755,7 +878,7 @@ function loadDB(){
 /* 旧バージョンのデータ構造でもアプリが停止しないように補正する
    （既存データは消さず、不足しているプロパティだけ初期値で補う） */
 function migrate(){
-  DB.v = 5;
+  DB.v = 6;
   if(!Array.isArray(DB.residents)) DB.residents = [];
   DB.residents = DB.residents.filter(function(r){ return r && typeof r === "object"; });
   var seen = {};
@@ -771,6 +894,7 @@ function migrate(){
     r.status = (r.status === "empty") ? "empty" : "in";
     if(typeof r.permRaw !== "string")   r.permRaw = "";
     if(typeof r.permShort !== "string") r.permShort = "";
+    if(typeof r.permUpdated !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(r.permUpdated)) r.permUpdated = ymd(new Date());
     /* 個人別の自動引継ぎ設定。旧データは初期値 ON として扱う */
     r.autoCarry = r.autoCarry !== false;
     /* 記録項目設定：無い場合は初期値（BS・BW のみ OFF）を補う。既存の設定は保持する */
@@ -790,6 +914,13 @@ function migrate(){
     for(var fi=0; fi<fields.length; fi++){
       if(typeof sc[fields[fi]] !== "string") sc[fields[fi]] = "";
     }
+    var sr = null;
+    for(var sri=0;sri<DB.residents.length;sri++) if(DB.residents[sri].id === sc.residentId){ sr = DB.residents[sri]; break; }
+    if(!Array.isArray(sc.h) || sc.h.length < 3){
+      sc.h = [sc.unit, typeof sc.room === "string" ? sc.room : (sr ? sr.room : ""),
+        typeof sc.residentName === "string" ? sc.residentName : (sr ? sr.name : "")];
+    }
+    if(UNITS.indexOf(parseInt(sc.unit,10)) < 0 && sr) sc.unit = sr.unit;
   }
   DB.schedules = DB.schedules.filter(function(x){ return !!x.residentId; });
 
@@ -802,12 +933,21 @@ function migrate(){
       if(!e || typeof e !== "object"){ day[id] = { raw:"", short:"" }; continue; }
       if(typeof e.raw   !== "string") e.raw = "";
       if(typeof e.short !== "string") e.short = "";
+      var er = null;
+      for(var eri=0;eri<DB.residents.length;eri++) if(DB.residents[eri].id === id){ er = DB.residents[eri]; break; }
+      if(!Array.isArray(e.h) || e.h.length < 3){
+        e.h = [UNITS.indexOf(parseInt(e.unit,10)) >= 0 ? parseInt(e.unit,10) : (er ? er.unit : UNITS[0]),
+          typeof e.room === "string" ? e.room : (er ? er.room : ""),
+          typeof e.residentName === "string" ? e.residentName : (er ? er.name : "")];
+      }
       if(e.copiedFrom != null && typeof e.copiedFrom !== "string") delete e.copiedFrom;
       /* v4 以前の手動コピーを自動引継ぎと誤認しない。自動分だけ確認状態を補完する */
       e.autoCarry = e.autoCarry === true;
       e.confirmed = e.autoCarry ? e.confirmed === true : true;
     }
   }
+  if(!DB.history || typeof DB.history !== "object" || Array.isArray(DB.history)) DB.history = {version:1};
+  DB.history.version = 1;
   var st = (DB.settings && typeof DB.settings === "object") ? DB.settings : {};
   DB.settings = {
     hideEmpty : true,
@@ -815,19 +955,29 @@ function migrate(){
     allUnits  : !!st.allUnits,
     printWarn : !!st.printWarn,
     showPastSched : !!st.showPastSched,
+    showAllUnitSched : !!st.showAllUnitSched,
     autoCarry : st.autoCarry !== false
   };
 }
 
 function saveDB(){
   var okFlag = false;
-  try{ okFlag = storeSet(JSON.stringify(DB)); }catch(e){ okFlag = false; }
+  var json = "";
+  try{ json = JSON.stringify(DB); okFlag = storeSet(json); }catch(e){ okFlag = false; }
+  HISTORY_CACHE = null;
+  updateCapacityWarning(json);
   if(okFlag){ setSave("ok"); }
   else{
     setSave("mem");
     var mn = document.getElementById("memnote");
     if(mn) mn.classList.add("on");
   }
+}
+function updateCapacityWarning(json){
+  var el = document.getElementById("capacityWarning");
+  if(!el) return;
+  var bytes = json ? new Blob([json]).size : 0;
+  el.classList.toggle("on", bytes >= 3500000);
 }
 function setSave(state){
   var el = document.getElementById("saveState");
@@ -959,7 +1109,7 @@ function seedDemoDaily(byRoom){
   for(var room in SEED_DAILY){
     var r = byRoom[room];
     if(!r) continue;
-    DB.daily[today][r.id] = { raw:"", short:SEED_DAILY[room] };
+    DB.daily[today][r.id] = { raw:"", short:SEED_DAILY[room], h:[r.unit,r.room,r.name] };
   }
 }
 
@@ -970,7 +1120,7 @@ function seedDemoSched(byRoom){
     var s = SEED_SCHED[i], r = byRoom[s.room];
     if(!r) continue;
     DB.schedules.push({
-      id:newId(), residentId:r.id, unit:r.unit, date:today,
+      id:newId(), residentId:r.id, unit:r.unit, h:[r.unit,r.room,r.name], date:today,
       kind:s.kind, start:s.start, end:s.end, title:s.title,
       place:s.place, dept:s.dept, family:s.family, note:s.note
     });
@@ -1278,6 +1428,7 @@ function uniqKeepOrder(a){
    - residentId・unit・date で管理（氏名変更の影響を受けない）
    ========================================================= */
 var SCHED_KINDS = ["外出","外泊","受診","入院","退院","家族面会","行事","その他"];
+var PAST_SCHED_PROPOSAL_COUNT = 10;
 
 function pad2(n){ n = String(n); return n.length < 2 ? "0"+n : n; }
 
@@ -1340,6 +1491,22 @@ function saveSchedules(){
   }
 }
 
+/* 過去予定は今日より前の日付。削除せず、表示と整理対象だけを切り替える。 */
+function schedInCurrentScope(s){
+  var r = residentById(s.residentId);
+  if(!r) return false;
+  return DB.settings.showAllUnitSched ? UNITS.indexOf(r.unit) >= 0 : r.unit === UI.unit;
+}
+function pastSchedulesInScope(){
+  var today = ymd(new Date());
+  return DB.schedules.filter(function(s){
+    return schedInCurrentScope(s) && s.date < today;
+  }).sort(sortSched);
+}
+function cutoffDate(days){
+  return shiftDate(ymd(new Date()), -parseInt(days, 10));
+}
+
 /* --- 「今日あったこと」から予定候補を抽出（自動確定はしない） --- */
 function extractSchedules(raw, baseDate){
   if(!raw) return [];
@@ -1396,6 +1563,9 @@ function extractSchedules(raw, baseDate){
    state / helpers
    ========================================================= */
 var UI = { tab:"input", unit:2, date: ymd(new Date()) };
+var SCHED_UI = { cleanupDismissed:false, cleanupOpen:false, result:"" };
+var HISTORY_UI = { residentId:"" };
+var HISTORY_CACHE = null;
 
 function residentsOf(unit){
   return DB.residents
@@ -1409,7 +1579,10 @@ function printableOf(unit){
 }
 function dailyOf(date, id){
   if(!DB.daily[date]) DB.daily[date] = {};
-  if(!DB.daily[date][id]) DB.daily[date][id] = { raw:"", short:"" };
+  if(!DB.daily[date][id]){
+    var r = residentById(id);
+    DB.daily[date][id] = { raw:"", short:"", h:[r?r.unit:UI.unit,r?r.room:"",r?r.name:""] };
+  }
   return DB.daily[date][id];
 }
 function dailyGet(date, id){
@@ -1433,7 +1606,8 @@ function autoCarryForDate(date){
     if(!from || typeof from.short !== "string" || !from.short.trim()) continue;
     if(!DB.daily[date]) DB.daily[date] = {};
     DB.daily[date][r.id] = {
-      raw:"", short:String(from.short), copiedFrom:src, confirmed:false, autoCarry:true
+      raw:"", short:String(from.short), copiedFrom:src, confirmed:false, autoCarry:true,
+      h:[r.unit,r.room,r.name]
     };
     copied++;
   }
@@ -1474,11 +1648,13 @@ function switchTab(t){
   document.getElementById("v-master").classList.toggle("on", t==="master");
   document.getElementById("v-sched").classList.toggle("on", t==="sched");
   document.getElementById("v-print").classList.toggle("on", t==="print");
+  document.getElementById("v-history").classList.toggle("on", t==="history");
   // タブを開くたびに描画し直す（別タブでの変更が反映されない不具合の修正）
   if(t==="input")  renderInput();
   if(t==="master") renderMaster();
   if(t==="sched")  renderSched();
   if(t==="print"){ renderPrint(); fitPreview(); }
+  if(t==="history") renderHistory();
 }
 
 /* =========================================================
@@ -1500,6 +1676,7 @@ function renderInput(){
         + '<input class="room" type="text" value="'+esc(r.room)+'" data-f="room" placeholder="部屋">'
         + '<input class="name" type="text" value="'+esc(r.name)+'" data-f="name" placeholder="入居者名">'
         + '<label class="st"><input type="checkbox" data-f="empty" '+(r.status==="empty"?"checked":"")+'> 空床</label>'
+        + '<button class="btn sm historybtn" data-a="history">履歴を見る</button>'
         + '<button class="recbtn" data-a="recOpen">記録項目設定</button>'
       + '</div>'
       + '<div class="grid2">'
@@ -1661,10 +1838,11 @@ function renderMaster(){
       + '<td><label class="hint"><input type="checkbox" data-f="autoCarry" '+(r.autoCarry!==false?"checked":"")+'> 対象にする</label></td>'
       + '<td><button class="recbtn" data-a="rec">記録項目設定</button>'
         + '<div class="recsum">'+recSummary(r)+'</div></td>'
+      + '<td><button class="btn sm historybtn" data-a="history">履歴を見る</button></td>'
       + '<td class="act"><button class="iconbtn" data-a="del" title="削除">✕</button></td>'
       + '</tr>';
   }
-  if(!list.length) h = '<tr><td colspan="8" class="hint" style="padding:14px">入居者がいません。「入居者を追加」から登録してください。</td></tr>';
+  if(!list.length) h = '<tr><td colspan="9" class="hint" style="padding:14px">入居者がいません。「入居者を追加」から登録してください。</td></tr>';
   document.getElementById("masterBody").innerHTML = h;
 }
 
@@ -1966,17 +2144,27 @@ document.getElementById("recBody").addEventListener("click", function(e){
    ========================================================= */
 function renderSched(){
   var lb = document.getElementById("sUnitLabel");
-  if(lb) lb.textContent = "Unit " + UI.unit;
+  if(lb) lb.textContent = DB.settings.showAllUnitSched ? "全Unit" : "Unit " + UI.unit;
   var host = document.getElementById("schedList");
   if(!host) return;
   var showPast = !!(DB.settings && DB.settings.showPastSched);
   var today = ymd(new Date());
-  var base = (UI.date < today) ? UI.date : today;
+  var past = pastSchedulesInScope();
+  var summary = document.getElementById("schedPastSummary");
+  var notice = document.getElementById("schedCleanupNotice");
+  var message = document.getElementById("schedCleanupMessage");
+  var result = document.getElementById("schedCleanupResult");
+  if(summary){
+    summary.textContent = past.length ? "過去の予定：" + past.length + "件" : "";
+    summary.classList.toggle("on", past.length > 0);
+  }
+  if(message) message.textContent = "過去の予定が" + past.length + "件あります。整理しますか？";
+  if(notice) notice.classList.toggle("on", past.length >= PAST_SCHED_PROPOSAL_COUNT && !SCHED_UI.cleanupDismissed);
+  if(result){ result.textContent = SCHED_UI.result; result.classList.toggle("on", !!SCHED_UI.result); }
 
   var list = DB.schedules.filter(function(s){
-    var r = residentById(s.residentId);
-    if(!r || r.unit !== UI.unit) return false;
-    if(!showPast && s.date < base) return false;
+    if(!schedInCurrentScope(s)) return false;
+    if(!showPast && s.date < today) return false;
     return true;
   }).sort(sortSched);
 
@@ -1992,7 +2180,8 @@ function renderSched(){
     h += '<div class="sched-row' + (s.date === today ? " today" : "") + '" data-sid="' + s.id + '">'
       + '<div class="d">' + esc(jpDate(s.date)) + '</div>'
       + '<div class="body">'
-        + '<div class="who">' + esc(r.room) + '　' + esc(r.name || "（無名）")
+        + '<div class="who">' + (DB.settings.showAllUnitSched ? 'Unit ' + r.unit + '　' : '')
+        + esc(r.room) + '　' + esc(r.name || "（無名）")
         + (r.status === "empty" ? '　<span class="pill out">空床</span>' : '') + '</div>'
         + '<div class="det">' + esc(schedBody(s) || "（内容未入力）") + (fam ? '　' + esc(fam) : '')
         + (s.note && s.note !== s.title ? '　<span style="color:#8794a1">' + esc(s.note) + '</span>' : '') + '</div>'
@@ -2002,6 +2191,239 @@ function renderSched(){
       + '<div class="sched-form" data-sform-row="' + s.id + '"></div>';
   }
   host.innerHTML = h;
+}
+
+function renderSchedCleanup(){
+  var host = document.getElementById("schedCleanupList");
+  var count = document.getElementById("schedCleanupCount");
+  if(!host) return;
+  var list = pastSchedulesInScope();
+  if(count) count.textContent = (DB.settings.showAllUnitSched ? "全Unit" : "Unit " + UI.unit) + "／" + list.length + "件";
+  if(!list.length){
+    host.innerHTML = '<p class="hint">整理する過去予定はありません。</p>';
+    document.getElementById("schedDeleteSelected").disabled = true;
+    document.getElementById("schedDeleteAllPast").disabled = true;
+    return;
+  }
+  var h = '<div class="cleanup-table-wrap"><table class="cleanup-table"><thead><tr>'
+    + '<th class="sel"><input type="checkbox" id="schedSelectAll" aria-label="すべて選択"></th>'
+    + '<th>日付</th><th>Unit</th><th>部屋番号</th><th>入居者名</th><th>予定種別</th><th>予定内容</th><th>操作</th>'
+    + '</tr></thead><tbody>';
+  for(var i=0;i<list.length;i++){
+    var s = list[i], r = residentById(s.residentId);
+    h += '<tr data-cleanup-sid="' + esc(s.id) + '">'
+      + '<td class="sel"><input type="checkbox" data-cleanup-select aria-label="この予定を選択"></td>'
+      + '<td class="date">' + esc(jpDate(s.date)) + '</td>'
+      + '<td class="unit">Unit ' + r.unit + '</td><td class="room">' + esc(r.room) + '</td>'
+      + '<td>' + esc(r.name || "（無名）") + '</td><td>' + esc(s.kind || "（未選択）") + '</td>'
+      + '<td>' + esc(schedBody(s) || s.note || "（内容未入力）") + '</td>'
+      + '<td><button class="btn sm danger" data-cleanup-delete>削除</button></td></tr>';
+  }
+  host.innerHTML = h + '</tbody></table></div>';
+  document.getElementById("schedDeleteSelected").disabled = true;
+  document.getElementById("schedDeleteAllPast").disabled = false;
+}
+
+function openSchedCleanup(){
+  SCHED_UI.cleanupOpen = true;
+  document.getElementById("schedCleanupModal").classList.add("on");
+  renderSchedCleanup();
+}
+function closeSchedCleanup(){
+  SCHED_UI.cleanupOpen = false;
+  document.getElementById("schedCleanupModal").classList.remove("on");
+}
+function finishPastScheduleDelete(count){
+  if(!count) return;
+  SCHED_UI.result = count + "件の過去予定を削除しました";
+  saveSchedules();
+  renderSched();
+  renderInput();
+  if(SCHED_UI.cleanupOpen) renderSchedCleanup();
+  if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+  toast(SCHED_UI.result);
+}
+function deletePastScheduleIds(ids){
+  var allow = {};
+  for(var i=0;i<ids.length;i++) allow[ids[i]] = true;
+  var deletable = {};
+  var past = pastSchedulesInScope();
+  for(var p=0;p<past.length;p++){
+    if(allow[past[p].id]) deletable[past[p].id] = true;
+  }
+  var before = DB.schedules.length;
+  DB.schedules = DB.schedules.filter(function(s){ return !deletable[s.id]; });
+  finishPastScheduleDelete(before - DB.schedules.length);
+}
+
+/* =========================================================
+   履歴検索
+   - DB.daily と DB.schedules を検索時に統合し、本文の二重保存を避ける
+   - 日次記録は「1人・1日」を1件として表示し、出来事／申し送りの両方で絞り込める
+   ========================================================= */
+var HISTORY_RENDER_LIMIT = 500;
+
+function historyNorm(v){
+  var s = String(v == null ? "" : v).toLowerCase();
+  try{ s = s.normalize("NFKC"); }catch(e){}
+  return s.replace(/[\s　]+/g," ").trim();
+}
+function historyWordMatches(text, word){
+  if(text.indexOf(word) < 0) return false;
+  /* 「発熱」で「発熱なし」だけが拾われる、といった逆意味の結果を避ける。
+     否定表現そのもの（例：発熱なし）で検索した場合は通常どおり一致する。 */
+  if(/なし|無し|ない|ありません|認めず/.test(word)) return true;
+  var safe = word.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  var withoutNegative = text.replace(new RegExp(safe + "(?:は|も)?(?:なし|無し|ない|ありません|認めず)","g"), "");
+  return withoutNegative.indexOf(word) >= 0;
+}
+function historyPerson(src, r){
+  var snap = src && Array.isArray(src.h) && src.h.length >= 3 ? src.h : null;
+  return {
+    unit: snap && UNITS.indexOf(parseInt(snap[0],10)) >= 0 ? parseInt(snap[0],10)
+      : (UNITS.indexOf(parseInt(src && src.unit,10)) >= 0 ? parseInt(src.unit,10) : (r ? r.unit : UNITS[0])),
+    room: snap ? String(snap[1] || "") : ((src && typeof src.room === "string") ? src.room : (r ? r.room : "")),
+    name: snap ? String(snap[2] || "") : ((src && typeof src.residentName === "string") ? src.residentName : (r ? r.name : "（無名）"))
+  };
+}
+function scheduleHistoryKind(kind){
+  var k = String(kind || "");
+  if(k === "受診") return "受診";
+  if(k === "外出") return "外出";
+  if(k === "外泊") return "外泊";
+  if(k.indexOf("面会") >= 0) return "面会";
+  if(k === "行事") return "行事";
+  return "その他予定";
+}
+function addHistorySearchText(item, extra){
+  item.searchText = historyNorm([
+    item.date, "Unit " + item.unit, "Unit" + item.unit, item.room, item.name,
+    item.type, item.content, extra || ""
+  ].join(" "));
+  return item;
+}
+function buildHistoryIndex(){
+  if(HISTORY_CACHE) return HISTORY_CACHE;
+  var out = [], date, id, e, r, p, raw, handover, content, kinds, type;
+  for(date in DB.daily){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    for(id in DB.daily[date]){
+      e = DB.daily[date][id];
+      if(!e || typeof e !== "object") continue;
+      raw = String(e.raw || "").trim();
+      handover = String(e.short || "").trim();
+      if(!raw && !handover) continue;
+      r = residentById(id); p = historyPerson(e, r);
+      kinds = [];
+      if(raw) kinds.push("出来事");
+      if(handover) kinds.push("申し送り");
+      type = kinds.join("・");
+      if(raw && handover && historyNorm(raw) !== historyNorm(handover)){
+        content = "今日あったこと\n" + raw + "\n\n本日の申し送り\n" + handover;
+      }else content = handover || raw;
+      out.push(addHistorySearchText({date:date, unit:p.unit, room:p.room, name:p.name,
+        residentId:id, type:type, kinds:kinds, content:content, source:"daily", sourceId:""},
+        r ? [r.name,r.room,"Unit "+r.unit].join(" ") : ""));
+    }
+  }
+  for(var si=0;si<DB.schedules.length;si++){
+    var s = DB.schedules[si];
+    if(!s || !/^\d{4}-\d{2}-\d{2}$/.test(s.date || "")) continue;
+    r = residentById(s.residentId); p = historyPerson(s, r);
+    var sk = scheduleHistoryKind(s.kind);
+    var lines = [];
+    var main = [s.place, s.dept, s.title].filter(function(v){ return !!String(v || "").trim(); }).join(" ");
+    if(main) lines.push(main);
+    var tm = schedTime(s); if(tm) lines.push(tm);
+    var fm = schedFamily(s); if(fm) lines.push(fm);
+    if(s.note && lines.join(" ").indexOf(s.note) < 0) lines.push(s.note);
+    if(!lines.length) lines.push(s.kind || "（内容未入力）");
+    out.push(addHistorySearchText({date:s.date, unit:p.unit, room:p.room, name:p.name,
+      residentId:s.residentId, type:sk, kinds:[sk], content:lines.join("\n"), source:"schedule", sourceId:s.id},
+      [s.kind,s.title,s.place,s.dept,s.family,s.note,s.start,s.end,
+       r?r.name:"",r?r.room:"",r?("Unit "+r.unit):""].join(" ")));
+  }
+  for(var ri=0;ri<DB.residents.length;ri++){
+    r = DB.residents[ri];
+    raw = String(r.permRaw || "").trim(); handover = String(r.permShort || "").trim();
+    if(!raw && !handover) continue;
+    if(raw && handover && historyNorm(raw) !== historyNorm(handover)) content = raw + "\n" + handover;
+    else content = handover || raw;
+    out.push(addHistorySearchText({date:r.permUpdated || ymd(new Date()), unit:r.unit, room:r.room,
+      name:r.name, residentId:r.id, type:"常設重要メモ", kinds:["申し送り"], content:content,
+      source:"permanent", sourceId:""}));
+  }
+  HISTORY_CACHE = out;
+  return out;
+}
+function historyFilters(){
+  return {
+    words: historyNorm(document.getElementById("historyKeyword").value).split(" ").filter(function(v){return !!v;}),
+    unit: document.getElementById("historyUnit").value,
+    from: document.getElementById("historyFrom").value,
+    to: document.getElementById("historyTo").value,
+    kind: document.getElementById("historyKind").value,
+    order: document.getElementById("historyOrder").value
+  };
+}
+function renderHistory(){
+  var host = document.getElementById("historyResults");
+  if(!host) return;
+  var f = historyFilters();
+  var list = buildHistoryIndex().filter(function(x){
+    if(HISTORY_UI.residentId && x.residentId !== HISTORY_UI.residentId) return false;
+    if(f.unit && String(x.unit) !== f.unit) return false;
+    if(f.from && x.date < f.from) return false;
+    if(f.to && x.date > f.to) return false;
+    if(f.kind && x.kinds.indexOf(f.kind) < 0) return false;
+    for(var wi=0;wi<f.words.length;wi++) if(!historyWordMatches(x.searchText, f.words[wi])) return false;
+    return true;
+  });
+  list.sort(function(a,b){
+    var n = a.date === b.date ? (a.type < b.type ? -1 : a.type > b.type ? 1 : 0) : (a.date < b.date ? -1 : 1);
+    return f.order === "old" ? n : -n;
+  });
+  document.getElementById("historyCount").textContent = list.length + "件";
+  var person = document.getElementById("historyPerson");
+  if(HISTORY_UI.residentId){
+    var pr = residentById(HISTORY_UI.residentId);
+    person.textContent = pr ? ("入居者別履歴：Unit " + pr.unit + "　" + pr.room + " " + (pr.name || "（無名）")) : "入居者別履歴";
+    person.classList.add("on");
+  }else{ person.textContent = ""; person.classList.remove("on"); }
+  if(!list.length){ host.innerHTML = '<div class="history-empty">該当する履歴はありません</div>'; return; }
+  var shown = list.slice(0, HISTORY_RENDER_LIMIT), h = "";
+  for(var i=0;i<shown.length;i++){
+    var x = shown[i];
+    h += '<article class="history-item" role="button" tabindex="0" data-history-index="'+i+'">'
+      + '<div><div class="date">'+esc(x.date.replace(/-/g,"/"))+'</div><div class="meta">Unit '+x.unit+' ／ '+esc(x.room || "部屋未設定")+'</div></div>'
+      + '<div><div class="who">'+esc(x.room)+' '+esc(x.name || "（無名）")+'</div>'
+      + '<div class="kind">'+esc(x.type)+'</div><div class="content">'+esc(x.content)+'</div></div></article>';
+  }
+  if(list.length > shown.length) h += '<div class="history-limit">先頭'+shown.length+'件を表示中（全'+list.length+'件）。条件を絞ると残りも確認できます。</div>';
+  host.innerHTML = h;
+  host._historyRows = shown;
+}
+function openResidentHistory(id){
+  var r = residentById(id); if(!r) return;
+  HISTORY_UI.residentId = id;
+  document.getElementById("historyKeyword").value = "";
+  document.getElementById("historyUnit").value = "";
+  document.getElementById("historyFrom").value = "";
+  document.getElementById("historyTo").value = "";
+  document.getElementById("historyKind").value = "";
+  document.getElementById("historyOrder").value = "new";
+  switchTab("history");
+}
+function openHistorySource(item){
+  if(!item) return;
+  UI.unit = item.unit;
+  setDate(item.date);
+  switchTab("input");
+  renderUnitBar();
+  setTimeout(function(){
+    var card = document.querySelector('#inputList .card[data-id="'+item.residentId+'"]');
+    if(card){ card.scrollIntoView({behavior:"smooth",block:"center"}); card.style.boxShadow="0 0 0 3px #e2b94b"; setTimeout(function(){card.style.boxShadow="";},1800); }
+  },0);
 }
 
 /* =========================================================
@@ -2313,6 +2735,7 @@ function renderAll(){
   renderMaster();
   renderSched();
   if(UI.tab==="print"){ renderPrint(); fitPreview(); }
+  if(UI.tab==="history") renderHistory();
 }
 
 /* =========================================================
@@ -2327,6 +2750,33 @@ document.getElementById("unitBar").addEventListener("click", function(e){
   var b = e.target.closest("button[data-unit]"); if(!b) return;
   UI.unit = parseInt(b.getAttribute("data-unit"),10);
   renderAll();
+});
+
+/* ---- 履歴検索 ---- */
+var historyTimer = null;
+function queueHistoryRender(){ clearTimeout(historyTimer); historyTimer = setTimeout(renderHistory, 160); }
+document.getElementById("historyKeyword").addEventListener("input", queueHistoryRender);
+["historyUnit","historyFrom","historyTo","historyKind","historyOrder"].forEach(function(id){
+  document.getElementById(id).addEventListener("change", renderHistory);
+});
+document.getElementById("historyClear").addEventListener("click", function(){
+  HISTORY_UI.residentId = "";
+  document.getElementById("historyKeyword").value = "";
+  document.getElementById("historyUnit").value = "";
+  document.getElementById("historyFrom").value = "";
+  document.getElementById("historyTo").value = "";
+  document.getElementById("historyKind").value = "";
+  document.getElementById("historyOrder").value = "new";
+  renderHistory();
+});
+function activateHistoryResult(e){
+  var row = e.target.closest("[data-history-index]"); if(!row) return;
+  var host = document.getElementById("historyResults");
+  openHistorySource(host._historyRows && host._historyRows[parseInt(row.getAttribute("data-history-index"),10)]);
+}
+document.getElementById("historyResults").addEventListener("click", activateHistoryResult);
+document.getElementById("historyResults").addEventListener("keydown", function(e){
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); activateHistoryResult(e); }
 });
 
 /* 対象日を変更する（常設重要メモは日付に依存せず、日次データだけ切り替わる） */
@@ -2360,6 +2810,7 @@ document.getElementById("inputList").addEventListener("input", function(e){
 
   if(f==="room"||f==="name"||f==="permRaw"||f==="permShort"){
     r[f] = e.target.value;
+    if(f==="permRaw" || f==="permShort") r.permUpdated = ymd(new Date());
   }else if(f==="todayRaw"){
     dailyOf(UI.date, id).raw = e.target.value;
   }else if(f==="todayShort"){
@@ -2385,6 +2836,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
   var r = DB.residents.filter(function(x){ return x.id===id; })[0]; if(!r) return;
   var a = b.getAttribute("data-a");
 
+  if(a==="history"){ openResidentHistory(id); return; }
   if(a==="recOpen"){ openRecModal(id); return; }   // 記録項目設定パネルを開く
   if(a==="confirmCarry"){
     var carriedEntry = dailyGet(UI.date, id);
@@ -2394,6 +2846,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
   if(a==="permShort"){
     var s = shortenPerm(r.permRaw);
     r.permShort = s;
+    r.permUpdated = ymd(new Date());
     card.querySelector('[data-f="permShort"]').value = s;
     updWarns(card); saveDB(); renderMaster();
     toast(s ? "常設重要メモを簡潔化しました" : "入力がありません");
@@ -2444,10 +2897,11 @@ document.getElementById("inputList").addEventListener("click", function(e){
     var sid2 = host.getAttribute("data-sid");
     if(sid2){
       var t2 = DB.schedules.filter(function(x){ return x.id === sid2; })[0];
-      if(t2){ for(var kk in v) t2[kk] = v[kk]; t2.unit = r.unit; }
+      if(t2){ for(var kk in v) t2[kk] = v[kk]; }
     }else{
       DB.schedules.push({
         id:newId(), residentId:r.id, unit:r.unit,
+        h:[r.unit,r.room,r.name],
         date:v.date, kind:v.kind, start:v.start, end:v.end, title:v.title,
         place:v.place, dept:v.dept, family:v.family, note:v.note
       });
@@ -2524,7 +2978,7 @@ document.getElementById("btnShortAll").addEventListener("click", function(){
   for(var i=0;i<list.length;i++){
     var r = list[i];
     if(r.permRaw && r.permRaw.trim() && !(r.permShort && r.permShort.trim())){
-      r.permShort = shortenPerm(r.permRaw); n++;
+      r.permShort = shortenPerm(r.permRaw); r.permUpdated = ymd(new Date()); n++;
     }
   }
   saveDB(); renderInput(); renderMaster();
@@ -2677,6 +3131,7 @@ document.getElementById("masterBody").addEventListener("input", function(e){
     return;
   }
   r[f] = e.target.value;
+  if(f === "permShort") r.permUpdated = ymd(new Date());
   lazySave();
 });
 
@@ -2689,6 +3144,7 @@ document.getElementById("masterBody").addEventListener("click", function(e){
   if(idx<0) return;
   var a = b.getAttribute("data-a");
 
+  if(a==="history"){ openResidentHistory(id); return; }
   if(a==="rec"){ openRecModal(id); return; }      // 記録項目設定パネルを開く
   if(a==="up" && idx>0){ swapOrder(list, idx, idx-1); }
   if(a==="down" && idx<list.length-1){ swapOrder(list, idx, idx+1); }
@@ -2750,6 +3206,66 @@ document.getElementById("optPastSched").addEventListener("change", function(){
   DB.settings.showPastSched = this.checked;
   saveDB(); renderSched();
 });
+document.getElementById("optSchedAllUnits").addEventListener("change", function(){
+  DB.settings.showAllUnitSched = this.checked;
+  SCHED_UI.cleanupDismissed = false;
+  saveDB(); renderSched();
+  if(SCHED_UI.cleanupOpen) renderSchedCleanup();
+});
+document.getElementById("schedCleanupNotice").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-cleanup-a]"); if(!b) return;
+  var a = b.getAttribute("data-cleanup-a");
+  if(a === "viewPast"){
+    DB.settings.showPastSched = true;
+    document.getElementById("optPastSched").checked = true;
+    saveDB(); renderSched();
+  }else if(a === "open") openSchedCleanup();
+  else if(a === "dismiss"){
+    SCHED_UI.cleanupDismissed = true;
+    renderSched();
+  }
+});
+
+document.getElementById("schedCleanupClose").addEventListener("click", closeSchedCleanup);
+document.getElementById("schedCleanupClose2").addEventListener("click", closeSchedCleanup);
+document.getElementById("schedCleanupList").addEventListener("change", function(e){
+  if(e.target.id === "schedSelectAll"){
+    var all = this.querySelectorAll("[data-cleanup-select]");
+    for(var i=0;i<all.length;i++) all[i].checked = e.target.checked;
+  }
+  if(e.target.matches("#schedSelectAll,[data-cleanup-select]")){
+    document.getElementById("schedDeleteSelected").disabled = !this.querySelector("[data-cleanup-select]:checked");
+  }
+});
+document.getElementById("schedCleanupList").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-cleanup-delete]"); if(!b) return;
+  var row = b.closest("[data-cleanup-sid]");
+  var sid = row && row.getAttribute("data-cleanup-sid");
+  if(!sid || !confirm("この過去予定を削除しますか？")) return;
+  deletePastScheduleIds([sid]);
+});
+document.getElementById("schedDeleteSelected").addEventListener("click", function(){
+  var boxes = document.querySelectorAll("#schedCleanupList [data-cleanup-select]:checked");
+  var ids = [];
+  for(var i=0;i<boxes.length;i++) ids.push(boxes[i].closest("[data-cleanup-sid]").getAttribute("data-cleanup-sid"));
+  if(!ids.length || !confirm("選択した" + ids.length + "件の過去予定を削除しますか？")) return;
+  deletePastScheduleIds(ids);
+});
+document.getElementById("schedDeleteAllPast").addEventListener("click", function(){
+  var list = pastSchedulesInScope();
+  if(!list.length) return;
+  if(!confirm("過去の予定をすべて削除しますか？")) return;
+  if(!confirm("この操作は取り消せません。本当に削除しますか？")) return;
+  deletePastScheduleIds(list.map(function(s){ return s.id; }));
+});
+document.getElementById("schedDeleteByAge").addEventListener("click", function(){
+  var days = parseInt(document.getElementById("schedCleanupAge").value, 10) || 90;
+  var cutoff = cutoffDate(days);
+  var list = pastSchedulesInScope().filter(function(s){ return s.date <= cutoff; });
+  if(!list.length){ toast(days + "日以前の過去予定はありません"); return; }
+  if(!confirm(days + "日以前の過去予定" + list.length + "件を削除しますか？")) return;
+  deletePastScheduleIds(list.map(function(s){ return s.id; }));
+});
 document.getElementById("schedList").addEventListener("click", function(e){
   var b = e.target.closest("button[data-a]"); if(!b) return;
   var a = b.getAttribute("data-a");
@@ -2776,8 +3292,6 @@ document.getElementById("schedList").addEventListener("click", function(e){
     var v = readSchedForm(host);
     if(!v.date){ toast("日付を入力してください"); return; }
     for(var kk in v) target[kk] = v[kk];
-    var rr = residentById(target.residentId);
-    if(rr) target.unit = rr.unit;
     saveSchedules(); renderSched(); renderInput();
     if(UI.tab === "print"){ renderPrint(); fitPreview(); }
     toast("✓ 予定保存済み");
@@ -2858,6 +3372,7 @@ function initUIFromDB(){
   document.getElementById("optAlwaysBack").checked = !!DB.settings.alwaysBack;
   document.getElementById("optPrintWarn").checked  = !!DB.settings.printWarn;
   document.getElementById("optPastSched").checked  = !!DB.settings.showPastSched;
+  document.getElementById("optSchedAllUnits").checked = !!DB.settings.showAllUnitSched;
   document.getElementById("optAutoCarry").checked = DB.settings.autoCarry !== false;
   document.body.classList.toggle("pw", !!DB.settings.printWarn);
 }
