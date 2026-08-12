@@ -257,6 +257,10 @@ table.master td.act{width:64px;white-space:nowrap}
 .copypanel label{font-size:13px}
 .copied{font-size:12px;font-weight:700;color:var(--warn);background:#fdf1f1;border:1px solid #eec2c2;
   border-radius:5px;padding:3px 8px;margin-top:6px;display:inline-block}
+.copied.auto{color:#185f38;background:#eaf6ee;border-color:#9ed0ae}
+.copied .btn{margin-left:7px;vertical-align:middle}
+.carryopt{font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:5px;
+  background:#eef4fb;border:1px solid #a9c6e4;border-radius:5px;padding:5px 9px}
 
 /* ---- 予定（スケジュール） ---- */
 .sched-area{margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
@@ -399,6 +403,7 @@ table.master td.act{width:64px;white-space:nowrap}
       <button class="btn" id="btnShortAll">常設重要メモを一括簡潔化（未作成のみ）</button>
       <button class="btn" id="btnCopyPrev">前日からコピー（この Unit）</button>
       <button class="btn" id="btnCopyOther">別の日からコピー…</button>
+      <label class="carryopt"><input type="checkbox" id="optAutoCarry" checked> 前日申し送り自動引継ぎ</label>
       <span class="hint">入力は自動保存されます。常設重要メモは翌日以降も保持、本日の申し送りは対象日ごとの保存です。</span>
     </div>
     <div class="copypanel" id="copyPanel">
@@ -436,6 +441,7 @@ table.master td.act{width:64px;white-space:nowrap}
           <tr>
             <th class="ord">並び</th><th style="width:110px">部屋番号</th><th>入居者名</th>
             <th style="width:110px">在床状況</th><th>常設重要メモ（表示用）</th>
+            <th style="width:140px">自動引継ぎ対象</th>
             <th style="width:190px">記録項目（日勤／夜勤）</th><th class="act">削除</th>
           </tr>
         </thead>
@@ -713,8 +719,8 @@ function wdLabel(dow){
 var SEED_VER = 3;   // サンプル入居者の世代（既存サンプルを不用意に入れ替えない）
 
 function defaultDB(){
-  return { v:4, seedVer:SEED_VER, residents:[], daily:{}, schedules:[],
-           settings:{ hideEmpty:true, alwaysBack:false, allUnits:false }, demo:true };
+  return { v:5, seedVer:SEED_VER, residents:[], daily:{}, schedules:[],
+           settings:{ hideEmpty:true, alwaysBack:false, allUnits:false, autoCarry:true }, demo:true };
 }
 
 var STORAGE_OK = true;
@@ -745,7 +751,7 @@ function loadDB(){
 /* 旧バージョンのデータ構造でもアプリが停止しないように補正する
    （既存データは消さず、不足しているプロパティだけ初期値で補う） */
 function migrate(){
-  DB.v = 4;
+  DB.v = 5;
   if(!Array.isArray(DB.residents)) DB.residents = [];
   DB.residents = DB.residents.filter(function(r){ return r && typeof r === "object"; });
   var seen = {};
@@ -761,6 +767,8 @@ function migrate(){
     r.status = (r.status === "empty") ? "empty" : "in";
     if(typeof r.permRaw !== "string")   r.permRaw = "";
     if(typeof r.permShort !== "string") r.permShort = "";
+    /* 個人別の自動引継ぎ設定。旧データは初期値 ON として扱う */
+    r.autoCarry = r.autoCarry !== false;
     /* 記録項目設定：無い場合は初期値（BS・BW のみ OFF）を補う。既存の設定は保持する */
     r.rec = normRec(r.rec);
   }
@@ -791,6 +799,9 @@ function migrate(){
       if(typeof e.raw   !== "string") e.raw = "";
       if(typeof e.short !== "string") e.short = "";
       if(e.copiedFrom != null && typeof e.copiedFrom !== "string") delete e.copiedFrom;
+      /* v4 以前の手動コピーを自動引継ぎと誤認しない。自動分だけ確認状態を補完する */
+      e.autoCarry = e.autoCarry === true;
+      e.confirmed = e.autoCarry ? e.confirmed === true : true;
     }
   }
   var st = (DB.settings && typeof DB.settings === "object") ? DB.settings : {};
@@ -799,7 +810,8 @@ function migrate(){
     alwaysBack: !!st.alwaysBack,
     allUnits  : !!st.allUnits,
     printWarn : !!st.printWarn,
-    showPastSched : !!st.showPastSched
+    showPastSched : !!st.showPastSched,
+    autoCarry : st.autoCarry !== false
   };
 }
 
@@ -926,7 +938,7 @@ function seedDemo(){
     if(idx[s.unit] == null) idx[s.unit] = 0;
     var r = {
       id:newId(), unit:s.unit, room:s.room, name:s.name, order:idx[s.unit],
-      status:"in", permRaw:s.perm, permShort:shortenPerm(s.perm), rec:defaultRec(), demo:true
+      status:"in", permRaw:s.perm, permShort:shortenPerm(s.perm), rec:defaultRec(), autoCarry:true, demo:true
     };
     DB.residents.push(r);
     byRoom[s.room] = r;
@@ -1399,6 +1411,31 @@ function dailyOf(date, id){
 function dailyGet(date, id){
   return (DB.daily[date] && DB.daily[date][id]) || { raw:"", short:"" };
 }
+function hasDailyEntry(date, id){
+  return !!(DB.daily[date] && Object.prototype.hasOwnProperty.call(DB.daily[date], id));
+}
+
+/* 対象日を初めて開いた時だけ、前日の最終「本日の申し送り」を独立した日付データへ複製する。
+   今日あったこと（raw）・予定・常設メモ・記録項目設定には触れない。 */
+function autoCarryForDate(date){
+  if(!DB.settings.autoCarry) return 0;
+  var src = prevDate(date), srcDay = DB.daily[src];
+  if(!srcDay || typeof srcDay !== "object") return 0;
+  var copied = 0;
+  for(var i=0;i<DB.residents.length;i++){
+    var r = DB.residents[i];
+    if(r.status === "empty" || r.autoCarry === false || hasDailyEntry(date, r.id)) continue;
+    var from = srcDay[r.id];
+    if(!from || typeof from.short !== "string" || !from.short.trim()) continue;
+    if(!DB.daily[date]) DB.daily[date] = {};
+    DB.daily[date][r.id] = {
+      raw:"", short:String(from.short), copiedFrom:src, confirmed:false, autoCarry:true
+    };
+    copied++;
+  }
+  if(copied) saveDB();
+  return copied;
+}
 function esc(s){
   return String(s==null?"":s)
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
@@ -1491,7 +1528,11 @@ function renderInput(){
             + '<div class="lb"><span>本日の申し送り（用紙に印刷される内容）</span></div>'
             + '<textarea class="short" data-f="todayShort" placeholder="未入力なら用紙に「本日：」は表示されません">'+esc(d.short)+'</textarea>'
             + '<div class="warnmsg" data-w="today">印刷欄に収まらない可能性があります。内容を確認してください</div>'
-            + (d.copiedFrom ? '<div class="copied">'+esc(shortJp(d.copiedFrom))+' からコピー済み・内容を確認してください</div>' : '')
+            + (d.autoCarry && !d.confirmed && d.copiedFrom
+                ? '<div class="copied auto">前日から引継ぎ（'+esc(shortJp(d.copiedFrom))+'から引継ぎ）'
+                  + '<button class="btn sm" data-a="confirmCarry">確認済み</button></div>'
+                : (d.copiedFrom && !d.autoCarry
+                  ? '<div class="copied">'+esc(shortJp(d.copiedFrom))+' からコピー済み・内容を確認してください</div>' : ''))
           + '</div>'
         + '</div>'
       + '</div>'
@@ -1613,12 +1654,13 @@ function renderMaster(){
       + '<td><input type="text" data-f="name" value="'+esc(r.name)+'"></td>'
       + '<td><button class="pill '+(r.status==="empty"?"out":"in")+'" data-a="toggle">'+(r.status==="empty"?"空床":"入居中")+'</button></td>'
       + '<td><input type="text" data-f="permShort" value="'+esc(r.permShort)+'" placeholder="（申し送り入力タブで作成できます）"></td>'
+      + '<td><label class="hint"><input type="checkbox" data-f="autoCarry" '+(r.autoCarry!==false?"checked":"")+'> 対象にする</label></td>'
       + '<td><button class="recbtn" data-a="rec">記録項目設定</button>'
         + '<div class="recsum">'+recSummary(r)+'</div></td>'
       + '<td class="act"><button class="iconbtn" data-a="del" title="削除">✕</button></td>'
       + '</tr>';
   }
-  if(!list.length) h = '<tr><td colspan="7" class="hint" style="padding:14px">入居者がいません。「入居者を追加」から登録してください。</td></tr>';
+  if(!list.length) h = '<tr><td colspan="8" class="hint" style="padding:14px">入居者がいません。「入居者を追加」から登録してください。</td></tr>';
   document.getElementById("masterBody").innerHTML = h;
 }
 
@@ -2273,6 +2315,7 @@ document.getElementById("unitBar").addEventListener("click", function(e){
 function setDate(d){
   if(!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) d = ymd(new Date());
   UI.date = d;
+  var carried = autoCarryForDate(UI.date);
   var di = document.getElementById("theDate");
   if(di) di.value = UI.date;
   renderDateBar();
@@ -2280,6 +2323,7 @@ function setDate(d){
   renderSched();
   if(REC_UI.id) renderRecModal();   // 設定パネルの「この日は表示」も対象日に追従させる
   if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+  if(carried) toast(carried + "名の申し送りを前日から引き継ぎました");
 }
 document.getElementById("theDate").addEventListener("change", function(){ setDate(this.value); });
 document.getElementById("btnPrevDay").addEventListener("click", function(){ setDate(shiftDate(UI.date, -1)); });
@@ -2324,6 +2368,11 @@ document.getElementById("inputList").addEventListener("click", function(e){
   var a = b.getAttribute("data-a");
 
   if(a==="recOpen"){ openRecModal(id); return; }   // 記録項目設定パネルを開く
+  if(a==="confirmCarry"){
+    var carriedEntry = dailyGet(UI.date, id);
+    if(carriedEntry.autoCarry){ carriedEntry.confirmed = true; saveDB(); renderInput(); toast("確認済みにしました"); }
+    return;
+  }
   if(a==="permShort"){
     var s = shortenPerm(r.permRaw);
     r.permShort = s;
@@ -2433,6 +2482,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
   if(a==="todayClear"){
     var d2 = dailyOf(UI.date, id);
     d2.raw = ""; d2.short = "";
+    delete d2.copiedFrom; d2.autoCarry = false; d2.confirmed = true;
     card.querySelector('[data-f="todayRaw"]').value = "";
     card.querySelector('[data-f="todayShort"]').value = "";
     saveDB(); toast("本日分を消去しました");
@@ -2485,6 +2535,8 @@ function copyEntry(src, dst, id){
   t.raw   = String(e.raw   || "");
   t.short = String(e.short || "");
   t.copiedFrom = src;
+  t.autoCarry = false;
+  t.confirmed = true;
 }
 
 function copyDayToCurrent(srcDate, mode){
@@ -2560,13 +2612,21 @@ document.getElementById("btnCopyRun").addEventListener("click", function(){
   copyDayToCurrent(document.getElementById("copySrc").value, overwriteMode());
 });
 
+document.getElementById("optAutoCarry").addEventListener("change", function(){
+  DB.settings.autoCarry = this.checked;
+  var copied = this.checked ? autoCarryForDate(UI.date) : 0;
+  saveDB(); renderInput();
+  toast(this.checked ? (copied ? copied + "名の申し送りを前日から引き継ぎました" : "自動引継ぎをONにしました")
+                     : "自動引継ぎをOFFにしました");
+});
+
 /* ---- 入居者マスター ---- */
 document.getElementById("btnAdd").addEventListener("click", function(){
   var list = residentsOf(UI.unit);
   if(list.length >= MAX_UNIT){ toast("1 Unit の上限は "+MAX_UNIT+" 名です"); return; }
   DB.residents.push({
     id:newId(), unit:UI.unit, room:"", name:"", order:(list.length?Math.max.apply(null,list.map(function(r){return r.order||0;}))+1:0),
-    status:"in", permRaw:"", permShort:"", rec:defaultRec()
+    status:"in", permRaw:"", permShort:"", rec:defaultRec(), autoCarry:true
   });
   saveDB(); renderAll();
   var rows = document.querySelectorAll("#masterBody tr");
@@ -2593,6 +2653,11 @@ document.getElementById("masterBody").addEventListener("input", function(e){
   var f = e.target.getAttribute("data-f"); if(!f) return;
   var r = DB.residents.filter(function(x){ return x.id===tr.getAttribute("data-id"); })[0];
   if(!r) return;
+  if(f === "autoCarry"){
+    r.autoCarry = e.target.checked;
+    saveDB(); renderInput();
+    return;
+  }
   r[f] = e.target.value;
   lazySave();
 });
@@ -2646,7 +2711,7 @@ document.getElementById("btnDemo18").addEventListener("click", function(){
     DB.residents.push({
       id:newId(), unit:3, room:String(301+i), name:sei[i]+" 花子", order:exist+n,
       status:"in", permRaw:"", permShort:(i%3===0 ? "転倒注意" : (i%3===1 ? "移乗2人介助" : "食事・水分トロミ")),
-      rec:defaultRec(), demo:true
+      rec:defaultRec(), autoCarry:true, demo:true
     });
     n++;
   }
@@ -2779,12 +2844,14 @@ function initUIFromDB(){
   document.getElementById("optAlwaysBack").checked = !!DB.settings.alwaysBack;
   document.getElementById("optPrintWarn").checked  = !!DB.settings.printWarn;
   document.getElementById("optPastSched").checked  = !!DB.settings.showPastSched;
+  document.getElementById("optAutoCarry").checked = DB.settings.autoCarry !== false;
   document.body.classList.toggle("pw", !!DB.settings.printWarn);
 }
 loadDB();
 UI.date = ymd(new Date());
 document.getElementById("theDate").value = UI.date;
 initUIFromDB();
+autoCarryForDate(UI.date);
 renderAll();
 </script>
 </body>
