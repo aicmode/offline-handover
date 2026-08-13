@@ -85,28 +85,29 @@ function run(){
   const { sandbox: app, elements, storage, html } = boot();
   const today = app.ymd(new Date());
   const resident2 = {
-    id:"resident-u2", unit:2, room:"201", name:"テスト 二郎", order:0,
+    id:"resident-b", unit:2, room:"B-101", name:"テスト 二郎", order:0,
     status:"in", permRaw:"常設メモ", permShort:"常設メモ", autoCarry:true, rec:app.defaultRec()
   };
   const resident3 = {
-    id:"resident-u3", unit:3, room:"301", name:"テスト 三郎", order:0,
-    status:"in", permRaw:"別Unitメモ", permShort:"別Unitメモ", autoCarry:true, rec:app.defaultRec()
+    id:"resident-c", unit:3, room:"C-101", name:"テスト 三郎", order:0,
+    status:"in", permRaw:"別ブロックメモ", permShort:"別ブロックメモ", autoCarry:true, rec:app.defaultRec()
   };
   const schedule = (id, residentId, unit, date) => ({
     id, residentId, unit, date, kind:"受診", start:"10:00", end:"",
     title:"定期受診", place:"病院", dept:"内科", family:"", note:"確認用"
   });
-  const buildUnit2 = (pastCount) => {
+  const buildBlockB = (pastCount) => {
     const list = [];
     for(let i=0;i<pastCount;i++) list.push(schedule("past-"+i, resident2.id, 2, app.shiftDate(today, -(i+1))));
     for(let i=0;i<5;i++) list.push(schedule("future-"+i, resident2.id, 2, app.shiftDate(today, i)));
     return list;
   };
   app.DB = {
-    v:5, seedVer:3, residents:[resident2, resident3],
-    daily:{ sentinel:{ raw:"申し送り保持", short:"保持" } }, schedules:buildUnit2(9),
+    v:7, residents:[resident2, resident3],
+    daily:{ sentinel:{ raw:"申し送り保持", short:"保持" } }, vitals:{},
+    schedules:buildBlockB(9), history:{version:1}, demoSeeded:true,
     settings:{ hideEmpty:true, alwaysBack:true, allUnits:false, printWarn:false,
-      showPastSched:false, showAllUnitSched:false, autoCarry:true }, demo:false
+      showPastSched:false, showAllUnitSched:false, autoCarry:true, showLeft:false, lastAutoCarry:"" }
   };
   app.UI.unit = 2;
   app.SCHED_UI.cleanupDismissed = false;
@@ -119,16 +120,16 @@ function run(){
   assert.equal(elements.get("schedCleanupNotice").classList.contains("on"), false);
   assert.equal(app.DB.schedules.length, 14);
 
-  // The optional all-Unit view is explicit and does not weaken normal Unit filtering.
-  app.DB.schedules.push(schedule("u3-future", resident3.id, 3, app.shiftDate(today, 1)));
+  // The optional all-block view is explicit and does not weaken normal block filtering.
+  app.DB.schedules.push(schedule("c-future", resident3.id, 3, app.shiftDate(today, 1)));
   app.renderSched();
   assert.equal((elements.get("schedList").innerHTML.match(/class="sched-row/g) || []).length, 5);
   app.DB.settings.showAllUnitSched = true;
   app.renderSched();
-  assert.equal(elements.get("sUnitLabel").textContent, "全Unit");
+  assert.equal(elements.get("sUnitLabel").textContent, "全ブロック");
   assert.equal((elements.get("schedList").innerHTML.match(/class="sched-row/g) || []).length, 6);
   app.DB.settings.showAllUnitSched = false;
-  app.DB.schedules = app.DB.schedules.filter((item) => item.id !== "u3-future");
+  app.DB.schedules = app.DB.schedules.filter((item) => item.id !== "c-future");
 
   // Test B/C: the tenth item triggers the bar; "view past" enables the existing option.
   app.DB.schedules.push(schedule("past-9", resident2.id, 2, app.shiftDate(today, -10)));
@@ -166,8 +167,8 @@ function run(){
   assert.equal(JSON.stringify(app.DB.residents), residentsBefore);
   assert.equal(JSON.stringify(app.DB.daily), dailyBefore);
 
-  // Test E/F: all-delete requires two confirmations and stays inside the current Unit scope.
-  app.DB.schedules = buildUnit2(10).concat([schedule("u3-past", resident3.id, 3, app.shiftDate(today, -20))]);
+  // Test E/F: all-delete requires two confirmations and stays inside the current block scope.
+  app.DB.schedules = buildBlockB(10).concat([schedule("c-past", resident3.id, 3, app.shiftDate(today, -20))]);
   const allDelete = elements.get("schedDeleteAllPast").listeners.click[0];
   let answers = [true, false];
   const prompts = [];
@@ -178,7 +179,7 @@ function run(){
   allDelete();
   assert.deepEqual(prompts.slice(-2), ["過去の予定をすべて削除しますか？", "この操作は取り消せません。本当に削除しますか？"]);
   assert.equal(app.DB.schedules.filter((item) => item.id.startsWith("future-")).length, 5);
-  assert.equal(app.DB.schedules.some((item) => item.id === "u3-past"), true);
+  assert.equal(app.DB.schedules.some((item) => item.id === "c-past"), true);
   assert.equal(JSON.stringify(app.DB.residents), residentsBefore);
   assert.equal(JSON.stringify(app.DB.daily), dailyBefore);
 

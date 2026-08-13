@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>申し送りメーカー｜オフライン申し送り・勤務記録支援</title>
+<title>申し送りメーカー｜オンラインデモ（ポートフォリオ）</title>
+<meta name="description" content="介護・医療現場向け申し送り／勤務記録支援アプリのオンラインデモ。表示データはすべて架空です。">
 <style>
 :root{
   --ink:#16202a;
@@ -217,7 +218,7 @@ tr.left-row input[type=text]{color:#6a7581}
 .sh-foot .l{font-weight:700;letter-spacing:.08em}
 .sh-foot .c{color:#444}
 
-/* 1ページだけのUnitを両面印刷で次Unitと混在させないための空白裏面 */
+/* 1ページだけのブロックを両面印刷で次ブロックと混在させないための空白裏面 */
 .sheet.blank-sheet{display:flex;align-items:center;justify-content:center;border-color:#bbb}
 .blank-note{font-size:9pt;color:#555;letter-spacing:.08em}
 
@@ -515,6 +516,123 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
   .guide-body{padding:12px}
 }
 @media (max-width:430px){.welcome-steps{grid-template-columns:1fr}}
+
+/* =========================================================
+   ポートフォリオ公開用デモ：UIブラッシュアップ
+   - 青／ネイビー基調、赤は注意・重要のアクセントのみ
+   - 既存クラスの構造は変えず、見た目だけを上書きする
+   ========================================================= */
+:root{
+  --ink:#131c26;
+  --sub:#5a6b7c;
+  --line:#ccd6e0;
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --accent:#11365f;
+  --accent-w:#0a2444;
+  --accent2:#2a6bb0;
+  --warn:#c0272d;
+  --soft:#f3f6fa;
+  --shadow:0 1px 2px rgba(17,54,95,.06),0 1px 8px rgba(17,54,95,.05);
+}
+body{background:var(--bg)}
+
+/* ---- ヘッダー（ネイビー帯 + PORTFOLIO DEMO バッジ） ---- */
+header.top{
+  background:var(--accent);border-bottom:3px solid var(--accent2);
+  box-shadow:0 2px 10px rgba(10,36,68,.18);color:#fff;padding:11px 14px 0;
+}
+header.top .title h1{color:#fff;font-weight:800}
+header.top .title .subtitle{color:#c2d6ec}
+header.top .topbar label,header.top .caution{color:#b8cde5}
+header.top .datelb{color:#fff}
+header.top .savest{color:#a9ecc4}
+header.top .savest.busy{color:#cfdcea}
+header.top .schedsave{color:#a9ecc4}
+header.top input[type=date]{border-color:#4a7dae;background:#fff}
+header.top .btn{background:rgba(255,255,255,.94);border-color:#4a7dae;color:var(--accent)}
+header.top .btn:hover{background:#fff}
+header.top .btn.pri{background:var(--accent2);border-color:#7fb0dd;color:#fff}
+header.top .btn.pri:hover{background:#3a80c9}
+header.top .btn.danger{background:#fff;border-color:#e6a9ab;color:var(--warn)}
+.title .badge{color:#cfe1f3;border-color:#5b8cbb;background:rgba(255,255,255,.06)}
+.title .badge.demo{
+  color:#fff;background:var(--warn);border-color:#e2686c;font-weight:800;
+  letter-spacing:.12em;padding:2px 9px;border-radius:3px;
+}
+
+/* タブ・ブロック切替はヘッダー帯の中に置く */
+.tabs{gap:3px;margin-top:12px}
+.tabs button{
+  background:rgba(255,255,255,.10);border-color:transparent;border-bottom:none;
+  color:#cfe1f3;font-weight:700;padding:9px 18px;
+}
+.tabs button:hover{background:rgba(255,255,255,.20);color:#fff}
+.tabs button.on{background:var(--bg);border-color:var(--bg);color:var(--accent)}
+.units{margin:10px 0 11px}
+.units button{background:rgba(255,255,255,.10);border-color:#5b8cbb;color:#dbe8f5;font-weight:700}
+.units button:hover{background:rgba(255,255,255,.2)}
+.units button.on{background:#fff;border-color:#fff;color:var(--accent)}
+
+/* ---- デモであることの明示バー ---- */
+.demo-note{
+  margin:0 0 12px;padding:9px 13px;border-radius:7px;
+  background:#fff5f5;border:1px solid #e8bfc0;border-left:6px solid var(--warn);
+  color:#6d1f22;font-size:12.5px;line-height:1.75;
+}
+.demo-note b{color:var(--warn)}
+.demo-note .ln{display:block}
+
+/* ---- パネル・ボタンの質感 ---- */
+.panel{box-shadow:var(--shadow);border-radius:9px}
+.panel h2{color:var(--accent);font-weight:800}
+.card{box-shadow:var(--shadow);border-radius:9px;border-left-width:5px}
+.btn{border-radius:6px;font-weight:600}
+.btn.pri{box-shadow:0 1px 2px rgba(17,54,95,.18)}
+.mhead{background:var(--accent)}
+.history-item .kind,.sched-chip{border-radius:5px}
+
+/* ---- 記録・バイタル入力欄 ---- */
+.vitals-area{
+  margin-top:11px;border-top:1px dashed var(--line);padding-top:10px;
+}
+.vitals-area .va-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:7px}
+.vitals-area .va-head b{font-size:12px;color:var(--accent);letter-spacing:.03em}
+.vitals-area .va-head .mini{margin-top:0;flex:1;min-width:220px}
+.vit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:760px){.vit-grid{grid-template-columns:1fr}}
+.vit-shift{border:1px solid var(--line);border-radius:7px;overflow:hidden;background:#fff}
+.vit-shift > h5{
+  margin:0;padding:5px 10px;font-size:12px;letter-spacing:.08em;
+  background:#eaf1f9;color:var(--accent);border-bottom:1px solid var(--line);
+}
+.vit-shift.night > h5{background:#f0edf7;color:#3d3268}
+.vit-fields{display:flex;flex-wrap:wrap;gap:6px 8px;padding:8px 10px}
+.vf{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--sub)}
+.vf > span{font-weight:700;white-space:nowrap}
+.vf > em{font-style:normal;font-size:11px;color:var(--sub)}
+.vf input{
+  width:72px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;
+  font-size:14px;font-weight:700;text-align:center;background:#fbfcfe;
+}
+.vf input:focus{border-color:var(--accent2);background:#fff;outline:2px solid #d7e6f6;outline-offset:-3px}
+.vf.wide{flex:1 1 100%}
+.vf.wide input{flex:1;width:auto;text-align:left;font-weight:500}
+
+/* ---- 印刷用紙：記入線の中に値を印字する ---- */
+.vit .it u,.eat .p u,.eat u.ln,.memo u,.target-bs .slot u{
+  height:auto;min-height:.92em;text-align:center;font-weight:700;
+}
+.memo u,.eat u.ln{text-align:left;padding-left:.6mm;font-weight:600}
+.sh-foot .c{font-weight:700;letter-spacing:.02em}
+
+/* ---- ヘルプ内のデモ説明 ---- */
+.doc-demo{border-left:5px solid var(--accent);background:#eef3f9;padding:10px 12px;margin:9px 0;border-radius:4px}
+.doc-demo h5{margin-top:0}
+@media (max-width:700px){
+  header.top{padding:10px 12px 0}
+  .vf input{width:64px}
+}
 </style>
 </head>
 <body>
@@ -524,9 +642,11 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <header class="top">
   <div class="title">
     <h1>申し送りメーカー</h1>
-    <span class="subtitle">オフライン申し送り・勤務記録支援</span>
-    <span class="badge">オフライン動作／外部通信なし</span>
+    <span class="badge demo">PORTFOLIO DEMO</span>
+    <span class="subtitle">介護・医療現場向け 申し送り／勤務記録支援</span>
+    <span class="badge">保存はブラウザ内のみ／外部送信なし</span>
     <div class="title-actions">
+      <button class="btn sm" id="btnDemoInfo">このデモについて</button>
       <button class="btn sm pri" id="btnGuide">？ 使い方</button>
       <button class="btn sm" id="btnHelp">？ ヘルプ</button>
     </div>
@@ -545,8 +665,9 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
     <button class="btn sm" id="btnExport">バックアップ保存</button>
     <button class="btn sm" id="btnImport">バックアップ復元</button>
     <input type="file" id="fileImport" accept="application/json" style="display:none">
+    <button class="btn sm danger" id="btnDemoReset" title="編集内容を削除して、80名分の初期デモデータへ戻します。">デモデータを初期化</button>
   </div>
-  <div class="caution">バックアップには入居者情報・過去履歴が含まれます。取り扱い注意（保存先はこのPC内のみ／自動アップロードは行いません）。</div>
+  <div class="caution">バックアップはこの端末へファイル保存されるだけで、サーバーへは送信されません（このデモの内容はすべて架空データです）。</div>
   <div id="capacityWarning">履歴データが増えています。バックアップ・整理を検討してください</div>
   <div id="memnote" role="alert">
     ⚠ 現在データをこのPCへ保存できていません。このページを閉じると入力内容が失われる可能性があります。
@@ -563,6 +684,11 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
   <div class="units" id="unitBar"></div>
 </header>
 
+<div class="demo-note noprint">
+  <span class="ln"><b>これはポートフォリオ公開用のオンラインデモです。</b>このページに表示されている氏名・部屋番号・記録・バイタル・予定はすべて架空のデモデータであり、実在の施設・入居者・患者・職員・医療機関とは一切関係ありません。</span>
+  <span class="ln">数値は画面確認用に生成した架空値です。<b>診断・医療判断には使用できません。</b>入力・編集した内容はご利用中のブラウザ内（localStorage）にだけ保存され、サーバーへは送信されません。自由に操作して構いません（「デモデータを初期化」でいつでも初期状態へ戻せます）。</span>
+</div>
+
 <!-- ============ 申し送り入力 ============ -->
 <section class="view on" id="v-input">
   <div class="panel">
@@ -570,7 +696,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
     <div class="row-actions">
       <button class="btn pri" id="btnMakeAll">未作成をまとめて申し送り作成</button>
       <button class="btn" id="btnShortAll">常設重要メモを一括簡潔化（未作成のみ）</button>
-      <button class="btn" id="btnCopyPrev">前日からコピー（この Unit）</button>
+      <button class="btn" id="btnCopyPrev">前日からコピー（このブロック）</button>
       <button class="btn" id="btnCopyOther">別の日からコピー…</button>
       <button class="btn" id="btnCarryNow" title="前日の「本日の申し送り」を、この対象日へ引き継ぎます（すでに入力がある人は上書きしません）。">前日の申し送りをこの日に引き継ぐ</button>
       <label class="carryopt" title="今日を初めて開いたときだけ、前日の「本日の申し送り」を今日へ自動コピーします。過去日・未来日は開いても自動生成しません。引き継いだ内容は必ず確認してください。"><input type="checkbox" id="optAutoCarry" checked> 前日申し送り自動引継ぎ（今日のみ）</label>
@@ -599,7 +725,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 入居者マスター ============ -->
 <section class="view" id="v-master">
   <div class="panel">
-    <div class="section-title"><h2>入居者マスター（<span id="mUnitLabel">Unit 2</span>）</h2><button class="help-dot" data-guide="guide-master" title="入居者マスターの使い方" aria-label="入居者マスターの使い方">？</button></div>
+    <div class="section-title"><h2>入居者マスター（<span id="mUnitLabel">Aブロック</span>）</h2><button class="help-dot" data-guide="guide-master" title="入居者マスターの使い方" aria-label="入居者マスターの使い方">？</button></div>
     <div class="row-actions" style="margin-bottom:10px">
       <button class="btn pri" id="btnAdd">入居者を追加</button>
       <button class="btn" id="btnSortRoom">部屋番号順に並べ替え</button>
@@ -619,14 +745,14 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <tbody id="masterBody"></tbody>
       </table>
     </div>
-    <p class="hint" style="margin-top:10px">上限：1 Unit あたり 30 名（印刷時は入居人数に応じ、各面最大15名で表裏へ自動分割）。31 名以上は追加できません。<br>
+    <p class="hint" style="margin-top:10px">上限：1 ブロックあたり 20 名（印刷時は 10 名ごとに表面・裏面へ分割）。21 名以上は追加できません。<br>
       <b>退居</b>にすると、申し送り入力・実入居人数・印刷・自動引継ぎの対象から外れます。<b>過去の申し送り・予定・履歴はそのまま残り、履歴検索で確認できます。</b>退居した入居者は「退居した入居者も表示する」で一覧に出せ、「復帰」で戻せます。</p>
   </div>
   <div class="panel">
     <h2>データ管理</h2>
     <div class="row-actions">
-      <button class="btn danger" id="btnClearDaily">この Unit の対象日データを全消去</button>
-      <span class="hint">現在表示中の Unit・対象日の「今日あったこと・本日の申し送り」だけを消去します（他の Unit は変更しません）。</span>
+      <button class="btn danger" id="btnClearDaily">このブロックの対象日データを全消去</button>
+      <span class="hint">現在表示中のブロック・対象日の「今日あったこと・本日の申し送り」だけを消去します（他のブロックは変更しません）。</span>
     </div>
     <p class="hint" style="margin-top:8px">常設重要メモは入居者マスター側に保存されるため、日次データを消しても残ります。</p>
 
@@ -635,8 +761,8 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       <div class="abody">
         <p class="hint" style="margin-top:8px">ここでの操作は<b>取り消せません</b>。実行前にバックアップ保存を行ってください。</p>
         <div class="arow">
-          <button class="btn danger" id="btnClearDailyAll">対象日の日次データを全 Unit 分削除</button>
-          <span class="hint">対象日（画面上部の日付）の「今日あったこと・本日の申し送り」を Unit 2〜5 すべて削除します。</span>
+          <button class="btn danger" id="btnClearDailyAll">対象日の日次データを全ブロック分削除</button>
+          <span class="hint">対象日（画面上部の日付）の「今日あったこと・本日の申し送り」を A〜D ブロックすべて削除します。</span>
         </div>
         <div class="arow">
           <label class="hint" for="admDelSel">完全削除する入居者</label>
@@ -652,15 +778,15 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 予定一覧 ============ -->
 <section class="view" id="v-sched">
   <div class="panel">
-    <div class="section-title"><h2>予定一覧（<span id="sUnitLabel">Unit 2</span>）</h2><button class="help-dot" data-guide="guide-schedule" title="予定一覧の使い方" aria-label="予定一覧の使い方">？</button></div>
+    <div class="section-title"><h2>予定一覧（<span id="sUnitLabel">Aブロック</span>）</h2><button class="help-dot" data-guide="guide-schedule" title="予定一覧の使い方" aria-label="予定一覧の使い方">？</button></div>
     <div class="row-actions" style="margin-bottom:8px">
       <label class="hint"><input type="checkbox" id="optPastSched"> 過去の予定も表示する</label>
-      <label class="hint"><input type="checkbox" id="optSchedAllUnits"> 全Unit</label>
+      <label class="hint"><input type="checkbox" id="optSchedAllUnits"> 全ブロック</label>
       <span style="flex:1"></span>
       <button class="btn pri" id="btnSchedPrint">予定一覧を印刷（A4 横・別紙）</button>
     </div>
     <p class="hint" style="margin:0 0 8px">予定は登録した日付に紐づきます。「前日からコピー」ではコピーされません。<br>
-      印刷されるのは<b>対象日（画面上部の日付）1日分</b>です。「全Unit」がONのときは Unit 2〜5 をまとめて、OFF のときは現在の Unit だけを印刷します。申し送り用紙とは<b>別紙</b>になります。</p>
+      印刷されるのは<b>対象日（画面上部の日付）1日分</b>です。「全ブロック」がONのときは A〜D ブロックをまとめて、OFF のときは現在のブロックだけを印刷します。申し送り用紙とは<b>別紙</b>になります。</p>
     <div class="sched-result" id="schedCleanupResult" role="status"></div>
     <div class="sched-summary" id="schedPastSummary"></div>
     <div class="sched-notice" id="schedCleanupNotice">
@@ -678,24 +804,26 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 印刷プレビュー ============ -->
 <section class="view" id="v-print">
   <div class="panel" id="pv-controls">
-    <div class="section-title"><h2>印刷プレビュー（A4 横 / 1 ページ 15 名）</h2><button class="help-dot" data-guide="guide-print" title="印刷プレビューの使い方" aria-label="印刷プレビューの使い方">？</button></div>
+    <div class="section-title"><h2>印刷プレビュー（A4 横 / 1 ページ 10 名）</h2><button class="help-dot" data-guide="guide-print" title="印刷プレビューの使い方" aria-label="印刷プレビューの使い方">？</button></div>
     <div class="row-actions">
-      <label class="hint"><input type="checkbox" id="optAllUnits"> Unit 2〜5 をまとめて出力</label>
+      <label class="hint"><input type="checkbox" id="optAllUnits"> A〜Dブロックをまとめて出力</label>
       <span class="hint">入居人数を自動判定（空床は自動除外）</span>
-      <label class="hint"><input type="checkbox" id="optAlwaysBack" checked> 各Unitを必ず新しい用紙から開始</label>
+      <label class="hint"><input type="checkbox" id="optAlwaysBack" checked> 各ブロックを必ず新しい用紙から開始</label>
       <label class="hint"><input type="checkbox" id="optPrintWarn"> 警告マークを印刷にも出す</label>
       <span style="flex:1"></span>
       <button class="btn pri" id="btnPrint">印刷する</button>
     </div>
     <p class="hint" style="margin-top:8px">
-      各Unitの入居人数を自動判定し、空床を除外します。1〜7名は表面のみ、8〜30名は表裏へできるだけ均等に分割し、各面最大15名で出力します。<br>
-      両面印刷：ブラウザの印刷画面で「両面印刷（A4 横なので「短辺とじ」）」を選ぶと、Unit 2 表 → Unit 2 裏 → Unit 3 表 → Unit 3 裏 … の順に、同じ Unit の裏面がそのまま裏に印刷されます。<br>
+      各ブロックの入居人数を自動判定し、空床・退居を除外して、<b>10 名ごとに表面・裏面へ分割</b>します（1〜10名は表面のみ、11〜20名は表10名＋裏の残り）。<br>
+      各ブロック 20 名の初期デモデータでは、A〜D すべてが<b>表面10名・裏面10名</b>となり、「A〜Dブロックをまとめて出力」で<b>合計8ページ</b>になります。<br>
+      両面印刷：ブラウザの印刷画面で「両面印刷（A4 横なので「短辺とじ」）」を選ぶと、Aブロック表 → Aブロック裏 → Bブロック表 → … の順に、同じブロックの裏面がそのまま裏へ印刷されます。<br>
       用紙サイズは A4、向きは「横」、倍率は「100%（既定）」、余白は「既定」のままにしてください。<br>
-      「各Unitを必ず新しい用紙から開始」がONの場合、表面だけのUnitには小さな案内だけの空白裏面を自動挿入します。プリンターの両面設定自体はブラウザの印刷画面で選択してください。<br>
+      「各ブロックを必ず新しい用紙から開始」がONの場合、表面だけのブロックには小さな案内だけの空白裏面を自動挿入します。プリンターの両面設定自体はブラウザの印刷画面で選択してください。<br>
       <b>予定（外出・受診・面会など）は申し送り用紙には印刷されません。</b>「予定一覧」タブの「予定一覧を印刷」から、A4横の別紙として印刷してください。<br>
       空床・退居の入居者は、入居人数の計算にも印刷にも含まれません。<br>
-      日勤・夜勤欄に出る項目は、入居者マスターの「記録項目設定」と<b>対象日の曜日</b>で決まります（翌朝BSのみ対象日の翌朝の曜日で判定。OFF の項目・該当しない項目は印刷されません）。
+      日勤・夜勤欄に出る項目は、入居者マスターの「記録項目設定」と<b>対象日の曜日</b>で決まります（翌朝BSのみ対象日の翌朝の曜日で判定。OFF の項目・該当しない項目は印刷されません）。入力済みの記録値はそのまま記入線の上へ印字されます。
     </p>
+    <div class="ovlist" id="ovList"></div>    </p>
     <div class="ovlist" id="ovList"></div>
   </div>
   <div id="printArea"></div>
@@ -709,8 +837,8 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       <label class="history-keyword">フリーワード
         <input type="search" id="historyKeyword" placeholder="入居者名・発熱・病院名・薬剤名など" autocomplete="off">
       </label>
-      <label>Unit
-        <select id="historyUnit"><option value="">全Unit</option><option value="2">Unit 2</option><option value="3">Unit 3</option><option value="4">Unit 4</option><option value="5">Unit 5</option></select>
+      <label>ブロック
+        <select id="historyUnit"><option value="">全ブロック</option><option value="1">Aブロック</option><option value="2">Bブロック</option><option value="3">Cブロック</option><option value="4">Dブロック</option></select>
       </label>
       <label>開始日
         <input type="date" id="historyFrom" aria-label="開始日">
@@ -735,7 +863,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
   <div class="panel" id="historyResults" aria-live="polite"></div>
 </section>
 
-<p class="foot noprint">データはこのブラウザ内（localStorage）にのみ保存されます。外部API・外部AI・サーバー・CDN・通信は一切使用していません。</p>
+<p class="foot noprint">ポートフォリオ用デモ（表示データはすべて架空）。データはこのブラウザ内（localStorage）にのみ保存されます。外部API・外部AI・サーバー送信・CDN読み込みは一切ありません。</p>
 </div>
 
 <!-- ============ 過去予定の整理 ============ -->
@@ -808,7 +936,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <p><b>毎日の基本操作は次の7つです。</b></p>
         <ol>
           <li>画面上部で対象日を確認</li>
-          <li>使用するUnitを選択</li>
+          <li>操作するブロック（A〜D）を選択</li>
           <li>「申し送り入力」を開く</li>
           <li>変更があった入居者だけ内容を確認・修正</li>
           <li>必要に応じて予定を登録</li>
@@ -825,6 +953,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <h4>目次</h4>
         <div class="toc-links">
           <button data-guide-jump="guide-first">初めて使う方へ</button>
+          <button data-guide-jump="guide-demo">このデモについて</button>
           <button data-guide-jump="guide-input">毎日の申し送り</button>
           <button data-guide-jump="guide-master">入居者マスター</button>
           <button data-guide-jump="guide-records">記録項目設定</button>
@@ -838,7 +967,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       </nav>
 
       <section class="doc-section" id="guide-date-unit" data-guide-section>
-        <h4>対象日とUnitの選び方</h4>
+        <h4>対象日とブロックの選び方</h4>
         <ul>
           <li><b>← 前日：</b>対象日を1日前へ移動します。</li>
           <li><b>翌日 →：</b>対象日を1日後へ移動します。</li>
@@ -846,7 +975,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
           <li><b>カレンダー：</b>日付欄から確認したい日を直接選びます。</li>
         </ul>
         <p>過去の日付へ戻ると、その日に保存した申し送りや予定を確認できます。より広く探すときは「履歴検索」を使います。</p>
-        <p><b>Unit 2・3・4・5</b>のボタンで操作対象を切り替えます。現在選択中のUnitは濃い色で表示されます。</p>
+        <p><b>Aブロック・Bブロック・Cブロック・Dブロック</b>のボタンで操作対象を切り替えます。現在選択中のブロックは白く強調表示されます。</p>
       </section>
 
       <section class="doc-section" id="guide-input" data-guide-section>
@@ -870,12 +999,12 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <h5>簡潔化する／申し送り作成</h5>
         <p>入力した内容を短く整理する補助機能です。処理はこのHTML内のルールで行い、<b>外部AIへ送信していません。</b></p>
         <div class="doc-warn">自動生成された内容は必ず確認し、意味や最新の状態が正しいか確かめてから使用してください。</div>
-        <p>「前日からコピー」は現在Unitの未入力者へ、「別の日からコピー」は選んだ日の内容をコピーします。既存の内容を不用意に上書きしないため、画面の確認に従ってください。</p>
+        <p>「前日からコピー」は現在ブロックの未入力者へ、「別の日からコピー」は選んだ日の内容をコピーします。既存の内容を不用意に上書きしないため、画面の確認に従ってください。</p>
       </section>
 
       <section class="doc-section" id="guide-master" data-guide-section>
         <h4>入居者マスター</h4>
-        <p>入居者追加、部屋番号、入居者名、空床、並び順、常設重要メモ、自動引継ぎ対象、記録項目設定、履歴を管理します。1 Unitは最大30名です。</p>
+        <p>入居者追加、部屋番号、入居者名、空床、並び順、常設重要メモ、自動引継ぎ対象、記録項目設定、履歴を管理します。1 ブロックは最大20名です。</p>
         <ul>
           <li><b>↑↓：</b>印刷時の並び順を変更します。「部屋番号順に並べ替え」も使えます。</li>
           <li><b>自動引継ぎ対象：</b>ONの入居者だけ前日の本日の申し送りを翌日へ自動で引き継ぎます。</li>
@@ -894,8 +1023,8 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <h5>完全削除（管理用操作・取り消せません）</h5>
         <p>完全削除は「データ管理」の<b>「管理用操作」</b>の中にあります。過去の申し送り・予定・履歴まですべて消え、<b>元に戻せません</b>。二段階の確認が必要です。</p>
         <div class="doc-warn">記録を残す必要がある場合は、完全削除ではなく<b>「退居」</b>を使用してください。完全削除の前には必ずバックアップ保存を行ってください。</div>
-        <h5>この Unit の対象日データを全消去</h5>
-        <p>「データ管理」の削除ボタンは、<b>いま表示している Unit・対象日の日次データだけ</b>を消去します。他の Unit は変更されません。全 Unit をまとめて消す操作は「管理用操作」の中にあります（二段階確認）。</p>
+        <h5>このブロックの対象日データを全消去</h5>
+        <p>「データ管理」の削除ボタンは、<b>いま表示しているブロック・対象日の日次データだけ</b>を消去します。他のブロックは変更されません。全ブロックをまとめて消す操作は「管理用操作」の中にあります（二段階確認）。</p>
       </section>
 
       <section class="doc-section" id="guide-records" data-guide-section>
@@ -928,9 +1057,9 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <p>予定は<b>申し送り用紙には印刷されません</b>。「予定一覧」タブの<b>「予定一覧を印刷」</b>から、A4横の専用用紙として印刷します。申し送り用紙は、その分だけ記録欄・申し送り欄を広く使えます。</p>
         <ul>
           <li>印刷されるのは<b>対象日（画面上部の日付）の1日分</b>です。</li>
-          <li>「全Unit」がONのときは Unit 2〜5 をまとめて印刷し、Unitごとの見出しで区別します。OFF のときは現在の Unit だけを印刷します。</li>
-          <li>Unit・部屋番号・入居者名・予定種別・開始時間・終了時間・予定内容・病院名／場所・診療科・家族付き添い・補足メモを一覧で印刷します（未入力の項目は「−」）。</li>
-          <li>並び順は Unit → 開始時間 → 入居者の並び順です。</li>
+          <li>「全ブロック」がONのときは A〜D ブロックをまとめて印刷し、ブロックごとの見出しで区別します。OFF のときは現在のブロックだけを印刷します。</li>
+          <li>ブロック・部屋番号・入居者名・予定種別・開始時間・終了時間・予定内容・病院名／場所・診療科・家族付き添い・補足メモを一覧で印刷します（未入力の項目は「−」）。</li>
+          <li>並び順は ブロック → 開始時間 → 入居者の並び順です。</li>
           <li>予定が1件もない日は「この日の予定はありません」と印刷されます。</li>
           <li>編集ボタン・チェックボックスなどの操作画面は印刷されません。</li>
         </ul>
@@ -943,16 +1072,16 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       <section class="doc-section" id="guide-history" data-guide-section>
         <h4>履歴検索</h4>
         <p>過去の出来事、過去の申し送り、受診、外出、外泊、面会、行事、その他予定などを検索できます。</p>
-        <p><b>検索例：</b>「発熱」「転倒」「カロナール」「○○病院」「山田太郎」</p>
-        <p>フリーワード、Unit、開始日・終了日、種別で絞り込み、新しい順／古い順を選べます。検索結果を押すと、その日や入居者の内容を確認できます。</p>
-        <div class="doc-note"><b>退居した入居者の履歴も検索できます。</b>結果には「退居」と表示され、Unit・部屋番号・氏名も当時の記録から表示されます。</div>
+        <p><b>検索例：</b>「散歩」「入浴」「面会」「デモ中央クリニック」「相原 千代」（いずれも架空のデモデータです）</p>
+        <p>フリーワード、ブロック、開始日・終了日、種別で絞り込み、新しい順／古い順を選べます。検索結果を押すと、その日や入居者の内容を確認できます。</p>
+        <div class="doc-note"><b>退居した入居者の履歴も検索できます。</b>結果には「退居」と表示され、ブロック・部屋番号・氏名も当時の記録から表示されます。</div>
         <p><b>履歴検索は「見るだけ」の機能です。</b>検索しても、結果を開いても、新しい申し送り・予定・入居者データは作られません。</p>
       </section>
 
       <section class="doc-section" id="guide-print" data-guide-section>
         <h4>印刷プレビューと印刷</h4>
-        <p>実入居人数を自動判定し、空床を除外して、人数に応じて表裏へできるだけ均等に分割します。1ページ最大15名で、Unitごとのページを生成します。</p>
-        <div class="doc-example"><b>自動分割例</b><br>20名 → 表10名／裏10名<br>21名 → 表11名／裏10名<br>29名 → 表15名／裏14名</div>
+        <p>実入居人数を自動判定し、空床・退居を除外して、<b>10名ごとに</b>表面・裏面へ分割します。1ページ最大10名で、ブロックごとのページを生成します。</p>
+        <div class="doc-example"><b>ページ分割の例</b><br>20名 → 表10名／裏10名（デモの初期状態）<br>14名 → 表10名／裏4名<br>8名 → 表8名のみ（＋空白裏面）</div>
         <p>用紙は<b>A4横</b>が基本です。「印刷する」を押した後、ブラウザの印刷画面でA4・横向きを確認し、必要に応じて両面印刷を選択してください。</p>
         <div class="doc-note"><b>予定は申し送り用紙に印刷されません。</b>予定は「予定一覧」タブの「予定一覧を印刷」から<b>別紙（A4横）</b>として印刷します。申し送り用紙は予定欄がなくなった分、記録欄・申し送り欄を広く使えます。</div>
         <p><b>空床・退居</b>の入居者は、入居人数の計算からも印刷からも除外されます。</p>
@@ -963,7 +1092,7 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <h4>保存・バックアップ・別PCへの移行</h4>
         <h5>データはどこに保存されるか</h5>
         <ul>
-          <li>データは<b>このPCの、いま使っているブラウザの中</b>（localStorage）に保存されます。外部サーバーへ自動アップロードされません。</li>
+          <li>データは<b>いま使っている端末のブラウザの中</b>（localStorage）に保存されます。ページ自体はインターネット上で配信されていますが、<b>入力内容がサーバーへ送信されることはありません。</b></li>
           <li><b>index.html というファイルの中に入居者データが書き込まれるわけではありません。</b></li>
           <li>そのため、<b>HTMLファイルだけを別のPCへコピーしてもデータは移りません。</b></li>
           <li>同じPCでも、別のブラウザ（Edge / Chrome など）で開くと別の保存場所になります。</li>
@@ -991,6 +1120,27 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
         <div class="doc-warn"><b>「⚠ 現在データをこのPCへ保存できていません」</b>と表示された場合、そのページを閉じると入力内容が失われる可能性があります。すぐに「いますぐバックアップ保存」でファイルへ保存し、保存環境（プライベートモード・保存容量・ブラウザのサイト設定）を確認してください。保存できる状態に戻ると、警告は自動的に消えます。</div>
         <p>入力は自動保存されますが、<b>タブの切り替え・最小化・ページを閉じるとき</b>にも未保存の変更を自動で保存します。</p>
       </section>
+      <section class="doc-section" id="guide-demo" data-guide-section>
+        <h4>このデモについて（オンライン／オフライン構成）</h4>
+        <div class="doc-warn">このページに表示されている氏名・部屋番号・記録・バイタル・予定は<b>すべて架空のデモデータ</b>です。実在の施設・入居者・患者・職員・医療機関とは一切関係ありません。表示される数値は画面確認用の架空値で、診断・医療判断には使用できません。</div>
+        <h5>オンライン版／オフライン版の両方を想定して構成できます</h5>
+        <p>このデモは<b>オンライン公開用</b>の構成です。実運用では要件に応じて、オンライン版（URLを開くだけで使える静的配信）とオフライン版（HTMLファイルを端末に置き、ネットワークなしで使う）のどちらの構成にも対応できます。</p>
+        <ul>
+          <li><b>オンライン版：</b>静的ホスティングでURLを配信します。ページの配信はオンラインですが、<b>入力データの保存先はブラウザ内（localStorage）のみ</b>で、サーバーへは送信しません。</li>
+          <li><b>オフライン版：</b>単一のHTMLファイルを端末へ配置して開きます。インターネット接続は不要です。</li>
+        </ul>
+        <div class="doc-demo">
+          <h5>導入方法は環境によって異なります</h5>
+          <p>実際にどちらの構成が適するかは、<b>ネットワーク構成・セキュリティポリシー・端末の管理方針・持ち出し可否・バックアップ運用</b>などによって変わります。院内・施設内のシステム管理者と要件を確認したうえで構成を選定する必要があります。どのような環境でも必ず導入できる、というものではありません。</p>
+        </div>
+        <h5>データの取り扱い</h5>
+        <ul>
+          <li>保存先はブラウザの localStorage のみです（外部DB・外部AI API・解析APIは使用していません）。</li>
+          <li>fetch / XMLHttpRequest / WebSocket などによる外部送信処理は実装していません。</li>
+          <li>バックアップはローカルのJSONファイルとして保存・復元します。</li>
+          <li>「デモデータを初期化」で、いつでも80名分の初期状態へ戻せます（確認ダイアログあり）。</li>
+        </ul>
+      </section>
       <p class="guide-empty" id="guideEmpty">該当する説明がありません。別の言葉で検索してください。</p>
     </div>
   </div>
@@ -1006,8 +1156,8 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       <details><summary>退居した人の履歴を見たい</summary><p>「履歴検索」で名前や言葉を入力すれば、退居した入居者の過去の申し送り・出来事・予定もそのまま検索できます（結果に「退居」と表示されます）。入居者マスターで「退居した入居者も表示する」にチェックを入れ、その人の「履歴を見る」からも開けます。</p></details>
       <details><summary>入居者を間違えて退居にした</summary><p>入居者マスターで「退居した入居者も表示する」にチェックを入れ、その人の「復帰」を押すと在籍へ戻ります。退居中もデータは何も失われていません。</p></details>
       <details><summary>入居者を完全に削除したい</summary><p>通常は「退居」を使ってください（履歴が残ります）。どうしても消す場合は、入居者マスターの「データ管理 → 管理用操作」にある「この入居者を完全削除」を使います。二段階の確認があり、<b>過去の申し送り・予定・履歴も消えて元に戻せません</b>。実行前にバックアップ保存を行ってください。</p></details>
-      <details><summary>1つの Unit の日次データだけ消したい</summary><p>入居者マスターの「データ管理 → この Unit の対象日データを全消去」を使います。<b>表示中の Unit・対象日だけ</b>が消え、他の Unit は変更されません。全 Unit をまとめて消す操作は「管理用操作」の中にあります。</p></details>
-      <details><summary>予定一覧を印刷したい</summary><p>「予定一覧」タブの「予定一覧を印刷（A4 横・別紙）」を押します。印刷されるのは対象日1日分です。「全Unit」がONなら Unit 2〜5 をまとめて、OFF なら現在の Unit だけを印刷します。申し送り用紙とは別紙になります。</p></details>
+      <details><summary>1つのブロックの日次データだけ消したい</summary><p>入居者マスターの「データ管理 → このブロックの対象日データを全消去」を使います。<b>表示中のブロック・対象日だけ</b>が消え、他のブロックは変更されません。全ブロックをまとめて消す操作は「管理用操作」の中にあります。</p></details>
+      <details><summary>予定一覧を印刷したい</summary><p>「予定一覧」タブの「予定一覧を印刷（A4 横・別紙）」を押します。印刷されるのは対象日1日分です。「全ブロック」がONなら A〜D ブロックをまとめて、OFF なら現在のブロックだけを印刷します。申し送り用紙とは別紙になります。</p></details>
       <details><summary>申し送り用紙に予定が出なくなった</summary><p>仕様変更です。予定は「予定一覧」タブから<b>別紙（A4横）</b>として印刷します。申し送り用紙はその分、記録欄・申し送り欄を広く使えます。予定のデータは削除されていません。</p></details>
       <details><summary>保存できていない警告が出た</summary><p>「⚠ 現在データをこのPCへ保存できていません」と出たときは、そのページを閉じると入力内容が失われる可能性があります。まず「いますぐバックアップ保存」でファイルへ保存し、プライベート（シークレット）モードで開いていないか、ブラウザの保存容量やサイト設定を確認してください。保存できる状態に戻ると警告は自動的に消えます。</p></details>
       <details><summary>BSが表示されない</summary><p>入居者マスターの記録項目設定で、該当するBSがONか、対象曜日が正しいか確認してください。</p></details>
@@ -1015,11 +1165,14 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
       <details><summary>入居者が印刷されない</summary><p>入居者マスターまたは申し送り入力で「空床」になっていないか確認してください。</p></details>
       <details><summary>予定一覧に予定が出ない</summary><p>申し送り欄に書くだけでは予定登録されません。入居者カードの「＋予定を追加」から登録してください。</p></details>
       <details><summary>過去予定が見えない</summary><p>予定一覧の「過去の予定も表示する」をONにしてください。</p></details>
-      <details><summary>過去の申し送りを探したい</summary><p>「履歴検索」を使用し、名前や言葉、Unit、日付範囲、種別で絞り込んでください。</p></details>
+      <details><summary>過去の申し送りを探したい</summary><p>「履歴検索」を使用し、名前や言葉、ブロック、日付範囲、種別で絞り込んでください。</p></details>
       <details><summary>別PCへデータを移したい</summary><p>現在PCでバックアップ保存 → ファイルを別PCへ移動 → 別PCでバックアップ復元、の順に行ってください。<b>index.html だけをコピーしてもデータは移りません</b>（データはHTMLの中ではなく、そのPCのブラウザ内に保存されています）。</p></details>
       <details><summary>バックアップ復元が不安</summary><p>復元すると現在のデータは読み込んだ内容へ完全に置き換わり、元へ戻せない場合があります。復元の操作では「先に現在のデータをバックアップ保存するか」を確認しますので、迷ったときは保存してから進めてください。ファイル形式が違う場合は「読み込めませんでした（形式が違います）」と表示され、現在のデータは変更されません。</p></details>
       <details><summary>印刷が横にならない</summary><p>ブラウザの印刷設定で用紙がA4、向きが「横」になっているか確認してください。</p></details>
       <details><summary>データが消えた</summary><p>使用しているPC・ブラウザ・index.htmlの保存場所が以前と同じか確認してください。バックアップがあれば復元してください。</p></details>
+      <details><summary>デモの内容を初期状態に戻したい</summary><p>画面上部の<b>「デモデータを初期化」</b>を押してください。確認ダイアログでキャンセルもできます。実行すると、編集内容をすべて破棄して 80 名分の初期デモデータを作り直します。</p></details>
+      <details><summary>ここに出ている人や記録は実在するもの？</summary><p>いいえ。<b>氏名・部屋番号・記録・バイタル・BS・予定はすべて架空のデモデータ</b>です。実在の施設・入居者・患者・職員・医療機関とは一切関係がありません。数値も画面確認用に生成したもので、診断・医療判断には使用できません。</p></details>
+      <details><summary>入力した内容はどこかへ送信される？</summary><p>されません。ページはインターネット上で配信されていますが、入力内容の保存先はご利用中のブラウザ内（localStorage）だけです。外部API・外部AI・解析サービスへの送信処理は実装していません。</p></details>
       <div class="doc-note"><button class="btn pri" id="helpOpenGuide">詳しい使い方を開く</button></div>
     </div>
   </div>
@@ -1028,19 +1181,52 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <!-- ============ 初回起動ガイド ============ -->
 <div class="modal noprint" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
   <div class="mbox" style="max-width:820px">
-    <div class="mhead"><h3 id="welcomeTitle">申し送りメーカーへようこそ</h3><span class="sp"></span><button id="welcomeCloseX">閉じる</button></div>
+    <div class="mhead"><h3 id="welcomeTitle">申し送りメーカー オンラインデモへようこそ</h3><span class="sp"></span><button id="welcomeCloseX">閉じる</button></div>
     <div class="mbody">
-      <p style="margin-top:0">最初に次の4つだけ設定すれば、毎日の操作はかんたんです。</p>
+      <p style="margin-top:0">A〜Dブロック 各20名・<b>合計80名分の架空デモデータ</b>が入った状態で開いています。次の順に触ると、ひととおりの機能を確認できます。</p>
       <div class="welcome-steps">
-        <div class="welcome-step"><b><span class="welcome-num">1</span>入居者マスター</b>「入居者を追加」から部屋番号・名前を登録</div>
-        <div class="welcome-step"><b><span class="welcome-num">2</span>記録項目</b>日勤・夜勤で必要な欄を設定</div>
-        <div class="welcome-step"><b><span class="welcome-num">3</span>毎日の入力</b>変更がある申し送りだけ確認・修正</div>
-        <div class="welcome-step"><b><span class="welcome-num">4</span>印刷</b>印刷プレビューを確認してA4横で印刷</div>
+        <div class="welcome-step"><b><span class="welcome-num">1</span>申し送り入力</b>重要メモ・出来事・申し送り・バイタルを編集</div>
+        <div class="welcome-step"><b><span class="welcome-num">2</span>入居者マスター</b>追加・並べ替え・退居／復帰・記録項目設定</div>
+        <div class="welcome-step"><b><span class="welcome-num">3</span>予定／履歴</b>予定を登録し、履歴検索で過去を探す</div>
+        <div class="welcome-step"><b><span class="welcome-num">4</span>印刷プレビュー</b>A4横・表10名／裏10名で出力</div>
       </div>
-      <div class="doc-note">詳しい説明は画面上部の「？ 使い方」、困ったときは「？ ヘルプ」から、インターネットなしでいつでも確認できます。</div>
-      <div class="doc-warn">データはこのPCの、いま使っているブラウザ内に保存されます。HTMLファイルの中には保存されません。定期的に「バックアップ保存」を行ってください。</div>
+      <div class="doc-warn">表示されている氏名・部屋番号・記録・バイタル・予定は<b>すべて架空のデモデータ</b>です。実在の施設・入居者・患者・職員・医療機関とは関係ありません。数値は診断・医療判断には使用できません。</div>
+      <div class="doc-note">自由に編集して構いません。編集内容はこのブラウザ内にだけ保存され、サーバーへは送信されません。元に戻したいときは画面上部の「デモデータを初期化」を押してください。</div>
     </div>
     <div class="mfoot"><button class="btn pri" id="welcomeStart">使い始める</button><button class="btn" id="welcomeGuide">使い方を見る</button></div>
+  </div>
+</div>
+
+<!-- ============ このデモについて ============ -->
+<div class="modal noprint" id="demoInfoModal" role="dialog" aria-modal="true" aria-labelledby="demoInfoTitle">
+  <div class="mbox guidebox">
+    <div class="mhead"><h3 id="demoInfoTitle">このデモについて</h3><span class="sp"></span><button id="demoInfoClose">閉じる</button></div>
+    <div class="guide-body">
+      <section class="doc-section">
+        <h4>ポートフォリオ公開用のオンラインデモです</h4>
+        <div class="doc-warn">表示されている氏名・部屋番号・記録・バイタル・BS・予定は<b>すべて架空のデモデータ</b>です。実在の施設・入居者・患者・職員・医療機関とは一切関係ありません。数値は画面確認用の架空値であり、<b>診断・医療判断には使用できません。</b></div>
+        <h5>操作できること</h5>
+        <p>A〜Dブロック 各20名・合計80名分のデータが入った状態で開きます。入居者の追加・編集・退居／復帰、申し送り・重要メモ・バイタル・BS の入力、予定の追加／編集、履歴検索、日付・ブロック切替、A4横印刷、バックアップ保存／復元まで、すべて実際に操作できます（閲覧専用ではありません）。</p>
+        <h5>データの保存とプライバシー</h5>
+        <ul>
+          <li>入力内容の保存先は<b>ご利用中のブラウザ内（localStorage）だけ</b>です。</li>
+          <li>ページ自体はインターネット上で配信されていますが、<b>入力データをサーバーへ送信する処理は実装していません</b>（外部DB・外部AI API・解析APIは未使用）。</li>
+          <li>「デモデータを初期化」でいつでも初期状態へ戻せます（確認ダイアログあり）。</li>
+        </ul>
+        <h5>オンライン版／オフライン版の両方を想定して構成できます</h5>
+        <p>このデモはオンライン公開用の構成です。実運用では要件に応じて、オンライン版（静的配信）とオフライン版（端末内の単一HTMLをネットワークなしで使用）のどちらの構成にも対応できます。</p>
+        <div class="doc-demo">
+          <p>ただし、実際の導入方法は<b>ネットワーク構成・セキュリティポリシー・端末の管理方針・持ち出し可否・バックアップ運用</b>などによって異なります。導入時はシステム管理者と要件を確認したうえで構成を選定する必要があり、どのような環境でも必ず導入できるというものではありません。</p>
+        </div>
+        <h5>使用技術</h5>
+        <p>HTML / CSS / JavaScript のみで作成した単一HTMLの静的サイトです。フレームワーク・ビルド工程・外部CDNは使用していません。</p>
+      </section>
+    </div>
+    <div class="mfoot">
+      <button class="btn pri" id="demoInfoGuide">使い方を開く</button>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn" id="demoInfoClose2">閉じる</button>
+    </div>
   </div>
 </div>
 
@@ -1049,14 +1235,21 @@ table.cleanup-table .date,table.cleanup-table .unit,table.cleanup-table .room{wh
 <script>
 "use strict";
 /* =========================================================
-   申し送りメーカー（オフライン申し送り・勤務記録支援 / 単一HTML）
+   申し送りメーカー（ポートフォリオ公開用オンラインデモ / 単一HTML）
+   - 表示データはすべて架空。実在の施設・人物・医療記録とは一切関係ありません
    - fetch / XMLHttpRequest / WebSocket / CDN / 外部AI は不使用
    ========================================================= */
 
-var KEY   = "kaigo_handover_v2";
-var UNITS = [2,3,4,5];
-var PER_PAGE = 15;      // A4 横 1 ページあたりの最大入居者数
-var MAX_UNIT = 30;      // 1 Unit 最大 30名（= 表裏 2 ページ）
+/* ★ ポートフォリオ公開用デモ版。保存キーはオフライン版と分離している。 */
+var KEY   = "handover_portfolio_demo_v1";
+/* 実在の職場を連想しない架空の区画名。内部値は 1〜4、表示は Aブロック〜Dブロック */
+var UNITS = [1,2,3,4];
+var BLOCK_CODE  = {1:"A", 2:"B", 3:"C", 4:"D"};
+var BLOCK_LABEL = {1:"Aブロック", 2:"Bブロック", 3:"Cブロック", 4:"Dブロック"};
+function uLb(u){ return BLOCK_LABEL[u] || ("ブロック" + u); }
+function uCode(u){ return BLOCK_CODE[u] || String(u); }
+var PER_PAGE = 10;      // A4 横 1 ページあたりの入居者数（表10名／裏10名）
+var MAX_UNIT = 20;      // 1 ブロック最大 20名（= 表裏 2 ページ）
 
 /* ---------------- storage ---------------- */
 var DB = null;
@@ -1241,10 +1434,11 @@ function wdLabel(dow){
   return "";
 }
 
-/* 本番運用のため、架空のサンプル入居者は作成しない。
-   新規利用時は「入居者マスター → 入居者を追加」から登録して開始する。 */
+/* 空のデータ構造。デモ版では初回起動時だけ ensureDemoData() が
+   80 名分の架空データを流し込む（2回目以降は利用者の編集内容を保持）。 */
 function defaultDB(){
-  return { v:7, residents:[], daily:{}, schedules:[], history:{version:1},
+  return { v:7, residents:[], daily:{}, vitals:{}, schedules:[], history:{version:1},
+           demoSeeded:false,
            settings:{ hideEmpty:true, alwaysBack:true, allUnits:false, showAllUnitSched:false,
                       autoCarry:true, showLeft:false, lastAutoCarry:"" } };
 }
@@ -1345,6 +1539,19 @@ function migrate(){
       e.confirmed = e.autoCarry ? e.confirmed === true : true;
     }
   }
+  /* 記録値（バイタル・食事・水分・体重・BS など）。値はすべて文字列で保持する */
+  if(!DB.vitals || typeof DB.vitals !== "object" || Array.isArray(DB.vitals)) DB.vitals = {};
+  for(var vd in DB.vitals){
+    var vday = DB.vitals[vd];
+    if(!vday || typeof vday !== "object" || Array.isArray(vday)){ delete DB.vitals[vd]; continue; }
+    for(var vid in vday){
+      var ve = vday[vid];
+      if(!ve || typeof ve !== "object" || Array.isArray(ve)){ delete vday[vid]; continue; }
+      for(var vk in ve){ if(typeof ve[vk] !== "string") ve[vk] = String(ve[vk] == null ? "" : ve[vk]); }
+    }
+  }
+  /* デモデータを一度生成したかどうか（再読み込みのたびに上書きしないための印） */
+  DB.demoSeeded = DB.demoSeeded === true;
   if(!DB.history || typeof DB.history !== "object" || Array.isArray(DB.history)) DB.history = {version:1};
   DB.history.version = 1;
   var st = (DB.settings && typeof DB.settings === "object") ? DB.settings : {};
@@ -1701,7 +1908,7 @@ function schedOfResident(id, date){
     return s.residentId === id && (!date || s.date === date);
   }).sort(sortSched);
 }
-/* 指定Unit・指定日の予定（予定一覧の印刷用）。
+/* 指定ブロック・指定日の予定（予定一覧の印刷用）。
    空床・退居の入居者の予定も、現場で見落とさないよう印は付けたうえで残す。 */
 function schedOfUnitDate(unit, date){
   return DB.schedules.filter(function(s){
@@ -1820,7 +2027,7 @@ function extractSchedules(raw, baseDate){
 /* =========================================================
    state / helpers
    ========================================================= */
-var UI = { tab:"input", unit:2, date: ymd(new Date()) };
+var UI = { tab:"input", unit:1, date: ymd(new Date()) };
 var SCHED_UI = { cleanupDismissed:false, cleanupOpen:false, result:"" };
 var HISTORY_UI = { residentId:"" };
 var HISTORY_CACHE = null;
@@ -1831,7 +2038,7 @@ function residentsOf(unit){
     .filter(function(r){ return r.unit === unit; })
     .sort(function(a,b){ return (a.order||0) - (b.order||0); });
 }
-/* 現在このUnitに在籍している人（退居者を除外）。
+/* 現在このブロックに在籍している人（退居者を除外）。
    申し送り入力・人数計算・印刷・自動引継ぎはすべてこちらを使う。 */
 function isLeft(r){ return !!r && r.status === "out"; }
 function activeResidentsOf(unit){
@@ -1932,7 +2139,7 @@ function renderUnitBar(){
   for(var i=0;i<UNITS.length;i++){
     var u = UNITS[i];
     var n = activeResidentsOf(u).filter(function(r){ return r.status!=="empty"; }).length;
-    h += '<button data-unit="'+u+'" class="'+(u===UI.unit?"on":"")+'">Unit '+u+'<span class="cnt">'+n+'名</span></button>';
+    h += '<button data-unit="'+u+'" class="'+(u===UI.unit?"on":"")+'">'+esc(uLb(u))+'<span class="cnt">'+n+'名</span></button>';
   }
   document.getElementById("unitBar").innerHTML = h;
 }
@@ -1962,7 +2169,7 @@ function renderInput(){
   var list = activeResidentsOf(UI.unit);   // 退居者は申し送り入力に出さない（履歴は保持）
   var host = document.getElementById("inputList");
   if(!list.length){
-    host.innerHTML = '<div class="panel"><p class="hint">この Unit にはまだ入居者が登録されていません。「入居者マスター」タブから追加してください。</p></div>';
+    host.innerHTML = '<div class="panel"><p class="hint">このブロックにはまだ入居者が登録されていません。「入居者マスター」タブから追加してください。</p></div>';
     return;
   }
   var h = "";
@@ -1996,7 +2203,7 @@ function renderInput(){
         + '<div>'
           + '<div class="fld">'
             + '<div class="lb"><span>今日あったこと（'+esc(UI.date)+'）</span><span class="tag">日付ごとに保存</span></div>'
-            + '<textarea class="raw" data-f="todayRaw" placeholder="例）昼食3割&#10;37.8℃&#10;カロナール使用&#10;現在36.7℃">'+esc(d.raw)+'</textarea>'
+            + '<textarea class="raw" data-f="todayRaw" placeholder="例）昼食3割&#10;37.8℃&#10;クーリング実施&#10;現在36.7℃">'+esc(d.raw)+'</textarea>'
             + '<div class="row-actions" style="margin-top:6px">'
               + '<button class="btn sm pri" data-a="todayShort">申し送り作成</button>'
               + '<button class="btn sm" data-a="copyPrev">前日分をコピー</button>'
@@ -2015,6 +2222,7 @@ function renderInput(){
           + '</div>'
         + '</div>'
       + '</div>'
+      + vitalsAreaHTML(r)
       + schedAreaHTML(r)
     + '</div>';
   }
@@ -2077,7 +2285,7 @@ function schedFormHTML(sc, mode){
     + fld("開始時間", '<input type="time" data-sf="start" value="'+esc(sc.start||"")+'">')
     + fld("終了時間", '<input type="time" data-sf="end" value="'+esc(sc.end||"")+'">')
     + fld("予定内容", '<input type="text" data-sf="title" placeholder="例）散髪" value="'+esc(sc.title||"")+'">')
-    + fld("場所 / 病院名", '<input type="text" data-sf="place" placeholder="例）○○病院" value="'+esc(sc.place||"")+'">')
+    + fld("場所 / 病院名", '<input type="text" data-sf="place" placeholder="例）デモ中央クリニック" value="'+esc(sc.place||"")+'">')
     + fld("診療科", '<input type="text" data-sf="dept" placeholder="例）循環器内科" value="'+esc(sc.dept||"")+'">')
     + fld("家族付き添い", '<select data-sf="family">'+famOpts+'</select>')
     + fld("補足メモ", '<input type="text" data-sf="note" value="'+esc(sc.note||"")+'">')
@@ -2119,7 +2327,7 @@ function updAllWarns(){
    render : 入居者マスター
    ========================================================= */
 function renderMaster(){
-  document.getElementById("mUnitLabel").textContent = "Unit " + UI.unit;
+  document.getElementById("mUnitLabel").textContent = uLb(UI.unit);
   var all = residentsOf(UI.unit);
   var showLeft = !!DB.settings.showLeft;
   var leftCount = all.filter(isLeft).length;
@@ -2193,7 +2401,7 @@ function recSummary(r){
 
 /* =========================================================
    render : 記録項目設定（入居者ごとの設定パネル）
-   - 入居者名・部屋番号・Unit を常に上部へ表示し、別の入居者を誤って編集しない
+   - 入居者名・部屋番号・ブロックを常に上部へ表示し、別の入居者を誤って編集しない
    - 変更はその場で localStorage へ保存（外部通信なし）
    ========================================================= */
 var REC_UI = { id:null };
@@ -2244,7 +2452,7 @@ function renderRecModal(){
   document.getElementById("recWho").innerHTML =
       (r.room ? '<span class="rm">'+esc(r.room)+'</span>' : '')
     + esc(r.name || "（無名）")
-    + '<span class="un">Unit ' + r.unit + '</span>'
+    + '<span class="un">' + esc(uLb(r.unit)) + '</span>'
     + (r.status === "empty" ? '<span class="un">空床</span>' : '');
 
   document.getElementById("recNote").textContent =
@@ -2466,7 +2674,7 @@ document.getElementById("recBody").addEventListener("click", function(e){
    ========================================================= */
 function renderSched(){
   var lb = document.getElementById("sUnitLabel");
-  if(lb) lb.textContent = DB.settings.showAllUnitSched ? "全Unit" : "Unit " + UI.unit;
+  if(lb) lb.textContent = DB.settings.showAllUnitSched ? "全ブロック" : uLb(UI.unit);
   renderSchedPrint();          // 対象日・Unitに合わせて印刷プレビューも更新する
   var host = document.getElementById("schedList");
   if(!host) return;
@@ -2492,7 +2700,7 @@ function renderSched(){
   }).sort(sortSched);
 
   if(!list.length){
-    host.innerHTML = '<p class="hint">' + (showPast ? "この Unit には予定が登録されていません。"
+    host.innerHTML = '<p class="hint">' + (showPast ? "このブロックには予定が登録されていません。"
       : "今後の予定はありません。過去の予定を見るには上のチェックを入れてください。") + '</p>';
     return;
   }
@@ -2503,7 +2711,7 @@ function renderSched(){
     h += '<div class="sched-row' + (s.date === today ? " today" : "") + '" data-sid="' + s.id + '">'
       + '<div class="d">' + esc(jpDate(s.date)) + '</div>'
       + '<div class="body">'
-        + '<div class="who">' + (DB.settings.showAllUnitSched ? 'Unit ' + r.unit + '　' : '')
+        + '<div class="who">' + (DB.settings.showAllUnitSched ? esc(uLb(r.unit)) + '　' : '')
         + esc(r.room) + '　' + esc(r.name || "（無名）")
         + (isLeft(r) ? '　<span class="pill left">退居</span>'
                      : (r.status === "empty" ? '　<span class="pill out">空床</span>' : '')) + '</div>'
@@ -2520,7 +2728,7 @@ function renderSched(){
 /* =========================================================
    予定一覧の印刷（A4 横・申し送り用紙とは別紙）
    - 対象は「対象日（UI.date）の1日分」
-   - 「全Unit」ON なら Unit 2〜5 をまとめ、Unit ごとの見出しで区別する
+   - 「全ブロック」ON なら A〜D をまとめ、ブロックごとの見出しで区別する
    - 空欄の項目は「−」で埋め、列がずれて崩れないようにする
    - 操作UI（編集・削除・チェックボックス・ヘルプ・ナビゲーション）は印刷しない
    ========================================================= */
@@ -2536,7 +2744,7 @@ function schedPrintRows(unit, date){
     if(!r) continue;
     var mark = isLeft(r) ? "（退居）" : (r.status === "empty" ? "（空床）" : "");
     h += '<tr>'
-      + '<td>Unit ' + r.unit + '</td>'
+      + '<td>' + esc(uLb(r.unit)) + '</td>'
       + '<td>' + schedCell(r.room) + '</td>'
       + '<td class="nm">' + esc(r.name || "（無名）") + esc(mark) + '</td>'
       + '<td>' + schedCell(s.kind) + '</td>'
@@ -2553,7 +2761,7 @@ function schedPrintRows(unit, date){
 }
 function schedPrintTableHTML(){
   return '<thead><tr>'
-    + '<th style="width:7%">Unit</th><th style="width:6%">部屋</th><th style="width:11%">入居者名</th>'
+    + '<th style="width:8%">ブロック</th><th style="width:6%">部屋</th><th style="width:11%">入居者名</th>'
     + '<th style="width:7%">予定種別</th><th style="width:6%">開始</th><th style="width:6%">終了</th>'
     + '<th style="width:13%">予定内容</th><th style="width:13%">病院名 / 場所</th>'
     + '<th style="width:9%">診療科</th><th style="width:7%">家族付添</th><th>補足メモ</th>'
@@ -2569,7 +2777,7 @@ function renderSchedPrint(){
     var got = schedPrintRows(units[i], UI.date);
     total += got.count;
     if(all){
-      body += '<div class="ss-unit">Unit ' + units[i] + '　（' + got.count + ' 件）</div>'
+      body += '<div class="ss-unit">' + esc(uLb(units[i])) + '　（' + got.count + ' 件）</div>'
         + (got.count
             ? '<table>' + schedPrintTableHTML() + '<tbody>' + got.html + '</tbody></table>'
             : '<div class="none">この日の予定はありません</div>');
@@ -2579,7 +2787,7 @@ function renderSchedPrint(){
   }
   if(!total && !all) body = '<div class="none">この日の予定はありません</div>';
 
-  var scope = all ? "全Unit（Unit 2〜5）" : "Unit " + UI.unit;
+  var scope = all ? "全ブロック（A〜D）" : uLb(UI.unit);
   var sheet = '<div class="ssheet">'
     + '<div class="ss-head">'
       + '<div class="t">予定一覧<small>' + esc(scope) + '</small></div>'
@@ -2613,7 +2821,7 @@ function renderSchedCleanup(){
   var count = document.getElementById("schedCleanupCount");
   if(!host) return;
   var list = pastSchedulesInScope();
-  if(count) count.textContent = (DB.settings.showAllUnitSched ? "全Unit" : "Unit " + UI.unit) + "／" + list.length + "件";
+  if(count) count.textContent = (DB.settings.showAllUnitSched ? "全ブロック" : uLb(UI.unit)) + "／" + list.length + "件";
   if(!list.length){
     host.innerHTML = '<p class="hint">整理する過去予定はありません。</p>';
     document.getElementById("schedDeleteSelected").disabled = true;
@@ -2622,14 +2830,14 @@ function renderSchedCleanup(){
   }
   var h = '<div class="cleanup-table-wrap"><table class="cleanup-table"><thead><tr>'
     + '<th class="sel"><input type="checkbox" id="schedSelectAll" aria-label="すべて選択"></th>'
-    + '<th>日付</th><th>Unit</th><th>部屋番号</th><th>入居者名</th><th>予定種別</th><th>予定内容</th><th>操作</th>'
+    + '<th>日付</th><th>ブロック</th><th>部屋番号</th><th>入居者名</th><th>予定種別</th><th>予定内容</th><th>操作</th>'
     + '</tr></thead><tbody>';
   for(var i=0;i<list.length;i++){
     var s = list[i], r = residentById(s.residentId);
     h += '<tr data-cleanup-sid="' + esc(s.id) + '">'
       + '<td class="sel"><input type="checkbox" data-cleanup-select aria-label="この予定を選択"></td>'
       + '<td class="date">' + esc(jpDate(s.date)) + '</td>'
-      + '<td class="unit">Unit ' + r.unit + '</td><td class="room">' + esc(r.room) + '</td>'
+      + '<td class="unit">' + esc(uLb(r.unit)) + '</td><td class="room">' + esc(r.room) + '</td>'
       + '<td>' + esc(r.name || "（無名）") + '</td><td>' + esc(s.kind || "（未選択）") + '</td>'
       + '<td>' + esc(schedBody(s) || s.note || "（内容未入力）") + '</td>'
       + '<td><button class="btn sm danger" data-cleanup-delete>削除</button></td></tr>';
@@ -2713,7 +2921,7 @@ function scheduleHistoryKind(kind){
 }
 function addHistorySearchText(item, extra){
   item.searchText = historyNorm([
-    item.date, "Unit " + item.unit, "Unit" + item.unit, item.room, item.name,
+    item.date, uLb(item.unit), uCode(item.unit), item.room, item.name,
     item.type, item.content, extra || ""
   ].join(" "));
   return item;
@@ -2739,7 +2947,7 @@ function buildHistoryIndex(){
       }else content = handover || raw;
       out.push(addHistorySearchText({date:date, unit:p.unit, room:p.room, name:p.name, left:p.left,
         residentId:id, type:type, kinds:kinds, content:content, source:"daily", sourceId:""},
-        r ? [r.name,r.room,"Unit "+r.unit].join(" ") : ""));
+        r ? [r.name,r.room,uLb(r.unit)].join(" ") : ""));
     }
   }
   for(var si=0;si<DB.schedules.length;si++){
@@ -2757,7 +2965,7 @@ function buildHistoryIndex(){
     out.push(addHistorySearchText({date:s.date, unit:p.unit, room:p.room, name:p.name, left:p.left,
       residentId:s.residentId, type:sk, kinds:[sk], content:lines.join("\n"), source:"schedule", sourceId:s.id},
       [s.kind,s.title,s.place,s.dept,s.family,s.note,s.start,s.end,
-       r?r.name:"",r?r.room:"",r?("Unit "+r.unit):""].join(" ")));
+       r?r.name:"",r?r.room:"",r?uLb(r.unit):""].join(" ")));
   }
   for(var ri=0;ri<DB.residents.length;ri++){
     r = DB.residents[ri];
@@ -2803,7 +3011,7 @@ function renderHistory(){
   var person = document.getElementById("historyPerson");
   if(HISTORY_UI.residentId){
     var pr = residentById(HISTORY_UI.residentId);
-    person.textContent = pr ? ("入居者別履歴：Unit " + pr.unit + "　" + pr.room + " " + (pr.name || "（無名）")
+    person.textContent = pr ? ("入居者別履歴：" + uLb(pr.unit) + "　" + pr.room + " " + (pr.name || "（無名）")
       + (isLeft(pr) ? "（退居）" : "")) : "入居者別履歴";
     person.classList.add("on");
   }else{ person.textContent = ""; person.classList.remove("on"); }
@@ -2812,7 +3020,7 @@ function renderHistory(){
   for(var i=0;i<shown.length;i++){
     var x = shown[i];
     h += '<article class="history-item" role="button" tabindex="0" data-history-index="'+i+'">'
-      + '<div><div class="date">'+esc(x.date.replace(/-/g,"/"))+'</div><div class="meta">Unit '+x.unit+' ／ '+esc(x.room || "部屋未設定")+'</div></div>'
+      + '<div><div class="date">'+esc(x.date.replace(/-/g,"/"))+'</div><div class="meta">'+esc(uLb(x.unit))+' ／ '+esc(x.room || "部屋未設定")+'</div></div>'
       + '<div><div class="who">'+esc(x.room)+' '+esc(x.name || "（無名）")
       + (x.left ? ' <span class="pill left">退居</span>' : '')+'</div>'
       + '<div class="kind">'+esc(x.type)+'</div><div class="content">'+esc(x.content)+'</div></div></article>';
@@ -2856,32 +3064,22 @@ function openHistorySource(item){
    ========================================================= */
 /* --- 指定入居者・指定勤務帯・指定日に「実際に印刷する項目」だけを組み立てる ---
    OFF の項目／その日の曜日に該当しない項目は要素自体を出力しない
-   （項目名も記入線も空白スペースも残さず、残った項目が自動的に詰まる） */
-function shiftFieldsHTML(rec, shift, date){
-  var defs = (shift === "night") ? REC_NIGHT_ITEMS : REC_DAY_ITEMS;
-  var map  = rec[shift] || {};
-  var vit = [], meals = [], hrs = [], others = [], hasMemo = false;
-  var target = "";
+   （項目名も記入線も空白スペースも残さず、残った項目が自動的に詰まる）
+   入力済みの記録値がある項目は、記入線の上へその値を印字する（未入力なら空欄のまま） */
+function shiftFieldsHTML(rec, shift, date, rid){
+  var list = fieldDefsFor(rec, shift, date);
+  var vals = rid ? vitalsGet(date, rid) : {};
+  var vit = [], meals = [], hrs = [], others = [], target = "", memo = null;
 
-  for(var i=0;i<defs.length;i++){
-    var d = defs[i];
-    if(!itemActiveOnDate(map[d.k], d, date)) continue;
-    if(d.g === "vit")       vit.push('<span class="it"><i>'+esc(d.lb)+'</i>：<u></u></span>');
-    else if(d.g === "meal") meals.push('<span class="p sz-m"><em>'+esc(d.em)+'</em>（<u></u>）</span>');
-    else if(d.g === "hr")   hrs.push('<span class="p sz-m"><em>'+esc(d.em)+'</em>（<u></u>）</span>');
-    else if(d.g === "paren") others.push(parenHTML(d.printLb || d.lb, d.unit || "", "m"));
-    else if(d.g === "targetBS") target = targetBSHTML();
-    else if(d.g === "nextMorningBS") others.push(parenHTML("翌朝BS（"+wdLabel(nextDowOf(date))+"）", "", "m"));
-    else if(d.g === "memo") hasMemo = true;
-  }
-  /* カスタム項目（施設独自の項目） */
-  var cus = rec.custom || [];
-  for(var c=0;c<cus.length;c++){
-    var cc = cus[c];
-    if(!cc.name || !cc.name.trim()) continue;
-    if(cc.shift !== shift && cc.shift !== "both") continue;
-    if(!itemActive(cc, dowOf(date))) continue;
-    others.push(parenHTML(cc.name.trim(), cc.unit || "", cc.size || "m"));
+  for(var i=0;i<list.length;i++){
+    var f = list[i];
+    var v = vals[f.key] || "";
+    if(f.g === "vit")            vit.push('<span class="it"><i>'+esc(f.lb)+'</i>：<u>'+esc(v)+'</u></span>');
+    else if(f.g === "meal")      meals.push('<span class="p sz-m"><em>'+esc(f.em)+'</em>（<u>'+esc(v)+'</u>）</span>');
+    else if(f.g === "hr")        hrs.push('<span class="p sz-m"><em>'+esc(f.em)+'</em>（<u>'+esc(v)+'</u>）</span>');
+    else if(f.g === "targetBS")  target += '<span class="slot"><em>'+esc(f.em)+'</em>（<u>'+esc(v)+'</u>）</span>';
+    else if(f.g === "memo")      memo = v;
+    else                         others.push(parenHTML(f.lb, f.unit, f.size, v));
   }
 
   var h = "";
@@ -2891,18 +3089,13 @@ function shiftFieldsHTML(rec, shift, date){
   if(hrs.length)   mid += '<b>Hr</b>'  + hrs.join("");
   if(others.length) mid += others.join("");
   if(mid) h += '<div class="eat fl">' + mid + '</div>';
-  if(target) h += target;
-  if(hasMemo) h += '<div class="memo fl"><b>メモ</b><u></u></div>';
+  if(target) h += '<div class="target-bs fl"><b>BSターゲス</b>' + target + '</div>';
+  if(memo !== null) h += '<div class="memo fl"><b>メモ</b><u>'+esc(memo)+'</u></div>';
   return h;
 }
-function targetBSHTML(){
-  var slots = "";
-  for(var i=1;i<=3;i++) slots += '<span class="slot"><em>'+i+'</em>（<u></u>）</span>';
-  return '<div class="target-bs fl"><b>BSターゲス</b>'+slots+'</div>';
-}
-/* 「BS（　　）」「BW（　　）kg」「水分量（　　）ml」の共通形 */
-function parenHTML(label, unit, size){
-  return '<span class="p sz-'+esc(size||"m")+'"><b>'+esc(label)+'</b>（<u></u>）'
+/* 「BS（112）」「BW（52.4）kg」「水分量（900）ml」の共通形 */
+function parenHTML(label, unit, size, value){
+  return '<span class="p sz-'+esc(size||"m")+'"><b>'+esc(label)+'</b>（<u>'+esc(value||"")+'</u>）'
        + (unit ? '<em class="un">'+esc(unit)+'</em>' : '') + '</span>';
 }
 
@@ -2924,29 +3117,34 @@ function rowHTML(r, date){
   var rec = r ? recOf(r) : defaultRec();     // 予備行は標準の記入欄を出す
   return '<div class="prow">'
     + '<div class="pc p-info">'+info+'<span class="ovwarn">⚠要確認</span></div>'
-    + '<div class="pc p-day">'+shiftFieldsHTML(rec, "day", date)+'</div>'
-    + '<div class="pc p-ni">'+shiftFieldsHTML(rec, "night", date)+'</div>'
+    + '<div class="pc p-day">'+shiftFieldsHTML(rec, "day", date, r ? r.id : "")+'</div>'
+    + '<div class="pc p-ni">'+shiftFieldsHTML(rec, "night", date, r ? r.id : "")+'</div>'
     + '</div>';
 }
 
-/* ページ見出し用のラベル（例：Unit 2 表（1〜7名）） */
+/* ページ見出し用のラベル（例：Aブロック 表面（1〜10名）） */
 function pageRangeLabel(startIdx, count){
   return (startIdx+1) + '〜' + (startIdx+count) + '名';
 }
 function pageTitle(unit, pageNo){
-  return 'Unit ' + unit + ' ' + (pageNo === 1 ? '表' : '裏');
+  return uLb(unit) + ' ' + (pageNo % 2 === 1 ? '表面' : '裏面');
 }
 
-/* 1〜7名は表のみ、8〜30名は ceil / floor で可能な限り均等に分ける */
+/* 必ず PER_PAGE（10名）単位で改ページする。
+   11人目が中途半端に次ページへ送られないよう、均等割りではなく固定の10名区切りにしている。
+   20名のブロックは 表10名 / 裏10名 の 2 ページちょうどになる。 */
 function splitResidentsForPrint(list){
   var total = Math.min(list.length, MAX_UNIT);
   if(!total) return [];
-  if(total <= 7) return [{ people:list.slice(0, total), start:0, side:"front" }];
-  var frontCount = Math.ceil(total / 2);
-  return [
-    { people:list.slice(0, frontCount), start:0, side:"front" },
-    { people:list.slice(frontCount, total), start:frontCount, side:"back" }
-  ];
+  var pages = [];
+  for(var i=0; i<total; i+=PER_PAGE){
+    pages.push({
+      people: list.slice(i, Math.min(i + PER_PAGE, total)),
+      start : i,
+      side  : (pages.length % 2 === 0) ? "front" : "back"
+    });
+  }
+  return pages;
 }
 
 /* 予定は「予定一覧」タブから A4 横の別紙として印刷する（申し送り用紙には出さない） */
@@ -2969,15 +3167,15 @@ function sheetHTML(unit, people, startIdx, pageNo, pageTotal, date, totalResiden
       + rows
     + '</div>'
     + '<div class="sh-foot">'
-      + '<div class="l">'+pageTitle(unit, pageNo)+'</div>'
-      + '<div class="c">申し送り・勤務記録</div>'
-      + '<div class="l">'+pageNo+' / '+pageTotal+'</div>'
+      + '<div class="l">'+esc(pageTitle(unit, pageNo))+'</div>'
+      + '<div class="c">申し送り・勤務記録／架空デモデータ（実在の人物・施設とは関係ありません）</div>'
+      + '<div class="l">'+pageNo+' / '+pageTotal+'　'+esc(jpDate(date))+'</div>'
     + '</div>'
   + '</div>';
 }
 
 function blankBackHTML(unit){
-  return '<div class="sheet blank-sheet"><div class="blank-note">Unit '+unit+' 裏面（空白）</div></div>';
+  return '<div class="sheet blank-sheet"><div class="blank-note">'+esc(uLb(unit))+' 裏面（空白）</div></div>';
 }
 
 function renderPrint(){
@@ -2997,7 +3195,7 @@ function renderPrint(){
             + '<div class="sheetScale">' + sheetHTML(u, page.people, page.start, q+1, total, UI.date, list.length) + '</div></div>';
     }
     if(DB.settings.alwaysBack && total % 2 === 1){
-      html += '<div class="sheetWrap"><div class="pv-label">Unit '+u+' 裏面（空白）</div>'
+      html += '<div class="sheetWrap"><div class="pv-label">'+esc(uLb(u))+' 裏面（空白）</div>'
             + '<div class="sheetScale">' + blankBackHTML(u) + '</div></div>';
     }
   }
@@ -3049,7 +3247,7 @@ function markOverflow(){
   }
   renderOvList(list, itemWarn);
 }
-/* 警告一覧に出す「Unit 2　201 高橋 和子」形式のラベル */
+/* 警告一覧に出す「Aブロック 表面　A-101 相原 千代」形式のラベル */
 function rowLabel(row){
   var nm = row.querySelector(".p-info .nm");
   var sh = row.closest ? row.closest(".sheet") : null;
@@ -3109,7 +3307,7 @@ function renderDateBar(){
   var dl = document.getElementById("copyDstLabel");
   if(dl) dl.textContent = jpDate(UI.date);
   var ul = document.getElementById("copyUnitLabel");
-  if(ul) ul.textContent = "Unit " + UI.unit + " の入居者";
+  if(ul) ul.textContent = uLb(UI.unit) + " の入居者";
 }
 
 function renderAll(){
@@ -3187,6 +3385,9 @@ document.getElementById("btnToday").addEventListener("click", function(){ setDat
 document.getElementById("inputList").addEventListener("input", function(e){
   var card = e.target.closest(".card"); if(!card) return;
   var id = card.getAttribute("data-id");
+  /* 記録・バイタル入力（対象日ごとに保存。用紙へそのまま印字される） */
+  var vk = e.target.getAttribute("data-vk");
+  if(vk){ vitalsSet(UI.date, id, vk, e.target.value); lazySave(); return; }
   var f = e.target.getAttribute("data-f"); if(!f) return;
   var r = DB.residents.filter(function(x){ return x.id===id; })[0]; if(!r) return;
 
@@ -3385,7 +3586,7 @@ document.getElementById("btnShortAll").addEventListener("click", function(){
 /* =========================================================
    日次申し送りのコピー
    - コピー対象は「今日あったこと」「本日の申し送り」だけ
-   - 常設重要メモ / 入居者名 / 部屋番号 / Unit / 並び順 / 空床は変更しない
+   - 常設重要メモ / 入居者名 / 部屋番号 / ブロック / 並び順 / 空床は変更しない
    - 空床の人にはコピーしない
    - 初期動作はコピー先が未入力の人だけ（勝手に上書きしない）
    ========================================================= */
@@ -3416,10 +3617,10 @@ function copyDayToCurrent(srcDate, mode){
   var list = activeResidentsOf(UI.unit).filter(function(r){ return r.status !== "empty"; }); // 空床・退居は除外
   var targets = list.filter(function(r){ return hasDaily(srcDate, r.id); });           // 入力がある人だけ
   if(!targets.length){
-    toast(jpDate(srcDate) + " の Unit " + UI.unit + " には、コピーできる申し送りがありません");
+    toast(jpDate(srcDate) + " の " + uLb(UI.unit) + " には、コピーできる申し送りがありません");
     return;
   }
-  if(!confirm(jpDate(srcDate) + " の Unit " + UI.unit + " の申し送りを、"
+  if(!confirm(jpDate(srcDate) + " の " + uLb(UI.unit) + " の申し送りを、"
             + jpDate(UI.date) + " へコピーしますか？\n\n対象 " + targets.length + " 名"
             + (mode === "ask" ? "\n※ すでに入力がある人は 1 人ずつ確認します"
                               : "\n※ コピー先が未入力の人だけコピーします（既存の入力は消しません）"))) return;
@@ -3503,7 +3704,7 @@ document.getElementById("optAutoCarry").addEventListener("change", function(){
 /* ---- 入居者マスター ---- */
 document.getElementById("btnAdd").addEventListener("click", function(){
   var list = residentsOf(UI.unit);
-  if(activeResidentsOf(UI.unit).length >= MAX_UNIT){ toast("1 Unit の上限は "+MAX_UNIT+" 名です（退居者は含みません）"); return; }
+  if(activeResidentsOf(UI.unit).length >= MAX_UNIT){ toast("1 ブロックの上限は "+MAX_UNIT+" 名です（退居者は含みません）"); return; }
   DB.residents.push({
     id:newId(), unit:UI.unit, room:"", name:"", order:(list.length?Math.max.apply(null,list.map(function(r){return r.order||0;}))+1:0),
     status:"in", permRaw:"", permShort:"", rec:defaultRec(), autoCarry:true
@@ -3606,7 +3807,7 @@ function swapOrder(list, i, j){
   for(var k=0;k<list.length;k++){ if(list[k].order==null) list[k].order = k; }
 }
 
-/* 対象日の日次データ削除は「表示中の Unit だけ」。他 Unit のデータには触れない。 */
+/* 対象日の日次データ削除は「表示中のブロックだけ」。他ブロックのデータには触れない。 */
 function clearDailyOfUnit(date, unit){
   var day = DB.daily[date];
   if(!day) return 0;
@@ -3623,25 +3824,25 @@ function clearDailyOfUnit(date, unit){
 }
 
 document.getElementById("btnClearDaily").addEventListener("click", function(){
-  if(!confirm(UI.date + " の Unit " + UI.unit + " の「今日あったこと・本日の申し送り」を全消去します。\n"
-            + "他の Unit のデータは削除されません。常設重要メモは残ります。\n\nよろしいですか？")) return;
+  if(!confirm(UI.date + " の " + uLb(UI.unit) + " の「今日あったこと・本日の申し送り」を全消去します。\n"
+            + "他のブロックのデータは削除されません。常設重要メモは残ります。\n\nよろしいですか？")) return;
   var n = clearDailyOfUnit(UI.date, UI.unit);
   saveDB(); renderAll();
-  toast(n ? ("Unit " + UI.unit + " の " + n + " 名分を消去しました") : "消去する日次データはありませんでした");
+  toast(n ? (uLb(UI.unit) + " の " + n + " 名分を消去しました") : "消去する日次データはありませんでした");
 });
 
 /* ---- 管理用操作（通常業務では使用しない・二段階確認） ---- */
 document.getElementById("btnClearDailyAll").addEventListener("click", function(){
-  if(!confirm("【管理用操作】" + UI.date + " の「今日あったこと・本日の申し送り」を全 Unit 分（Unit 2〜5）削除します。\nよろしいですか？")) return;
-  if(!confirm("この操作は取り消せません。\n" + UI.date + " の全 Unit の日次データを本当に削除しますか？")) return;
+  if(!confirm("【管理用操作】" + UI.date + " の「今日あったこと・本日の申し送り」を全ブロック分（A〜D）削除します。\nよろしいですか？")) return;
+  if(!confirm("この操作は取り消せません。\n" + UI.date + " の全ブロックの日次データを本当に削除しますか？")) return;
   var n = 0;
   for(var i=0;i<UNITS.length;i++) n += clearDailyOfUnit(UI.date, UNITS[i]);
   delete DB.daily[UI.date];
   saveDB(); renderAll();
-  toast(UI.date + " の日次データを全 Unit 分削除しました（" + n + " 名分）");
+  toast(UI.date + " の日次データを全ブロック分削除しました（" + n + " 名分）");
 });
 
-/* 完全削除の対象一覧（現在 Unit・退居者も含む） */
+/* 完全削除の対象一覧（現在ブロック・退居者も含む） */
 function renderAdminDeleteList(){
   var sel = document.getElementById("admDelSel");
   if(!sel) return;
@@ -3649,7 +3850,7 @@ function renderAdminDeleteList(){
   var h = '<option value="">（選択してください）</option>';
   for(var i=0;i<list.length;i++){
     var r = list[i];
-    h += '<option value="'+esc(r.id)+'">Unit '+r.unit+'　'+esc(r.room || "部屋未設定")+'　'
+    h += '<option value="'+esc(r.id)+'">'+esc(uLb(r.unit))+'　'+esc(r.room || "部屋未設定")+'　'
        + esc(r.name || "（無名）") + (r.status === "out" ? "（退居）" : (r.status === "empty" ? "（空床）" : "")) + '</option>';
   }
   sel.innerHTML = h;
@@ -3662,14 +3863,15 @@ document.getElementById("btnHardDelete").addEventListener("click", function(){
   if(!r){ toast("完全削除する入居者を選択してください"); return; }
   var nm = (r.room ? r.room + " " : "") + (r.name || "（無名）");
   var counts = residentDataCounts(r.id);
-  if(!confirm("この入居者を完全削除しますか？\n\n対象：Unit " + r.unit + "　" + nm)) return;
+  if(!confirm("この入居者を完全削除しますか？\n\n対象：" + uLb(r.unit) + "　" + nm)) return;
   if(!confirm("過去の申し送り・予定・履歴も削除されます。この操作は取り消せません。\n\n"
-            + "対象：Unit " + r.unit + "　" + nm + "\n"
+            + "対象：" + uLb(r.unit) + "　" + nm + "\n"
             + "日次データ " + counts.daily + " 日分／予定 " + counts.sched + " 件\n\n"
             + "本当に完全削除しますか？（履歴を残したい場合は「退居」を使用してください）")) return;
   DB.residents = DB.residents.filter(function(x){ return x.id !== r.id; });
   DB.schedules = DB.schedules.filter(function(x){ return x.residentId !== r.id; });
   for(var dk in DB.daily){ if(DB.daily[dk] && DB.daily[dk][r.id]) delete DB.daily[dk][r.id]; }
+  vitalsRemoveResident(r.id);
   if(HISTORY_UI.residentId === r.id) HISTORY_UI.residentId = "";
   saveDB(); renderAll(); renderAdminDeleteList();
   toast(nm + " を完全削除しました");
@@ -3892,7 +4094,7 @@ document.getElementById("fileImport").addEventListener("change", function(e){
 /* =========================================================
    使い方・FAQ・初回ガイド（すべて単一HTML内 / 外部通信なし）
    ========================================================= */
-var WELCOME_KEY = "kaigo_handover_welcome_seen_v1";
+var WELCOME_KEY = "handover_portfolio_demo_welcome_seen_v1";
 
 function setModalOpen(id, on){
   var el = document.getElementById(id);
@@ -3986,6 +4188,477 @@ document.addEventListener("keydown", function(e){
   else if(document.getElementById("guideModal").classList.contains("on")) setModalOpen("guideModal", false);
 });
 
+
+/* =========================================================
+   ポートフォリオ公開用デモ拡張
+   - 記録値（バイタル・食事・水分・体重・BS など）の保存と入力
+   - 初回起動時のみ生成する 80 名分の架空デモデータ
+   ★ ここで扱う氏名・部屋番号・記録・バイタル・予定はすべて架空です。
+     実在の施設・人物・医療記録とは一切関係がありません。
+     外部送信は行わず、保存先はブラウザの localStorage のみです。
+   ========================================================= */
+
+/* ---------------- 記録値（日付 × 入居者 × 項目キー） ---------------- */
+function vitalsDayOf(date){
+  if(!DB.vitals[date]) DB.vitals[date] = {};
+  return DB.vitals[date];
+}
+function vitalsGet(date, id){
+  return (DB.vitals[date] && DB.vitals[date][id]) || {};
+}
+function vitalsSet(date, id, key, value){
+  var day = vitalsDayOf(date);
+  if(!day[id]) day[id] = {};
+  var v = String(value == null ? "" : value);
+  if(!v.trim()) delete day[id][key];
+  else day[id][key] = v;
+  var left = 0;
+  for(var k in day[id]){ if(Object.prototype.hasOwnProperty.call(day[id], k)) left++; }
+  if(!left) delete day[id];
+  var rest = 0;
+  for(var rid in day){ if(Object.prototype.hasOwnProperty.call(day, rid)) rest++; }
+  if(!rest) delete DB.vitals[date];
+}
+function vitalsRemoveResident(id){
+  for(var d in DB.vitals){
+    if(!DB.vitals[d]) continue;
+    delete DB.vitals[d][id];
+  }
+}
+
+/* 入力欄に添える単位と記入例（用紙側は従来どおり単位を重ねて出さない） */
+var VITAL_HINT = {
+  T:        { un:"℃",      ph:"36.6" },
+  P:        { un:"回/分",  ph:"72" },
+  BP:       { un:"mmHg",   ph:"118/70" },
+  SpO2:     { un:"%",      ph:"97" },
+  mealB:    { un:"割",     ph:"10" },
+  mealL:    { un:"割",     ph:"10" },
+  mealD:    { un:"割",     ph:"10" },
+  hr1:      { un:"",       ph:"" },
+  hr2:      { un:"",       ph:"" },
+  normalBS: { un:"mg/dL",  ph:"112" },
+  nightBS:  { un:"mg/dL",  ph:"124" },
+  targetBS: { un:"mg/dL",  ph:"118" },
+  nextMorningBS:{ un:"mg/dL", ph:"105" },
+  BW:       { un:"kg",     ph:"52.4" },
+  memo:     { un:"",       ph:"特変なし" }
+};
+
+/* 指定入居者・指定勤務帯・指定日に「実際に用紙へ出す項目」を1か所で決める。
+   印刷（shiftFieldsHTML）と入力欄（vitalsAreaHTML）が必ず同じ項目・同じ保存キーになる。 */
+function fieldDefsFor(rec, shift, date){
+  var defs = (shift === "night") ? REC_NIGHT_ITEMS : REC_DAY_ITEMS;
+  var map  = rec[shift] || {};
+  var out  = [];
+  for(var i=0;i<defs.length;i++){
+    var d = defs[i];
+    if(!itemActiveOnDate(map[d.k], d, date)) continue;
+    var hint = VITAL_HINT[d.k] || { un:"", ph:"" };
+    if(d.g === "targetBS"){
+      for(var t=1;t<=3;t++){
+        out.push({ key:shift+"."+d.k+t, g:"targetBS", lb:"BSターゲス"+t, em:String(t),
+                   unit:"", un:hint.un, ph:hint.ph, size:"s" });
+      }
+    }else if(d.g === "nextMorningBS"){
+      out.push({ key:shift+"."+d.k, g:"paren", lb:"翌朝BS（"+wdLabel(nextDowOf(date))+"）",
+                 em:"", unit:"", un:hint.un, ph:hint.ph, size:"m" });
+    }else{
+      out.push({ key:shift+"."+d.k, g:d.g, lb:(d.printLb || d.lb), em:d.em || "",
+                 unit:d.unit || "", un:hint.un, ph:hint.ph, size:"m" });
+    }
+  }
+  var cus = rec.custom || [];
+  for(var c=0;c<cus.length;c++){
+    var cc = cus[c];
+    if(!cc.name || !cc.name.trim()) continue;
+    if(cc.shift !== shift && cc.shift !== "both") continue;
+    if(!itemActive(cc, dowOf(date))) continue;
+    out.push({ key:shift+".c:"+cc.id, g:"paren", lb:cc.name.trim(), em:"",
+               unit:cc.unit || "", un:cc.unit || "", ph:"", size:cc.size || "m" });
+  }
+  return out;
+}
+
+/* ---------------- 申し送り入力カードの記録・バイタル入力欄 ---------------- */
+function vitalsAreaHTML(r){
+  var rec = recOf(r), vals = vitalsGet(UI.date, r.id), cols = "";
+  for(var s=0;s<REC_SHIFTS.length;s++){
+    var sh = REC_SHIFTS[s];
+    var list = fieldDefsFor(rec, sh.k, UI.date), f = "";
+    for(var i=0;i<list.length;i++){
+      var d = list[i];
+      var val = vals[d.key] || "";
+      f += '<label class="vf'+(d.g === "memo" ? " wide" : "")+'">'
+         + '<span>'+esc(d.lb)+'</span>'
+         + '<input type="text" data-vk="'+esc(d.key)+'" value="'+esc(val)+'"'
+         + (d.ph ? ' placeholder="'+esc(d.ph)+'"' : '') + '>'
+         + (d.un && d.g !== "memo" ? '<em>'+esc(d.un)+'</em>' : '')
+         + '</label>';
+    }
+    if(!f) f = '<p class="hint" style="margin:0">この日は表示する記録項目がありません（「記録項目設定」で追加できます）。</p>';
+    cols += '<div class="vit-shift '+sh.k+'"><h5>【'+sh.lb+'】</h5><div class="vit-fields">'+f+'</div></div>';
+  }
+  return '<div class="vitals-area">'
+    + '<div class="va-head"><b>記録・バイタル入力（'+esc(UI.date)+'）</b>'
+    + '<span class="mini">入力した値はそのまま用紙へ印刷されます。表示される項目は「記録項目設定」と対象日の曜日で決まります。数値は架空のデモ値であり、診断・医療判断には使用できません。</span></div>'
+    + '<div class="vit-grid">'+cols+'</div>'
+    + '</div>';
+}
+
+/* =========================================================
+   架空デモデータ生成
+   ---------------------------------------------------------
+   ★ 以下の氏名・部屋番号・申し送り・バイタル・予定はすべて架空です。
+     実在の施設・入居者・患者・職員・医療機関とは一切関係ありません。
+   ========================================================= */
+var DEMO_PER_BLOCK = 20;      // 1 ブロック 20 名（＝印刷 表10名 / 裏10名）
+var DEMO_SEED = 20260401;     // 生成結果を毎回同じにするための固定シード
+
+/* 架空の入居者 80 名（同姓同名なし・実在の人物を想定していません） */
+var DEMO_NAMES = [
+  /* A ブロック */
+  "相原 千代","青柳 敏男","明石 芳江","浅倉 康夫","東 静香",
+  "有田 秀一","飯島 みつ","井口 正雄","石動 ふみ","磯部 忠雄",
+  "市原 千鶴","稲垣 隆三","犬飼 徳子","今関 昭二","岩城 ハル",
+  "上原 邦彦","宇野 久子","江原 光男","遠田 とみ","大槻 修一",
+  /* B ブロック */
+  "大隅 雅子","岡島 義明","奥山 昌代","尾崎 幸雄","加賀美 スミ",
+  "笠原 勇","片桐 京子","金森 定夫","神谷 淑子","川島 三郎",
+  "菊地 節子","木島 兼一","貴志 キヨ","桐生 誠治","楠本 幸江",
+  "久保寺 太一","熊沢 房子","倉持 寛治","黒岩 綾子","小池 富雄",
+  /* C ブロック */
+  "上妻 光代","香月 数馬","越智 トシ","小野寺 実","甲斐 民子",
+  "柏木 良平","桂木 悦子","鎌田 慎吾","上林 澄江","北見 藤吉",
+  "串田 佐知子","沓掛 直人","小暮 都","榊原 昌平","佐久間 サト",
+  "篠塚 与一","志水 文子","白鳥 誠","諏訪 良子","瀬川 純",
+  /* D ブロック */
+  "添田 志乃","高梨 隆義","滝沢 ミヤ","田代 常雄","千葉 敏江",
+  "塚本 章三","土屋 八重","出口 賢三","寺岡 千賀子","戸田 満",
+  "常盤 恵美子","中井 政信","長峰 好子","楢崎 進","西脇 キク",
+  "温井 岩男","灰田 真弓","早瀬 隼人","檜山 秋江","藤枝 和之"
+];
+
+/* 常設重要メモの素材。r = 入力欄（長文）、s = 用紙へ印刷される簡潔版。
+   危険・断定的な医療表現や、実在の運用を特定できる表現は使用しない */
+var DEMO_PERM = [
+  { r:"歩行するときは転倒する可能性があるので、必ず職員が横について見守ってください。", s:"歩行時見守り" },
+  { r:"立ち上がりの動作が不安定なため、転倒に注意して見守りをお願いします。",         s:"転倒注意" },
+  { r:"移乗の際は一部介助が必要です。無理に立たせないようにしてください。",           s:"移乗一部介助" },
+  { r:"移乗は全介助で行ってください。",                                               s:"移乗全介助" },
+  { r:"居室外への移動は車椅子を使用してください。",                                   s:"車椅子で移動" },
+  { r:"歩行するときは歩行器を使用してください。",                                     s:"歩行器使用" },
+  { r:"歩行時は杖を使用しています。足元に物を置かないようにしてください。",           s:"杖歩行" },
+  { r:"食事のときはむせ込みがないか見守りをお願いします。",                           s:"食事見守り" },
+  { r:"食事は一部介助です。後半に疲れやすいため声かけをお願いします。",               s:"食事一部介助" },
+  { r:"水分にはトロミをつけてください。",                                             s:"水分トロミ" },
+  { r:"食事はきざみ食で提供してください。",                                           s:"食事きざみ" },
+  { r:"日中は眼鏡を使用します。就寝時は所定の場所へ保管してください。",               s:"眼鏡使用" },
+  { r:"補聴器を使用しています。入浴前に外すことを確認してください。",                 s:"補聴器使用" },
+  { r:"義歯を使用しています。毎食後の洗浄をお願いします。",                           s:"義歯使用" },
+  { r:"皮膚が乾燥しやすいため、状態の観察を継続してください。",                       s:"皮膚状態の観察継続" },
+  { r:"夜間はトイレ誘導をお願いします。",                                             s:"夜間トイレ誘導" },
+  { r:"内服薬は職員が管理しています。手渡しでの確認をお願いします。",                 s:"服薬は職員管理" },
+  { r:"臥床時はギャッジアップをしてください。",                                       s:"臥床時はギャッジアップ" },
+  { r:"難聴があるため、正面からゆっくり声かけをしてください。",                       s:"難聴のため正面から声かけ" },
+  { r:"車椅子から立ち上がることがあるため、ブレーキの確認をお願いします。",           s:"車椅子ブレーキ確認" }
+];
+/* 今日あったこと（日次・日付ごとに保存） */
+var DEMO_TODAY = [
+  "朝食10割摂取。水分600ml摂取。","昼食8割摂取。午後はデイルームで穏やかに過ごす。",
+  "午前中に散歩を実施。表情良く経過。","排便あり。腹部症状なし。",
+  "夜間1回覚醒あり。その後は入眠良好。","体調変化なし。バイタル安定。",
+  "レクリエーションに参加し笑顔がみられた。","入浴実施。皮膚トラブルなし。",
+  "食欲良好。おやつも全量摂取。","歩行練習を実施。ふらつきなく経過。",
+  "水分摂取が少なめのため、こまめに声かけを行った。","居室で読書をして過ごす。",
+  "服薬確認済み。飲み残しなし。","面会があり、穏やかに会話されていた。",
+  "爪切り・整容を実施。","日中の離床時間は約3時間。転倒なく経過。"
+];
+/* 本日の申し送り（用紙に印刷される内容） */
+var DEMO_HANDOVER = [
+  "食欲良好。体調変化なし。","水分摂取を促してください。",
+  "歩行時は見守りをお願いします。","夜間覚醒あり。日中の傾眠に注意。",
+  "皮膚状態の観察を継続してください。","血圧を再測定予定です。",
+  "排便の有無を確認してください。","明日は家族面会の予定です。",
+  "服薬確認済み。次勤務でも確認をお願いします。","入眠良好。特変なし。",
+  "本日転倒なし。引き続き見守りをお願いします。","食事量が少なめです。摂取量の確認をお願いします。",
+  "外来受診の結果、特記事項はありませんでした。","体重測定を実施予定です。",
+  "デイルームで穏やかに過ごされています。","発熱なし。バイタル安定しています。"
+];
+/* 予定に使う架空の場所（実在の医療機関名は使用しない） */
+var DEMO_PLACES = [
+  { kind:"受診", place:"デモ中央クリニック",   dept:"内科",     title:"定期受診" },
+  { kind:"受診", place:"サンプル総合病院",     dept:"整形外科", title:"外来受診" },
+  { kind:"受診", place:"サンプル総合病院",     dept:"内科",     title:"定期血液検査" },
+  { kind:"受診", place:"デモ記念病院",         dept:"眼科",     title:"外来受診" },
+  { kind:"受診", place:"サンプル皮膚科クリニック", dept:"皮膚科", title:"外来受診" },
+  { kind:"家族面会", place:"デモホーム 面会室", dept:"",        title:"家族面会" },
+  { kind:"外出", place:"サンプル公園",         dept:"",        title:"家族と外出" },
+  { kind:"行事", place:"デモホーム 多目的ホール", dept:"",      title:"季節のレクリエーション" },
+  { kind:"その他", place:"デモホーム 理美容室", dept:"",        title:"訪問理美容" }
+];
+
+/* 生成結果を毎回同じにする擬似乱数（外部ライブラリ・通信なし） */
+function demoRng(seed){
+  var s = seed >>> 0;
+  return function(){
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function demoInt(rnd, min, max){ return min + Math.floor(rnd() * (max - min + 1)); }
+function demoPick(rnd, arr){ return arr[Math.floor(rnd() * arr.length) % arr.length]; }
+
+/* 介護記録のデモとして不自然に見えない範囲の架空値（あくまでデモ用の作り値） */
+function demoTemp(rnd){
+  var v = (rnd() < 0.88) ? 36.0 + rnd() * 1.0 : (rnd() < 0.5 ? 35.8 + rnd() * 0.2 : 37.0 + rnd() * 0.8);
+  return v.toFixed(1);
+}
+function demoPulse(rnd){
+  return String(rnd() < 0.85 ? demoInt(rnd, 62, 88) : demoInt(rnd, 55, 100));
+}
+function demoBP(rnd){
+  var sys = rnd() < 0.85 ? demoInt(rnd, 104, 138) : demoInt(rnd, 90, 155);
+  var dia = rnd() < 0.85 ? demoInt(rnd, 60, 84) : demoInt(rnd, 50, 95);
+  if(dia > sys - 25) dia = sys - demoInt(rnd, 30, 45);
+  if(dia < 50) dia = 50;
+  return sys + "/" + dia;
+}
+function demoSpO2(rnd){
+  return String(rnd() < 0.86 ? demoInt(rnd, 95, 99) : demoInt(rnd, 92, 100));
+}
+function demoBS(rnd){
+  return String(rnd() < 0.82 ? demoInt(rnd, 88, 178) : demoInt(rnd, 70, 220));
+}
+function demoMeal(rnd){
+  var r = rnd();
+  return r < 0.55 ? "10" : r < 0.75 ? "8" : r < 0.88 ? "7" : r < 0.96 ? "5" : "3";
+}
+function demoWeight(base, rnd){
+  return (base + (rnd() - 0.5) * 0.6).toFixed(1);
+}
+
+/* 80 名分の架空デモデータ一式を組み立てる（保存はしない） */
+function buildDemoDB(){
+  var rnd   = demoRng(DEMO_SEED);
+  var today = ymd(new Date());
+  var todayDow = dowOf(today);
+  var nextDow  = nextDowOf(today);
+  var db = defaultDB();
+  db.demoSeeded = true;
+  db.settings.lastAutoCarry = today;   // 起動直後に自動引継ぎで上書きしない
+
+  var bases = {};   // 入居者ごとの基準体重（日によって大きく変わらないようにする）
+  var i, b, u, code, idx;
+
+  /* ---- 入居者マスター（A〜D 各 20 名 / 部屋番号 X-101〜X-120） ---- */
+  for(b=0;b<UNITS.length;b++){
+    u = UNITS[b];
+    code = BLOCK_CODE[u];
+    for(i=0;i<DEMO_PER_BLOCK;i++){
+      idx = b * DEMO_PER_BLOCK + i;
+      var permPick = [DEMO_PERM[(idx * 7 + 3) % DEMO_PERM.length]];
+      if(rnd() < 0.62){
+        var second = DEMO_PERM[(idx * 11 + 5) % DEMO_PERM.length];
+        if(second !== permPick[0]) permPick.push(second);
+      }
+      var permRaw = "", permShort = [];
+      for(var pi=0; pi<permPick.length; pi++){
+        permRaw += permPick[pi].r;
+        permShort.push(permPick[pi].s);
+      }
+      var rec = defaultRec();
+
+      /* BS 対象者は一部のみ（全員ではない） */
+      var bsRole = (idx % 20 === 2) ? "target" : (idx % 20 === 9) ? "next" : (idx % 5 === 0) ? "daily" : "";
+      if(bsRole === "daily"){
+        rec.day.normalBS  = { on:true, every:true, days:[] };
+        rec.night.nightBS = { on:true, every:true, days:[] };
+      }else if(bsRole === "target"){
+        /* ターゲスBS：対象日に必ず1件は見えるよう、対象日の曜日＋3日後の曜日を指定 */
+        rec.day.targetBS = { on:true, every:false, days:normDays([todayDow, (todayDow + 3) % 7]) };
+      }else if(bsRole === "next"){
+        /* 翌朝BS：対象日の夜勤欄に「翌朝BS（曜日）」が出るよう翌朝の曜日を指定 */
+        rec.night.nextMorningBS = { on:true, every:false, days:normDays([nextDow]) };
+      }
+
+      /* 体重測定は曜日を絞って運用する想定（曜日指定機能のデモも兼ねる） */
+      if(idx % 4 === 1){
+        rec.day.BW   = { on:true, every:false, days:normDays([todayDow]) };
+      }else if(idx % 4 === 3){
+        rec.night.BW = { on:true, every:false, days:normDays([(todayDow + 2) % 7]) };
+      }
+
+      /* 施設独自のカスタム項目（水分量・排便） */
+      if(idx % 3 === 0){
+        rec.custom.push(normCustom({ id:"demo-cust-w-"+idx, name:"水分量", unit:"ml",
+          shift:"day", size:"l", on:true, every:true, days:[] }));
+      }
+      if(idx % 6 === 4){
+        rec.custom.push(normCustom({ id:"demo-cust-b-"+idx, name:"排便", unit:"回",
+          shift:"day", size:"s", on:true, every:true, days:[] }));
+      }
+
+      var rid = "demo-" + code + "-" + pad2(i + 1);
+      bases[rid] = demoInt(rnd, 40, 78) + Math.round(rnd() * 9) / 10;
+      db.residents.push({
+        id: rid,
+        unit: u,
+        room: code + "-" + (101 + i),
+        name: DEMO_NAMES[idx],
+        order: i,
+        status: "in",
+        permRaw: permRaw,
+        permShort: permShort.join("・"),
+        permUpdated: shiftDate(today, -demoInt(rnd, 3, 90)),
+        autoCarry: true,
+        rec: rec
+      });
+    }
+  }
+
+  /* ---- 日次データ（今日を含む直近 4 日分） ---- */
+  var days = [today, shiftDate(today,-1), shiftDate(today,-2), shiftDate(today,-3)];
+  for(var di=0; di<days.length; di++){
+    var date = days[di];
+    db.daily[date] = {};
+    for(i=0;i<db.residents.length;i++){
+      var r = db.residents[i];
+      var raw = DEMO_TODAY[(i * 5 + di * 3) % DEMO_TODAY.length];
+      if(rnd() < 0.45) raw += DEMO_TODAY[(i * 13 + di * 7 + 4) % DEMO_TODAY.length];
+      var sht = DEMO_HANDOVER[(i * 3 + di * 5) % DEMO_HANDOVER.length];
+      if(rnd() < 0.35) sht += DEMO_HANDOVER[(i * 9 + di + 6) % DEMO_HANDOVER.length];
+      db.daily[date][r.id] = {
+        raw: raw, short: sht, autoCarry:false, confirmed:true,
+        h: [r.unit, r.room, r.name]
+      };
+    }
+  }
+
+  /* ---- 記録値（バイタル・食事・水分・体重・BS）：今日を含む直近 3 日分 ---- */
+  db.vitals = {};
+  for(var vi=0; vi<3; vi++){
+    var vdate = days[vi];
+    db.vitals[vdate] = {};
+    for(i=0;i<db.residents.length;i++){
+      var rr = db.residents[i];
+      var vals = {};
+      var recs = [
+        { sh:"day",   list:fieldDefsFor(rr.rec, "day", vdate) },
+        { sh:"night", list:fieldDefsFor(rr.rec, "night", vdate) }
+      ];
+      for(var si=0; si<recs.length; si++){
+        var list = recs[si].list;
+        for(var fi=0; fi<list.length; fi++){
+          var f = list[fi];
+          var kk = f.key.split(".")[1] || "";
+          if(f.g === "vit"){
+            if(kk === "T")         vals[f.key] = demoTemp(rnd);
+            else if(kk === "P")    vals[f.key] = demoPulse(rnd);
+            else if(kk === "BP")   vals[f.key] = demoBP(rnd);
+            else if(kk === "SpO2") vals[f.key] = demoSpO2(rnd);
+          }else if(f.g === "meal"){
+            vals[f.key] = demoMeal(rnd);
+          }else if(f.g === "targetBS"){
+            vals[f.key] = demoBS(rnd);
+          }else if(f.g === "memo"){
+            if(rnd() < 0.3) vals[f.key] = demoPick(rnd, ["特変なし","傾眠傾向","声かけで摂取","良眠"]);
+          }else if(f.g === "paren"){
+            if(kk.indexOf("BS") >= 0)      vals[f.key] = demoBS(rnd);
+            else if(kk === "BW")           vals[f.key] = demoWeight(bases[rr.id], rnd);
+            else if(f.lb === "水分量")     vals[f.key] = String(demoInt(rnd, 10, 24) * 50);
+            else if(f.lb === "排便")       vals[f.key] = String(demoInt(rnd, 0, 2));
+            else if(f.lb.indexOf("翌朝BS") >= 0) vals[f.key] = demoBS(rnd);
+          }
+        }
+      }
+      var any = false;
+      for(var ak in vals){ if(Object.prototype.hasOwnProperty.call(vals, ak)){ any = true; break; } }
+      if(any) db.vitals[vdate][rr.id] = vals;
+    }
+  }
+
+  /* ---- 予定（外来・家族面会・外出・行事・検査など。日付／時間／場所も架空） ---- */
+  var schedRes = [];
+  for(i=0;i<db.residents.length;i+=4) schedRes.push(db.residents[i]);
+  for(i=0;i<schedRes.length;i++){
+    var sr = schedRes[i];
+    var pl = DEMO_PLACES[i % DEMO_PLACES.length];
+    var offset = demoInt(rnd, -3, 12);
+    var hh = demoInt(rnd, 9, 15);
+    var start = pad2(hh) + ":" + (rnd() < 0.5 ? "00" : "30");
+    var end   = pad2(hh + demoInt(rnd, 1, 2)) + ":" + (rnd() < 0.5 ? "00" : "30");
+    db.schedules.push({
+      id: "demo-sch-" + pad2(i + 1),
+      residentId: sr.id,
+      unit: sr.unit,
+      h: [sr.unit, sr.room, sr.name],
+      date: shiftDate(today, offset),
+      kind: pl.kind,
+      start: start,
+      end: end,
+      title: pl.title,
+      place: pl.place,
+      dept: pl.dept,
+      family: pl.kind === "受診" ? demoPick(rnd, ["あり","なし","未定"]) : "",
+      note: "架空のデモ予定です"
+    });
+  }
+  return db;
+}
+
+/* 初回起動時だけデモデータを作る。
+   すでに保存データがある場合は、利用者が編集した内容をそのまま保持する。 */
+function ensureDemoData(){
+  if(DB.demoSeeded === true) return false;
+  if(DB.residents.length){ DB.demoSeeded = true; saveDB(); return false; }
+  DB = buildDemoDB();
+  migrate();
+  saveDB();
+  return true;
+}
+
+/* 「デモデータを初期状態に戻す」（必ず確認ダイアログを出し、キャンセル可能） */
+function resetDemoData(){
+  if(!confirm("現在の編集内容を削除して、80名分の初期デモデータへ戻します。よろしいですか？\n\n"
+            + "・入居者／申し送り／バイタル／BS／予定など、この画面で編集した内容はすべて失われます\n"
+            + "・必要な場合は、先に「バックアップ保存」でJSONファイルへ保存してください\n"
+            + "・この操作は取り消せません")) return;
+  DB = buildDemoDB();
+  migrate();
+  saveDB();
+  UI.unit = UNITS[0];
+  HISTORY_UI.residentId = "";
+  closeRecModal();
+  setDate(ymd(new Date()));
+  initUIFromDB();
+  renderAll();
+  toast("80名分の初期デモデータへ戻しました");
+}
+
+/* デモ操作ボタン */
+document.getElementById("btnDemoReset").addEventListener("click", resetDemoData);
+document.getElementById("btnDemoInfo").addEventListener("click", function(){
+  setModalOpen("guideModal", false); setModalOpen("helpModal", false);
+  setModalOpen("demoInfoModal", true);
+});
+document.getElementById("demoInfoClose").addEventListener("click", function(){ setModalOpen("demoInfoModal", false); });
+document.getElementById("demoInfoClose2").addEventListener("click", function(){ setModalOpen("demoInfoModal", false); });
+document.getElementById("demoInfoGuide").addEventListener("click", function(){
+  setModalOpen("demoInfoModal", false); openGuide("guide-demo");
+});
+document.getElementById("demoInfoModal").addEventListener("click", function(e){
+  if(e.target === this) setModalOpen("demoInfoModal", false);
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape" && document.getElementById("demoInfoModal").classList.contains("on")){
+    setModalOpen("demoInfoModal", false);
+  }
+});
+
 /* =========================================================
    init
    ========================================================= */
@@ -4015,6 +4688,8 @@ function initUIFromDB(){
   document.body.classList.toggle("pw", !!DB.settings.printWarn);
 }
 loadDB();
+ensureDemoData();     // 初回起動時だけ 80 名分の架空デモデータを生成（既存の編集内容は保持）
+UI.unit = UNITS.indexOf(UI.unit) >= 0 ? UI.unit : UNITS[0];
 UI.date = ymd(new Date());
 document.getElementById("theDate").value = UI.date;
 initUIFromDB();
