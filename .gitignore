@@ -1,5 +1,10 @@
+# 実運用データ・バックアップを絶対にコミットしないための設定
+# （個人情報を含む可能性があるファイルはすべて除外する）
 *.json
-!vercel.json
+moushiokuri_backup_*
+handover_backup_*
 *.backup
 *.bak
+*.csv
+*.pdf
 .DS_Store
