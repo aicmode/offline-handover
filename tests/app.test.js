@@ -137,7 +137,9 @@ function addRule(app, unit, residentId, shift, days, title){
 }
 
 function run(){
-  const { app, storage, html } = boot();
+  const { app, elements, storage, html } = boot();
+  const startedDate = app.UI.date;
+  const startedToday = app.todayYmd();
 
   console.log("\n■ 1. ユニット構成と上限");
   check("保存キーは kaigo_handover_v2（アプリ更新でも変えない）", () => {
@@ -456,7 +458,120 @@ function run(){
     assert.equal(app.tidyPerm(""), "");
   });
 
-  console.log("\n■ 9. 完全オフライン（外部通信コードが無いこと）");
+  console.log("\n■ 9. 日付自動更新と全ユニット横断・うろ覚え検索");
+  check("起動時はPC本体の今日を表示する", () => {
+    assert.equal(startedDate, startedToday);
+  });
+  check("今日を表示中の日付またぎは翌日へ追従する", () => {
+    app.LAST_LOCAL_DAY = "2026-08-14";
+    app.setDate("2026-08-14", true);
+    assert.equal(app.checkLocalDateChange("2026-08-15"), true);
+    assert.equal(app.UI.date, "2026-08-15");
+    assert.equal(app.FOLLOW_TODAY, true);
+  });
+  check("過去日を閲覧中の日付またぎは表示日を変えない", () => {
+    app.LAST_LOCAL_DAY = "2026-08-15";
+    app.setDate("2026-08-10", false);
+    assert.equal(app.checkLocalDateChange("2026-08-16"), false);
+    assert.equal(app.UI.date, "2026-08-10");
+  });
+  check("前日・翌日・今日の既存操作が動く", () => {
+    const today = app.todayYmd();
+    app.setDate(today, true);
+    elements.get("btnPrevDay").listeners.click[0].call(elements.get("btnPrevDay"));
+    assert.equal(app.UI.date, app.prevDate(today));
+    elements.get("btnNextDay").listeners.click[0].call(elements.get("btnNextDay"));
+    assert.equal(app.UI.date, today);
+    app.setDate(app.prevDate(today), false);
+    elements.get("btnToday").listeners.click[0].call(elements.get("btnToday"));
+    assert.equal(app.UI.date, today);
+  });
+
+  const searchResident = makeResident(app, 4, "405", "山田 花子");
+  app.dailyOf("2025-08-14", searchResident.id).short = "外部受診あり。";
+  app.dailyOf("2026-08-14", searchResident.id).short = "微熱あり、体温37.5℃。血糖値を確認。";
+  app.dailyOf("2026-07-14", searchResident.id).short = "病院受診の記録。";
+  app.HISTORY_CACHE = null;
+  app.SUGGEST_CACHE = null;
+  const kw = elements.get("historyKeyword");
+  const unit = elements.get("historyUnit");
+  const results = elements.get("historyResults");
+  function search(q, u){
+    app.HISTORY_UI.residentId = "";
+    kw.value = q;
+    unit.value = u == null ? "" : String(u);
+    elements.get("historyFrom").value = "";
+    elements.get("historyTo").value = "";
+    elements.get("historyKind").value = "";
+    elements.get("historyOrder").value = "new";
+    app.renderHistory();
+    return results._historyRows || [];
+  }
+  check("全ユニットが初期値で、5区分を横断検索する", () => {
+    assert.equal(unit.value, "");
+    const rows = search("テスト", "").filter((x) => x.current);
+    assert.deepEqual(Array.from(new Set(rows.map((x) => x.unit))).sort(), [1,2,3,4,5]);
+  });
+  check("静養室・ユニット2〜5でそれぞれ絞り込める", () => {
+    for(const u of [1,2,3,4,5]){
+      const rows = search("テスト", u);
+      assert.ok(rows.length > 0, "unit=" + u);
+      assert.ok(rows.every((x) => x.unit === u), "unit=" + u);
+    }
+  });
+  check("名前の部分一致と部屋番号で現在地を探せる", () => {
+    let rows = search("山", "");
+    assert.ok(rows.some((x) => x.current && x.residentId === searchResident.id && x.unit === 4 && x.room === "405"));
+    rows = search("405", "");
+    assert.ok(rows.some((x) => x.current && x.residentId === searchResident.id));
+    assert.ok(results.innerHTML.includes("ユニット4") && results.innerHTML.includes("405号室"));
+  });
+  check("現在地結果から該当ユニット・入居者へ直接移動できる", () => {
+    const item = search("山田", "").find((x) => x.current && x.residentId === searchResident.id);
+    app.openHistorySource(item);
+    assert.equal(app.UI.unit, 4);
+    assert.equal(app.UI.tab, "input");
+    assert.equal(app.UI.date, app.todayYmd());
+  });
+  check("年・月・年月・日だけを記録日として解釈する", () => {
+    let rows = search("2025", "").filter((x) => x.residentId === searchResident.id);
+    assert.equal(rows.length, 1);
+    rows = search("8月", "").filter((x) => x.residentId === searchResident.id);
+    assert.equal(rows.length, 2);
+    assert.equal(search("8", "").filter((x) => x.residentId === searchResident.id).length, 2);
+    assert.equal(search("08月", "").filter((x) => x.residentId === searchResident.id).length, 2);
+    assert.equal(search("2026年8月", "").filter((x) => x.residentId === searchResident.id).length, 1);
+    assert.equal(search("2026/08", "").filter((x) => x.residentId === searchResident.id).length, 1);
+    assert.equal(search("2026-08", "").filter((x) => x.residentId === searchResident.id).length, 1);
+    assert.equal(search("２０２６年８月", "").filter((x) => x.residentId === searchResident.id).length, 1);
+    assert.equal(search("14日", "").filter((x) => x.residentId === searchResident.id).length, 3);
+    assert.ok(elements.get("historyInterpret").textContent.includes("日付条件"));
+    assert.ok(results.innerHTML.includes("2026/08/14"), "結果に年月日を表示する");
+  });
+  check("関連語で受診・病院・熱・BSの記録を広げて探せる", () => {
+    assert.ok(search("受診", "").some((x) => x.content.includes("外部受診")));
+    assert.ok(search("病院", "").some((x) => x.content.includes("外部受診")));
+    assert.ok(search("熱", "").some((x) => x.content.includes("微熱")));
+    assert.ok(search("ＢＳ", "").some((x) => x.content.includes("血糖値")));
+  });
+  check("全角半角・大小文字・かな・余分な空白を正規化する", () => {
+    assert.equal(app.historyNorm(" ＢＳ　カロ "), "bs かろ");
+    assert.equal(app.historyWordMatches(app.historyNorm("カロナール"), app.historyNorm("かろ")), true);
+    assert.ok(search("  山田  ", "").some((x) => x.current && x.residentId === searchResident.id));
+  });
+  check("軽い誤字は自動置換せず、クリック可能な候補として出す", () => {
+    const got = app.suggestFor("受信");
+    assert.ok(got.some((x) => x.w === "受診" && x.reason === "入力候補"));
+    kw.value = "受信";
+    app.applySuggest("受診");
+    assert.equal(kw.value, "受診");
+  });
+  check("記録は新しい順を既定にする", () => {
+    const rows = search("受診", "").filter((x) => !x.current);
+    for(let i=1;i<rows.length;i++) assert.ok(rows[i-1].date >= rows[i].date);
+  });
+
+  console.log("\n■ 10. 完全オフライン（外部通信コードが無いこと）");
   check("送信APIを一切使っていない", () => {
     const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
     for(const pattern of [/\bfetch\s*\(/, /XMLHttpRequest/, /\bWebSocket\b/, /sendBeacon/,

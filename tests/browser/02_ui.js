@@ -112,6 +112,13 @@
   ok("入力済みの語と同じだけの候補は出さない", !document.getElementById("searchSuggest").classList.contains("on"));
   click("historyClear");
   ok("条件クリアで空になる", kw.value === "");
+  kw.value = "テスト 花子"; renderHistory();
+  var personResult = document.querySelector('#historyResults .resident-now[data-history-index]');
+  ok("入居者の現在地結果に移動ボタンが出る", !!personResult && personResult.textContent.indexOf("この人を見る") >= 0);
+  if(personResult){
+    personResult.querySelector("button").dispatchEvent(new MouseEvent("click",{bubbles:true}));
+    ok("現在地結果のボタンでその人の入力画面へ移動する", UI.tab === "input" && UI.unit === 2);
+  }
 
   // --- 使い方モーダル ---
   click("btnGuide");

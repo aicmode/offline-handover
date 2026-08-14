@@ -252,6 +252,10 @@ tr.left-row input[type=text]{color:#6a7581}
 .history-item .kind{display:inline-block;font-size:12px;font-weight:800;color:var(--accent2);border:1px solid #a9c6e4;
   background:#eef4fb;border-radius:5px;padding:1px 8px;margin-bottom:5px}
 .history-item .content{white-space:pre-wrap;word-break:break-word;line-height:1.7}
+.history-item.resident-now{background:#f7fbff;border:1px solid #b7cee5;border-radius:7px;margin:5px 0;padding:12px}
+.history-item.resident-now .date{color:var(--ok)}
+.match-reason{display:inline-block;margin-left:7px;font-size:11px;color:var(--sub)}
+.search-interpret{min-height:1.5em;margin-top:7px;font-size:12px;color:var(--accent2);font-weight:700}
 .history-empty{padding:30px 8px;text-align:center;color:var(--sub)}
 .history-limit{font-size:12px;color:var(--sub);padding:8px 4px}
 @media (max-width:900px){.search-tools{grid-template-columns:1fr 1fr}.search-tools .search-keyword{grid-column:1/-1}}
@@ -818,12 +822,12 @@ tr.left-row input[type=text]{color:#6a7581}
 <section class="view" id="v-history">
   <div class="panel">
     <div class="section-title">
-      <h2>さがす（過去の記録）</h2>
+      <h2>さがす（入居者・過去の記録）</h2>
       <button class="help-dot" data-guide="guide-search" title="さがす の使い方" aria-label="さがす の使い方">？</button>
     </div>
     <div class="search-tools">
       <label class="search-keyword">言葉でさがす
-        <input type="search" id="historyKeyword" placeholder="例）発熱、転倒、カロナール、お名前、部屋番号" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
+        <input type="search" id="historyKeyword" placeholder="例）山田、405、受診、2026年8月、14日" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
         <div class="suggest" id="searchSuggest" role="listbox"></div>
       </label>
       <label>ユニット
@@ -836,6 +840,7 @@ tr.left-row input[type=text]{color:#6a7581}
         <input type="date" id="historyTo" aria-label="終了日">
       </label>
     </div>
+    <div class="search-interpret" id="historyInterpret" aria-live="polite"></div>
     <div class="quickwords" id="quickWords"></div>
     <div class="search-toolbar">
       <span class="history-person" id="historyPerson"></span>
@@ -989,11 +994,13 @@ tr.left-row input[type=text]{color:#6a7581}
       </section>
 
       <section class="doc-section" data-guide-section id="guide-search">
-        <h4>さがす（過去の記録）</h4>
-        <p>過去の申し送り・記録・バイタル・予定・毎日つづく大事なことを、まとめてさがせます。</p>
+        <h4>さがす（入居者・過去の記録）</h4>
+        <p>現在の入居者と、過去の申し送り・記録・バイタル・予定・毎日つづく大事なことを、全ユニットからまとめてさがせます。</p>
         <ul>
-          <li>言葉を入れると、<b>保存済みのデータの中から</b>検索の候補が出ます（外部の検索サービスは使いません）。</li>
-          <li>お名前・部屋番号・日付・発熱・転倒・食事・排泄・BS・服薬・薬の名前など、保存されている文字はすべて対象です。</li>
+          <li>お名前や部屋番号でさがすと、現在のユニット・部屋と「この人を見る」が表示されます。</li>
+          <li><b>2026、8月、2026年8月、14日</b>のような入力は記録日として検索します。</li>
+          <li>全角・半角や、ひらがな・カタカナの差をそろえ、受診・病院などの近い言葉も候補に含めます。</li>
+          <li>言葉を入れると、保存済みデータ・関連語・軽い誤字の候補が出ます（すべてこのPC内で処理します）。</li>
           <li>ユニット・期間・種類でしぼれます。</li>
           <li>結果を押すと、その日のその人の入力画面へ移動します。</li>
           <li>退居した方の記録も残っていて、さがせます。</li>
@@ -2044,6 +2051,11 @@ var HISTORY_UI = { residentId:"" };
 var HISTORY_CACHE = null;
 var SUGGEST_CACHE = null;
 var REC_UI = { id:null };
+/* 日付をまたいだときは、職員が「今日」を見ていた場合だけ追従する。
+   この状態は画面だけの情報で、保存データやバックアップ形式には追加しない。 */
+var LAST_LOCAL_DAY = todayYmd();
+var FOLLOW_TODAY = true;
+var DATE_WATCH_TIMER = null;
 
 /* =========================================================
    記録値（日付 × 入居者 × 項目キー）
@@ -3100,18 +3112,112 @@ function fitPreview(){
 var HISTORY_RENDER_LIMIT = 400;
 var QUICK_WORDS = ["発熱","転倒","嘔吐","食事","水分","排便","服薬","受診","入浴","不眠","疼痛","BS"];
 
+/* 検索を広げるためだけの軽量なローカル辞書。診断・判定には使用しない。 */
+var SEARCH_RELATED_GROUPS = [
+  ["受診","外部受診","病院受診","受診予定","病院","外来","診察"],
+  ["熱","発熱","微熱","体温","解熱"],
+  ["転倒","ふらつき","歩行","見守り"],
+  ["食事","朝食","昼食","夕食","摂取"],
+  ["排泄","排便","排尿","トイレ"],
+  ["BS","血糖","血糖値"],
+  ["薬","服薬","内服","薬剤"],
+  ["水分","飲水","水分摂取"],
+  ["入浴","清拭","シャワー"],
+  ["痛み","疼痛","痛い"],
+  ["嘔吐","吐き気","悪心"],
+  ["不眠","眠れない","睡眠"]
+];
+var SEARCH_TYPO_HINTS = {
+  "受信":"受診",
+  "受新":"受診",
+  "血糖地":"血糖値",
+  "排雪":"排泄",
+  "カロナールル":"カロナール"
+};
+
 function historyNorm(v){
   var s = String(v == null ? "" : v).toLowerCase();
   try{ s = s.normalize("NFKC"); }catch(e){}
+  /* カタカナをひらがなへ寄せ、「カロ」と「かろ」などを同じ検索語として扱う。 */
+  s = s.replace(/[ァ-ヶ]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0) - 0x60); });
   return s.replace(/[\s　]+/g, " ").trim();
 }
+function historyCompact(v){ return historyNorm(v).replace(/\s+/g, ""); }
 function historyWordMatches(text, word){
-  if(text.indexOf(word) < 0) return false;
+  var compactText = historyCompact(text), compactWord = historyCompact(word);
+  if(text.indexOf(word) < 0 && compactText.indexOf(compactWord) < 0) return false;
   /* 「発熱」で「発熱なし」だけが並ぶのを避ける（否定語そのもので検索した場合は通常どおり） */
   if(/なし|無し|ない|ありません|認めず/.test(word)) return true;
-  var safe = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  var withoutNeg = text.replace(new RegExp(safe + "(?:は|も)?(?:なし|無し|ない|ありません|認めず)", "g"), "");
-  return withoutNeg.indexOf(word) >= 0;
+  var safe = compactWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var withoutNeg = compactText.replace(new RegExp(safe + "(?:は|も)?(?:なし|無し|ない|ありません|認めず)", "g"), "");
+  return withoutNeg.indexOf(compactWord) >= 0;
+}
+function relatedTermsFor(word){
+  var q = historyNorm(word), out = [q];
+  if(!q) return out;
+  for(var i=0;i<SEARCH_RELATED_GROUPS.length;i++){
+    var group = SEARCH_RELATED_GROUPS[i], found = false;
+    for(var j=0;j<group.length;j++) if(historyNorm(group[j]) === q){ found = true; break; }
+    if(!found) continue;
+    for(var k=0;k<group.length;k++){
+      var n = historyNorm(group[k]);
+      if(out.indexOf(n) < 0) out.push(n);
+    }
+    break;
+  }
+  return out;
+}
+function matchHistoryWords(item, words){
+  var reasons = [];
+  for(var wi=0;wi<words.length;wi++){
+    var variants = relatedTermsFor(words[wi]), matched = "";
+    for(var vi=0;vi<variants.length;vi++){
+      if(historyWordMatches(item.searchText, variants[vi])){ matched = variants[vi]; break; }
+    }
+    if(!matched) return null;
+    if(matched !== historyNorm(words[wi])) reasons.push(matched);
+  }
+  return reasons;
+}
+function datePart(token){
+  var s = historyNorm(token).replace(/\s/g, ""), m, y, mo, d;
+  if((m = s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/)) ||
+     (m = s.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/))){
+    y=+m[1]; mo=+m[2]; d=+m[3];
+    if(mo>=1 && mo<=12 && d>=1 && d<=31) return {type:"date", y:y, m:mo, d:d, label:y+"年"+mo+"月"+d+"日"};
+  }
+  if((m = s.match(/^(\d{4})年(\d{1,2})月$/)) || (m = s.match(/^(\d{4})[\/-](\d{1,2})$/))){
+    y=+m[1]; mo=+m[2];
+    if(mo>=1 && mo<=12) return {type:"ym", y:y, m:mo, label:y+"年"+mo+"月"};
+  }
+  if((m = s.match(/^(\d{4})年?$/))){ y=+m[1]; return {type:"year", y:y, label:y+"年"}; }
+  if((m = s.match(/^(\d{1,2})月$/)) || (m = s.match(/^(\d{1,2})$/))){
+    mo=+m[1]; if(mo>=1 && mo<=12) return {type:"month", m:mo, label:mo+"月"};
+  }
+  if((m = s.match(/^(\d{1,2})日$/))){ d=+m[1]; if(d>=1 && d<=31) return {type:"day", d:d, label:d+"日"}; }
+  return null;
+}
+function parseHistoryQuery(value){
+  var raw = historyNorm(value), tokens = raw ? raw.split(" ") : [], words = [], dates = [];
+  for(var i=0;i<tokens.length;i++){
+    var dp = datePart(tokens[i]);
+    if(dp) dates.push(dp); else if(tokens[i]) words.push(tokens[i]);
+  }
+  return {raw:raw, words:words, dates:dates};
+}
+function historyDateMatches(date, parts){
+  if(!parts.length) return true;
+  if(!isYmd(date)) return false;
+  var p=date.split("-"), y=+p[0], m=+p[1], d=+p[2];
+  for(var i=0;i<parts.length;i++){
+    var x=parts[i];
+    if(x.type==="date" && (x.y!==y || x.m!==m || x.d!==d)) return false;
+    if(x.type==="ym" && (x.y!==y || x.m!==m)) return false;
+    if(x.type==="year" && x.y!==y) return false;
+    if(x.type==="month" && x.m!==m) return false;
+    if(x.type==="day" && x.d!==d) return false;
+  }
+  return true;
 }
 function historyPerson(src, r){
   var snap = src && Array.isArray(src.h) && src.h.length >= 3 ? src.h : null;
@@ -3231,6 +3337,21 @@ function buildHistoryIndex(){
   return out;
 }
 
+/* 現在在籍している入居者は、記録の有無にかかわらず横断検索する。 */
+function buildCurrentResidentIndex(){
+  var out = [];
+  for(var i=0;i<DB.residents.length;i++){
+    var r = DB.residents[i];
+    if(isSample(r) || isLeft(r) || r.status === "empty") continue;
+    out.push(addHistorySearchText({
+      date:"", unit:r.unit, room:r.room, name:r.name, left:false, residentId:r.id,
+      type:"入居者", kinds:["入居者"], content:"現在の所属："+uLb(r.unit)+(r.room ? "／"+r.room+"号室" : ""),
+      source:"resident", current:true, order:r.order || 0
+    }, [r.name, r.room, uLb(r.unit)].join(" ")));
+  }
+  return out;
+}
+
 /* ---- 検索候補：保存済みデータから語を集める（外部サービス不使用） ---- */
 function buildSuggestIndex(){
   if(SUGGEST_CACHE) return SUGGEST_CACHE;
@@ -3256,6 +3377,11 @@ function buildSuggestIndex(){
     var tk = tokenize(it.content);
     for(var k=0;k<tk.length;k++) add(tk[k]);
   }
+  for(var ri=0;ri<DB.residents.length;ri++){
+    var r=DB.residents[ri];
+    if(isSample(r)) continue;
+    add(r.name); add(r.room);
+  }
   var list = [];
   for(var w in freq){ if(Object.prototype.hasOwnProperty.call(freq, w)) list.push({ w:w, n:freq[w] }); }
   list.sort(function(a,b){ return b.n - a.n || a.w.localeCompare(b.w); });
@@ -3265,17 +3391,38 @@ function buildSuggestIndex(){
 function suggestFor(query){
   var q = historyNorm(query);
   if(!q) return [];
-  var list = buildSuggestIndex(), out = [];
+  var list = buildSuggestIndex(), out = [], used = {};
+  function push(word, n, reason){
+    var key=historyNorm(word);
+    if(!key || key===q || used[key] || out.length>=8) return;
+    used[key]=1;
+    out.push({w:word,n:n||0,reason:reason||""});
+  }
+  for(var typo in SEARCH_TYPO_HINTS){
+    if(historyNorm(typo) === q) push(SEARCH_TYPO_HINTS[typo], 0, "入力候補");
+  }
+  var related=relatedTermsFor(q);
+  if(related.length>1){
+    for(var g=0;g<SEARCH_RELATED_GROUPS.length;g++){
+      for(var gi=0;gi<SEARCH_RELATED_GROUPS[g].length;gi++){
+        if(related.indexOf(historyNorm(SEARCH_RELATED_GROUPS[g][gi]))>=0){
+          push(SEARCH_RELATED_GROUPS[g][gi],0,"関連語");
+        }
+      }
+    }
+  }
   for(var i=0;i<list.length && out.length < 8; i++){
     var w = list[i].w;
-    if(historyNorm(w) === q) continue;
-    if(historyNorm(w).indexOf(q) >= 0) out.push(list[i]);
+    if(historyNorm(w).indexOf(q) >= 0) push(w,list[i].n,"");
   }
   return out;
 }
 function historyFilters(){
+  var query = parseHistoryQuery(document.getElementById("historyKeyword").value);
   return {
-    words: historyNorm(document.getElementById("historyKeyword").value).split(" ").filter(function(v){ return !!v; }),
+    query: query,
+    words: query.words,
+    dates: query.dates,
     unit:  document.getElementById("historyUnit").value,
     from:  document.getElementById("historyFrom").value,
     to:    document.getElementById("historyTo").value,
@@ -3293,14 +3440,32 @@ function renderHistory(){
     if(f.from && x.date < f.from) return false;
     if(f.to   && x.date > f.to)   return false;
     if(f.kind && x.kinds.indexOf(f.kind) < 0) return false;
-    for(var wi=0; wi<f.words.length; wi++) if(!historyWordMatches(x.searchText, f.words[wi])) return false;
+    if(!historyDateMatches(x.date, f.dates)) return false;
+    var reasons=matchHistoryWords(x,f.words);
+    if(reasons===null) return false;
+    x.matchReason=reasons.length ? reasons[0] : "";
     return true;
   });
   list.sort(function(a,b){
     var n = a.date === b.date ? (a.type < b.type ? -1 : a.type > b.type ? 1 : 0) : (a.date < b.date ? -1 : 1);
     return f.order === "old" ? n : -n;
   });
-  document.getElementById("historyCount").textContent = list.length + "件";
+  var people=[];
+  if(!HISTORY_UI.residentId && f.words.length && !f.dates.length && !f.from && !f.to && !f.kind){
+    people=buildCurrentResidentIndex().filter(function(x){
+      if(f.unit && String(x.unit)!==f.unit) return false;
+      var reasons=matchHistoryWords(x,f.words);
+      if(reasons===null) return false;
+      x.matchReason=reasons.length ? reasons[0] : "";
+      return true;
+    });
+    people.sort(function(a,b){ return a.unit-b.unit || a.order-b.order || a.name.localeCompare(b.name); });
+  }
+  document.getElementById("historyCount").textContent = people.length ? (people.length+"名／記録 "+list.length+"件") : (list.length+"件");
+  var interpret=document.getElementById("historyInterpret");
+  if(interpret){
+    interpret.textContent=f.dates.length ? ("日付条件："+f.dates.map(function(x){return x.label;}).join("・")+"（記録日で検索）") : "";
+  }
   var person = document.getElementById("historyPerson");
   if(HISTORY_UI.residentId){
     var pr = residentById(HISTORY_UI.residentId);
@@ -3309,23 +3474,33 @@ function renderHistory(){
     person.classList.add("on");
   }else{ person.textContent = ""; person.classList.remove("on"); }
 
-  if(!list.length){
+  if(!list.length && !people.length){
     host.innerHTML = '<div class="history-empty">見つかりませんでした。言葉を短くするか、期間を広げてみてください。</div>';
     host._historyRows = [];
     return;
   }
-  var shown = list.slice(0, HISTORY_RENDER_LIMIT), h = "";
+  var roomLabel=function(x){ return x.room ? (x.room+"号室") : "部屋番号なし"; };
+  var shown = people.concat(list.slice(0, Math.max(0,HISTORY_RENDER_LIMIT-people.length))), h = "";
   for(var i=0;i<shown.length;i++){
     var x = shown[i];
-    h += '<article class="history-item" role="button" tabindex="0" data-history-index="'+i+'">'
-      + '<div><div class="date">'+esc(x.date.replace(/-/g,"/"))+'</div>'
-      + '<div class="meta">'+esc(jpDate(x.date).replace(/^\d+年/,""))+'<br>'+esc(uLb(x.unit))+'</div></div>'
-      + '<div><div class="who">'+esc(x.room)+' '+esc(x.name || "（無名）")
-      + (x.left ? ' <span class="pill left">退居</span>' : '')+'</div>'
-      + '<div class="kind">'+esc(x.type)+'</div><div class="content">'+esc(x.content)+'</div></div></article>';
+    if(x.current){
+      h += '<article class="history-item resident-now" role="button" tabindex="0" data-history-index="'+i+'">'
+        + '<div><div class="date">現在地</div><div class="meta">'+esc(uLb(x.unit))+'<br>'+esc(roomLabel(x))+'</div></div>'
+        + '<div><div class="who">'+esc(x.name || "（無名）")+'</div><div class="kind">入居者</div>'
+        + (x.matchReason?'<span class="match-reason">関連語：'+esc(x.matchReason)+'</span>':'')
+        + '<div class="content">'+esc(x.content)+'</div><button type="button" class="btn sm pri" style="margin-top:7px">この人を見る</button></div></article>';
+    }else{
+      h += '<article class="history-item" role="button" tabindex="0" data-history-index="'+i+'">'
+        + '<div><div class="date">'+esc(x.date.replace(/-/g,"/"))+'</div>'
+        + '<div class="meta">'+esc(jpDate(x.date).replace(/^\d+年/,""))+'<br>'+esc(uLb(x.unit))+'<br>'+esc(roomLabel(x))+'</div></div>'
+        + '<div><div class="who">'+esc(x.name || "（無名）")
+        + (x.left ? ' <span class="pill left">退居</span>' : '')+'</div>'
+        + '<div class="kind">'+esc(x.type)+'</div>'+(x.matchReason?'<span class="match-reason">関連語：'+esc(x.matchReason)+'</span>':'')
+        + '<div class="content">'+esc(x.content)+'</div></div></article>';
+    }
   }
-  if(list.length > shown.length){
-    h += '<div class="history-limit">先頭'+shown.length+'件を表示しています（全'+list.length+'件）。条件を絞ると残りも確認できます。</div>';
+  if(people.length+list.length > shown.length){
+    h += '<div class="history-limit">先頭'+shown.length+'件を表示しています（全'+(people.length+list.length)+'件）。条件を絞ると残りも確認できます。</div>';
   }
   host.innerHTML = h;
   host._historyRows = shown;
@@ -3349,8 +3524,8 @@ function openHistorySource(item){
   var target = residentById(item.residentId);
   if(!target){ toast("この入居者はすでに削除されています（記録は残っています）"); return; }
   if(isLeft(target)){ toast("退居した入居者の記録です（入力画面には表示されません）"); return; }
-  UI.unit = item.unit;
-  setDate(item.date);
+  UI.unit = target.unit;
+  setDate(item.current ? todayYmd() : item.date, item.current ? true : undefined);
   switchTab("input");
   renderUnitBar();
   setTimeout(function(){
@@ -3473,9 +3648,10 @@ function renderAll(){
   if(UI.tab === "print"){ renderPrint(); fitPreview(); }
   if(UI.tab === "history") renderHistory();
 }
-function setDate(d){
+function setDate(d, followToday){
   if(!isYmd(d)) d = todayYmd();
   UI.date = d;
+  FOLLOW_TODAY = (typeof followToday === "boolean") ? followToday : (d === todayYmd());
   var di = document.getElementById("theDate");
   if(di) di.value = UI.date;
   renderDateBar();
@@ -3483,6 +3659,20 @@ function setDate(d){
   renderSched();
   if(REC_UI.id) renderRecModal();
   if(UI.tab === "print"){ renderPrint(); fitPreview(); }
+}
+function checkLocalDateChange(currentDay){
+  var now = isYmd(currentDay) ? currentDay : todayYmd();
+  if(now === LAST_LOCAL_DAY) return false;
+  var follow = FOLLOW_TODAY;
+  LAST_LOCAL_DAY = now;
+  if(!follow) return false;
+  autoCarryToday();
+  setDate(now, true);
+  return true;
+}
+function startLocalDateWatch(){
+  if(DATE_WATCH_TIMER || typeof setInterval !== "function") return;
+  DATE_WATCH_TIMER = setInterval(function(){ checkLocalDateChange(); }, 30000);
 }
 
 /* =========================================================
@@ -4116,7 +4306,7 @@ function showSuggest(){
   var h = "";
   for(var i=0;i<got.length;i++){
     h += '<button type="button" data-sg="'+esc(got[i].w)+'">'+esc(got[i].w)
-       + '<span class="n">'+got[i].n+'件</span></button>';
+       + '<span class="n">'+(got[i].reason ? esc(got[i].reason) : got[i].n+'件')+'</span></button>';
   }
   box.innerHTML = h;
   box.classList.add("on");
@@ -4480,6 +4670,7 @@ window.addEventListener("error", function(ev){
 /* 最後の入力を失わないための保険（外部通信は行わない） */
 document.addEventListener("visibilitychange", function(){
   if(document.visibilityState === "hidden") flushSave();
+  else checkLocalDateChange();
 });
 window.addEventListener("pagehide", flushSave);
 window.addEventListener("blur", flushSave);
@@ -4523,6 +4714,9 @@ document.getElementById("theDate").value = UI.date;
 initUIFromDB();
 autoCarryToday();
 renderAll();
+LAST_LOCAL_DAY = todayYmd();
+FOLLOW_TODAY = true;
+startLocalDateWatch();
 if(LOAD_ERROR){
   var fatalEl = document.getElementById("fatal");
   if(fatalEl){ fatalEl.textContent = LOAD_ERROR; fatalEl.classList.add("on"); }

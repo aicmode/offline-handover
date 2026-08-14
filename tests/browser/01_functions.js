@@ -234,6 +234,61 @@
   document.getElementById("historyKeyword").value = "";
   renderHistory();
 
+  // 日付自動更新：今日を追従中だけ切り替える
+  LAST_LOCAL_DAY = "2026-08-14";
+  setDate("2026-08-14", true);
+  ok("今日を表示中の日付またぎは翌日へ切り替わる", checkLocalDateChange("2026-08-15") && UI.date === "2026-08-15");
+  LAST_LOCAL_DAY = "2026-08-15";
+  setDate("2026-08-10", false);
+  ok("過去日を閲覧中の日付またぎは表示日を維持する", !checkLocalDateChange("2026-08-16") && UI.date === "2026-08-10");
+
+  // 現在の入居者と、日付・関連語を全ユニットから探す
+  var currentPerson = addResident(4,"405","山田 花子");
+  dailyOf("2025-08-14", currentPerson.id).short = "外部受診あり。";
+  dailyOf("2026-08-14", currentPerson.id).short = "微熱あり。体温37.5℃。血糖値を確認。";
+  dailyOf("2026-07-14", currentPerson.id).short = "病院受診の記録。";
+  saveDB();
+  function searchRows(q,u){
+    HISTORY_UI.residentId="";
+    document.getElementById("historyKeyword").value=q;
+    document.getElementById("historyUnit").value=u==null?"":String(u);
+    document.getElementById("historyFrom").value="";
+    document.getElementById("historyTo").value="";
+    document.getElementById("historyKind").value="";
+    document.getElementById("historyOrder").value="new";
+    renderHistory();
+    return document.getElementById("historyResults")._historyRows || [];
+  }
+  var people = searchRows("テスト","").filter(function(x){return x.current;});
+  eq("全ユニット検索は静養室・ユニット2〜5を横断する",
+     Array.from(new Set(people.map(function(x){return x.unit;}))).sort().join(","), "1,2,3,4,5");
+  for(var searchUnit=1;searchUnit<=5;searchUnit++){
+    var unitRows=searchRows("テスト",searchUnit);
+    ok(uLb(searchUnit)+"だけへ絞り込める", unitRows.length>0 && unitRows.every(function(x){return x.unit===searchUnit;}));
+  }
+  var personRows=searchRows("山田","");
+  var currentRow=personRows.filter(function(x){return x.current && x.residentId===currentPerson.id;})[0];
+  ok("名前の部分一致で現在の所属と部屋番号が表示される", !!currentRow
+     && document.getElementById("historyResults").textContent.indexOf("ユニット4")>=0
+     && document.getElementById("historyResults").textContent.indexOf("405号室")>=0);
+  ok("現在地結果に『この人を見る』がある", document.getElementById("historyResults").textContent.indexOf("この人を見る")>=0);
+  openHistorySource(currentRow);
+  ok("現在地結果から該当ユニットへ移動できる", UI.tab==="input" && UI.unit===4 && UI.date===todayYmd());
+  eq("部屋番号でも現在の入居者を探せる",
+     searchRows("405","").filter(function(x){return x.current && x.residentId===currentPerson.id;}).length, 1);
+  eq("年だけで検索できる", searchRows("2025","").filter(function(x){return x.residentId===currentPerson.id;}).length, 1);
+  eq("月だけで検索できる", searchRows("08月","").filter(function(x){return x.residentId===currentPerson.id;}).length, 2);
+  eq("年月を複数表記で検索できる",
+     ["2026年8月","2026/08","2026-08"].map(function(q){
+       return searchRows(q,"").filter(function(x){return x.residentId===currentPerson.id;}).length;
+     }).join(","), "1,1,1");
+  eq("日だけで検索できる", searchRows("14日","").filter(function(x){return x.residentId===currentPerson.id;}).length, 3);
+  ok("病院で外部受診が関連語ヒットする", searchRows("病院","").some(function(x){return x.content.indexOf("外部受診")>=0;}));
+  ok("熱で微熱・体温が関連語ヒットする", searchRows("熱","").some(function(x){return x.content.indexOf("微熱")>=0;}));
+  ok("全角BSで血糖関連がヒットする", searchRows("ＢＳ","").some(function(x){return x.content.indexOf("血糖値")>=0;}));
+  ok("軽い誤字は候補として出す", suggestFor("受信").some(function(x){return x.w==="受診" && x.reason==="入力候補";}));
+  eq("全角半角・かな・余分な空白を正規化する", historyNorm(" ＢＳ　カロ "), "bs かろ");
+
   // ---- 8. バックアップ・復元・破損対策 ---------------------------------
   var good = JSON.parse(JSON.stringify(DB));
   ok("正しいバックアップは検証を通る", validBackup(good));
