@@ -31,6 +31,73 @@
   ok("名前・部屋番号が保存される",
      JSON.parse(localStorage.getItem(KEY)).residents.filter(function(r){return r.id===newId;})[0].name === "テスト 花子");
 
+  // --- 記録する項目：新規は全OFF。必要な項目だけ設定パネルからONにする ---
+  var newRec = residentById(newId).rec;
+  var allOff = true;
+  for(var si=0; si<REC_SHIFTS.length; si++){
+    var shd = REC_SHIFTS[si];
+    for(var ii=0; ii<shd.items.length; ii++){ if(newRec[shd.k][shd.items[ii].k].on) allOff = false; }
+  }
+  ok("新規入居者の記録項目は日勤・夜勤とも全部OFFで始まる", allOff);
+  ok("入力画面にも記録欄が出ない（不要項目をOFFにする手間がない）",
+     !document.querySelector('#inputList .card[data-id="'+newId+'"] [data-vk="day.T"]'));
+
+  function recBox(shift, key){
+    return document.querySelector('#recBody .ri[data-shift="'+shift+'"][data-k="'+key+'"]');
+  }
+  function recToggle(shift, key, sel, on){
+    var el = recBox(shift, key).querySelector(sel);
+    el.checked = (on === undefined) ? !el.checked : on;
+    fire(el, "change");
+  }
+  openRecModal(newId);
+  ok("設定パネルが開く", document.getElementById("recModal").classList.contains("on"));
+  recToggle("day", "T", '[data-x="on"]', true);
+  recToggle("day", "BP", '[data-x="on"]', true);
+  recToggle("day", "BP", '[data-x="wd"][data-d="1"]', true);
+  recToggle("day", "BP", '[data-x="wd"][data-d="4"]', true);
+  recToggle("night", "T", '[data-x="on"]', true);
+  var rec1 = residentById(newId).rec;
+  ok("ONにした項目だけが記録対象になる",
+     rec1.day.T.on === true && rec1.day.BP.on === true && rec1.day.SpO2.on === false);
+  ok("BPの曜日指定（月・木）が保存される",
+     rec1.day.BP.every === false && rec1.day.BP.days.join(",") === "1,4", rec1.day.BP.days.join(","));
+  ok("日勤・夜勤は別々に持つ", rec1.night.T.on === true && rec1.night.BP.on === false);
+
+  // OFF にすると画面・印刷から消えるが、曜日設定は覚えている
+  recToggle("day", "BP", '[data-x="on"]', false);
+  var rec2 = residentById(newId).rec;
+  ok("OFFにした項目は記録対象から外れる", rec2.day.BP.on === false);
+  ok("OFFにした項目の曜日設定は内部に残る", rec2.mem.day.BP.d.join(",") === "1,4", rec2.mem.day.BP.d.join(","));
+  // 再ONで月・木が戻る
+  recToggle("day", "BP", '[data-x="on"]', true);
+  var rec3 = residentById(newId).rec;
+  ok("再ONで前の曜日設定（月・木）が戻る",
+     rec3.day.BP.on === true && rec3.day.BP.every === false && rec3.day.BP.days.join(",") === "1,4",
+     rec3.day.BP.days.join(","));
+  // 火・金へ変更 → 次回はそれが戻る
+  recToggle("day", "BP", '[data-x="wd"][data-d="1"]', false);
+  recToggle("day", "BP", '[data-x="wd"][data-d="4"]', false);
+  recToggle("day", "BP", '[data-x="wd"][data-d="2"]', true);
+  recToggle("day", "BP", '[data-x="wd"][data-d="5"]', true);
+  recToggle("day", "BP", '[data-x="on"]', false);
+  recToggle("day", "BP", '[data-x="on"]', true);
+  var rec4 = residentById(newId).rec;
+  ok("設定を変えたら新しい曜日（火・金）を覚え直す",
+     rec4.day.BP.days.join(",") === "2,5", rec4.day.BP.days.join(","));
+  // 「毎日」も覚える
+  recToggle("day", "T", '[data-x="every"]', true);
+  recToggle("day", "T", '[data-x="on"]', false);
+  recToggle("day", "T", '[data-x="on"]', true);
+  ok("「毎日」も覚えて再ONで戻る", residentById(newId).rec.day.T.every === true);
+  ok("設定パネルに保存ボタンは無い（自動保存のまま）",
+     document.querySelectorAll('#recBody button[data-a="recSave"]').length === 0);
+  var savedRec = JSON.parse(localStorage.getItem(KEY)).residents
+                   .filter(function(r){ return r.id === newId; })[0].rec;
+  ok("設定と設定メモリーは自動保存される",
+     savedRec.day.T.on === true && savedRec.mem.day.BP.d.join(",") === "2,5");
+  closeRecModal();
+
   // --- 入力タブで申し送りを打ち、文章整形ボタンを押す ---
   switchTab("input");
   var card = document.querySelector('#inputList .card[data-id="'+newId+'"]');

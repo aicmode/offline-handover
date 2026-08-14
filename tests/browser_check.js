@@ -15,6 +15,7 @@
      ・07_security.js  … タグ入力が実行されないこと・入力欄の保護属性・
                        壊れた保存データ・不正バックアップ・外部通信0件
      ・08a/08b        … 静養室の入力画面から直接追加・上限・閉じて開き直した後の復元
+     ・11_master_width.js … 入居者一覧の部屋番号・お名前の幅（全ユニット共通）
 
    実行：
      node tests/browser_check.js
@@ -150,7 +151,9 @@ function main(){
     { files:["09_fixed_example.js"],
       title:"固定記入例（人数・上限・保存・印刷・検索・並び替え・操作不可）" },
     { files:["10a_legacy_sample_write.js", "10b_legacy_sample_read.js"],
-      title:"旧見本入居者の整理（旧見本だけを消し、実データは残す）" }
+      title:"旧見本入居者の整理（旧見本だけを消し、実データは残す）" },
+    { files:["11_master_width.js"],
+      title:"入居者一覧の幅（部屋番号は狭く・お名前は広く／全ユニット共通）" }
   ];
 
   /* 引数を渡すと、その名前を含む検証だけを実行する（例： node tests/browser_check.js 07） */

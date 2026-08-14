@@ -37,6 +37,18 @@
   ok("追加時の3項目を同じ入居者データへ保存",
      added.room === "静養1" && added.name === "静養テスト" && added.permShort === "転倒注意・水分トロミ");
 
+  // 新規は記録項目が全OFFなので、静養室でも設定パネルから必要な項目だけONにする
+  ok("静養室の新規入居者も記録項目は全OFFから始まる",
+     added.rec.day.T.on === false && added.rec.night.T.on === false);
+  openRecModal(added.id);
+  [["day","T"],["night","T"]].forEach(function(p){
+    var el = document.querySelector('#recBody .ri[data-shift="'+p[0]+'"][data-k="'+p[1]+'"] [data-x="on"]');
+    el.checked = true; fire(el, "change");
+  });
+  closeRecModal();
+  switchTab("input");
+  card = document.querySelector('#inputList .card[data-id="'+added.id+'"]');
+
   var handover = card.querySelector('[data-f="todayShort"]');
   handover.value = "発熱 38.1 水分摂取"; fire(handover,"input");
   var dayT = card.querySelector('[data-vk="day.T"]');

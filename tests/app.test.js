@@ -184,7 +184,7 @@ function run(){
     const added = app.addResident(1, { room:"静養1", name:"静養テスト", permShort:"転倒注意" });
     assert.ok(added);
     assert.equal(app.registeredCountOf(1), 1);
-    assert.equal(added.rec.day.T.on, true);
+    assert.equal(added.rec.day.T.on, false);   // 新規は全項目OFFから始める
     const saved = JSON.parse(storage.get(app.KEY));
     assert.equal(saved.residents.find((r) => r.id === added.id).permShort, "転倒注意");
     app.DB.residents = app.DB.residents.filter((r) => r.id !== added.id);
@@ -568,6 +568,157 @@ function run(){
     assert.equal(app.dailyGet("2026-08-14", "sample-3").short, "同名IDでも残す記録");
     assert.equal(app.residentById("sample-2"), null);
     app.DB = keep;
+  });
+
+  console.log("\n■ 6a. 記録する項目（新規は全OFF・OFFにしても曜日設定を覚える）");
+  check("新規入居者の記録項目は日勤・夜勤とも全部OFFで始まる", () => {
+    const rec = app.defaultRec();
+    for(const sh of app.REC_SHIFTS){
+      for(const it of sh.items){
+        assert.equal(rec[sh.k][it.k].on, false, sh.lb + it.lb);
+      }
+    }
+    assert.equal(rec.custom.length, 0);
+  });
+  check("入居者ごとに別々の設定を持てる（日勤・夜勤も別）", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const a = makeResident(app, 2, "201", "設定 太郎", { id:"rec-a" });
+    const b = makeResident(app, 2, "202", "設定 花子", { id:"rec-b" });
+    a.rec.day.T.on = true;
+    a.rec.day.BP.on = true; a.rec.day.BP.every = false; a.rec.day.BP.days = [1, 4];
+    a.rec.night.BP.on = false;
+    b.rec.day.SpO2.on = true;
+    app.saveDB();
+    app.loadDB();
+    const a2 = app.residentById("rec-a"), b2 = app.residentById("rec-b");
+    assert.equal(a2.rec.day.T.on, true);
+    assert.equal(a2.rec.day.BP.days.join(","), "1,4", "曜日指定が残る");
+    assert.equal(a2.rec.day.BP.every, false);
+    assert.equal(a2.rec.night.BP.on, false, "夜勤は日勤と別に持つ");
+    assert.equal(b2.rec.day.T.on, false, "他の入居者の設定は変わらない");
+    assert.equal(b2.rec.day.SpO2.on, true);
+    app.DB = keep;
+    app.saveDB();
+  });
+  check("OFFにしても曜日設定を覚え、再ONで元へ戻す", () => {
+    const rec = app.defaultRec();
+    const bp = rec.day.BP;
+    bp.on = true; bp.every = false; bp.days = [1, 4];
+    app.rememberRecDays(rec, "day", "BP", bp, false);
+    // OFF にする（表示・印刷からは消える）
+    app.rememberRecDays(rec, "day", "BP", bp, false);
+    bp.on = false;
+    bp.days = [];  bp.every = true;                 // 画面上で消えた状態でも
+    assert.equal(app.itemActive(bp, 1), false, "OFFの間は対象曜日でも出ない");
+    // 再び ON にする
+    assert.equal(app.restoreRecDays(rec, "day", "BP", bp, false), true);
+    bp.on = true;
+    assert.equal(bp.days.join(","), "1,4", "月・木が戻る");
+    assert.equal(bp.every, false);
+    assert.equal(app.itemActive(bp, 1), true);
+    assert.equal(app.itemActive(bp, 2), false);
+  });
+  check("「毎日」も覚えて再ONで戻し、変更したら新しい設定を覚え直す", () => {
+    const rec = app.defaultRec();
+    const t = rec.day.T;
+    t.on = true; t.every = true; t.days = [];
+    app.rememberRecDays(rec, "day", "T", t, false);
+    t.on = false;
+    t.on = true;
+    app.restoreRecDays(rec, "day", "T", t, false);
+    assert.equal(t.every, true, "毎日が戻る");
+    // 火・金へ変更 → 次からは火・金が戻る
+    t.every = false; t.days = [2, 5];
+    app.rememberRecDays(rec, "day", "T", t, false);
+    t.on = false; t.days = []; t.every = true;
+    app.restoreRecDays(rec, "day", "T", t, false);
+    assert.equal(t.days.join(","), "2,5");
+    assert.equal(t.every, false);
+  });
+  check("翌朝BS・ターゲスBSは曜日だけを覚える（毎日にはしない）", () => {
+    const rec = app.defaultRec();
+    const nb = rec.night.nextMorningBS;
+    nb.on = true; nb.days = [3];
+    app.rememberRecDays(rec, "night", "nextMorningBS", nb, true);
+    nb.on = false; nb.days = [];
+    app.restoreRecDays(rec, "night", "nextMorningBS", nb, true);
+    assert.equal(nb.days.join(","), "3");
+    assert.equal(nb.every, false, "曜日指定だけの項目に毎日は付けない");
+  });
+  check("設定メモリーは保存・再読込をまたいで残る", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const r = makeResident(app, 3, "301", "記憶 太郎", { id:"rec-mem" });
+    const bp = r.rec.day.BP;
+    bp.on = true; bp.every = false; bp.days = [1, 4];
+    app.rememberRecDays(r.rec, "day", "BP", bp, false);
+    bp.on = false;
+    app.saveDB();
+    app.loadDB();
+    const r2 = app.residentById("rec-mem");
+    assert.equal(r2.rec.day.BP.on, false, "OFFのまま（勝手にONへ戻さない）");
+    assert.equal(r2.rec.mem.day.BP.d.join(","), "1,4", "曜日の覚え書きが残る");
+    const st = r2.rec.day.BP;
+    st.days = []; st.every = true;
+    assert.equal(app.restoreRecDays(r2.rec, "day", "BP", st, false), true);
+    assert.equal(st.days.join(","), "1,4");
+    app.DB = keep;
+    app.saveDB();
+  });
+  check("既存入居者の設定は勝手に全OFFにならず、いまの設定がメモリーの初期値になる", () => {
+    const keep = app.DB;
+    app.DB = {
+      v: 8,
+      residents: [{
+        id: "old-rec", unit: 4, room: "401", name: "既存 太郎", order: 0, status: "in",
+        permRaw: "", permShort: "", autoCarry: true,
+        rec: {
+          day:   { T:{on:true,every:true,days:[]}, BP:{on:true,every:false,days:[1,4]},
+                   SpO2:{on:false,every:true,days:[]} },
+          night: { T:{on:true,every:true,days:[]} }
+        }
+      }],
+      daily: {}, schedules: [], recurring: [], history: { version:1 }, settings: {}
+    };
+    app.migrate();
+    const rec = app.DB.residents[0].rec;
+    assert.equal(rec.day.T.on, true, "既存のONを消さない");
+    assert.equal(rec.day.BP.on, true);
+    assert.equal(rec.day.BP.days.join(","), "1,4");
+    assert.equal(rec.day.SpO2.on, false, "既存のOFFも変えない");
+    assert.equal(rec.mem.day.BP.d.join(","), "1,4", "いまの設定をメモリーの初期値にする");
+    assert.equal(rec.mem.day.T.e, true);
+    assert.ok(!rec.mem.day.SpO2, "使っていない項目の覚え書きは作らない（データを増やさない）");
+    assert.equal(app.DB.v, 8, "この追加でデータ版数は上げない");
+    const once = JSON.stringify(app.DB);
+    app.migrate();
+    assert.equal(JSON.stringify(app.DB), once, "何度migrateしてもメモリーは増えない");
+    app.DB = keep;
+    app.saveDB();
+  });
+  check("旧データは今までどおり補い、新方式のデータは足りない項目もOFFで補う", () => {
+    const legacy = app.normRec({ day: { T: { on:true, every:true, days:[] } }, night: {} });
+    assert.equal(legacy.day.T.on, true, "旧データの設定はそのまま");
+    assert.equal(legacy.day.P.on, true, "旧データは今までどおりの初期値で補う（設定を変えない）");
+    const modern = app.normRec({
+      day: { T: { on:true, every:true, days:[] } }, night: {},
+      mem: { day:{ T:{ e:true, d:[] } }, night:{}, custom:{} }
+    });
+    assert.equal(modern.day.T.on, true);
+    assert.equal(modern.day.P.on, false, "新方式のデータは足りない項目を勝手にONにしない");
+  });
+  check("設定メモリーは項目ごとに曜日だけを持ち、履歴を貯めない", () => {
+    const rec = app.defaultRec();
+    const bp = rec.day.BP;
+    for(let i = 0; i < 50; i++){
+      bp.every = false; bp.days = [i % 7];
+      app.rememberRecDays(rec, "day", "BP", bp, false);
+    }
+    assert.equal(Object.keys(rec.mem.day).length, 1, "何度変えても1項目1件のまま");
+    assert.equal(Object.keys(rec.mem.day.BP).sort().join(","), "d,e");
+    assert.equal(rec.mem.day.BP.d.join(","), String(49 % 7), "最後の設定だけを持つ");
+    assert.equal(rec.mem.day.memo, undefined, "曜日を持たない項目は覚えない");
   });
 
   console.log("\n■ 7. バックアップの検証（壊れたファイルで消さない）");
@@ -986,6 +1137,24 @@ function run(){
     assert.equal(({}).汚染, undefined, "他の場所へ影響していない");
     assert.equal(Object.prototype.hasOwnProperty.call(app.DB.daily, "__proto__"), false,
       "危険なキーは取り除く");
+    app.DB = keep;
+    app.saveDB();
+  });
+  check("独自項目のIDを細工しても設定メモリーから土台を汚せない", () => {
+    const keep = app.DB;
+    const evil = JSON.parse('{"residents":[{"id":"evil","unit":2,"room":"201","name":"細工",'
+      + '"rec":{"day":{},"night":{},"custom":[{"id":"__proto__","name":"水分量","shift":"day",'
+      + '"on":true,"every":false,"days":[1]}],'
+      + '"mem":{"day":{},"night":{},"custom":{"__proto__":{"e":true,"d":[1]}}}}}],'
+      + '"daily":{},"vitals":{},"schedules":[],"recurring":[],"settings":{}}');
+    app.DB = evil;
+    app.migrate();
+    const mem = app.DB.residents[0].rec.mem;
+    assert.equal(({}).e, undefined, "他の場所へ影響していない");
+    assert.equal(Object.prototype.hasOwnProperty.call(mem.custom, "__proto__"), false,
+      "危険なIDは設定メモリーのキーにしない");
+    assert.equal(mem.custom.e, undefined, "土台を差し替えて値を紛れ込ませられない");
+    assert.equal(mem.custom.d, undefined);
     app.DB = keep;
     app.saveDB();
   });

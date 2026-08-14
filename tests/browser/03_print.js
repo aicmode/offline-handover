@@ -10,11 +10,23 @@
                "仙骨部の処置実施。発赤の範囲に変化なし。夕食10割。",
                "BS 156。指示どおり実施。排便1回。",""];
   var counts = { 1:4, 2:34, 3:30, 4:30, 5:30 };
+  // 新規入居者は全項目OFFから始まるので、印刷レイアウトの検証では
+  // 通常の項目（T・P・BP・SpO2・食事・Hr）をONにして、いちばん詰まった状態で測る
+  function fullRec(){
+    var rec = defaultRec();
+    for(var s=0;s<REC_SHIFTS.length;s++){
+      var sh = REC_SHIFTS[s];
+      for(var j=0;j<sh.items.length;j++){
+        if(!sh.items[j].defOff) rec[sh.k][sh.items[j].k].on = true;
+      }
+    }
+    return rec;
+  }
   var n = 0;
   for(var u in counts){
     for(var i=0;i<counts[u];i++){
       var id = "p-"+u+"-"+i;
-      var rec = defaultRec();
+      var rec = fullRec();
       if(i % 4 === 0){ rec.day.normalBS = {on:true,every:true,days:[]}; rec.night.nightBS = {on:true,every:true,days:[]}; }
       if(i % 5 === 0){ rec.day.BW = {on:true,every:true,days:[]}; }
       if(i % 7 === 0){ rec.custom.push(normCustom({id:"c"+id,name:"水分量",unit:"ml",shift:"day",size:"l",on:true,every:true,days:[]})); }

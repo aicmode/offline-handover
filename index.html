@@ -154,7 +154,8 @@ textarea.draft{min-height:56px;background:var(--soft)}
   border-radius:8px;background:#f4f8fc}
 .resident-add.on{display:block}
 .resident-add .add-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:9px}
-.resident-add .add-grid{display:grid;grid-template-columns:130px minmax(180px,1fr) minmax(260px,2fr);gap:10px}
+/* 一覧と同じ考え方で、部屋番号は狭く・お名前は広く取る */
+.resident-add .add-grid{display:grid;grid-template-columns:92px minmax(240px,1.6fr) minmax(230px,1fr);gap:10px}
 .resident-add label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:800;color:var(--accent)}
 .resident-add input,.resident-add textarea{padding:7px 9px;border:1px solid var(--line);border-radius:6px;
   background:#fff;font-size:14px;color:var(--ink)}
@@ -200,6 +201,17 @@ table.master input[type=text]{width:100%;padding:5px 6px;border:1px solid transp
 table.master input[type=text]:focus{border-color:var(--accent);background:#fff;outline:none}
 table.master td.ord{width:74px;white-space:nowrap}
 table.master tr.sample-row{background:#fffdf6}
+/* 部屋番号は「201」「静養1」程度なので狭く、お名前は氏名全体が見える幅を優先する。
+   静養室・ユニット2〜5は同じ表を使うため、この指定だけで全ユニットが同じ幅になる。 */
+table.master th.c-room{width:76px}
+table.master td.c-room input[type=text]{min-width:54px}
+table.master th.c-name{width:250px}
+table.master td.c-name input[type=text]{min-width:170px}
+/* 表は横スクロールできる枠の中にあるので、狭い画面では下限だけ緩めて崩れを防ぐ */
+@media (max-width:820px){
+  table.master th.c-name{width:190px}
+  table.master td.c-name input[type=text]{min-width:130px}
+}
 .iconbtn{border:1px solid var(--line);background:#fff;border-radius:4px;width:26px;height:26px;line-height:1;padding:0}
 .pill{font-size:11px;border-radius:10px;padding:2px 9px;border:1px solid;font-weight:700}
 .pill.in{color:var(--accent2);border-color:var(--accent2);background:#eef4fb}
@@ -713,7 +725,7 @@ tr.left-row input[type=text]{color:#6a7581}
       <table class="master">
         <thead>
           <tr>
-            <th class="ord">並び</th><th style="width:105px">部屋番号</th><th>お名前</th>
+            <th class="ord">並び</th><th class="c-room">部屋番号</th><th class="c-name">お名前</th>
             <th style="width:100px">状況</th><th style="width:120px">いる場所</th><th>毎日つづく大事なこと</th>
             <th style="width:110px">前日引継ぎ</th>
             <th style="width:180px">記録する項目</th><th style="width:170px">操作</th>
@@ -1175,6 +1187,8 @@ function newId(){ return "r" + Date.now().toString(36) + Math.random().toString(
 /* =========================================================
    記録項目（入居者ごと / 日勤・夜勤別 / 曜日指定）
    設定は入居者マスター（DB.residents[].rec）に固定保存する
+   ・新規入居者は全項目OFFから始め、必要な項目だけ職員がONにする
+   ・OFFにしても曜日設定は rec.mem に残し、再びONにしたときへ引き継ぐ
    ========================================================= */
 var REC_DAY_ITEMS = [
   {k:"T",     lb:"T",       g:"vit"},
@@ -1214,13 +1228,16 @@ function recItemDef(shift, key){
   return null;
 }
 function newRecItem(on, daysOnly){ return { on:!!on, every:!daysOnly, days:[] }; }
+/* 新しく登録する入居者の初期値。
+   ★ 必要な項目は人によって違うため、最初はすべてOFFから始める。
+     （不要な項目を大量にOFFへ戻す手間をなくすため。内部で必ずONが要る項目は無い） */
 function defaultRec(){
-  var rec = { day:{}, night:{}, custom:[] };
+  var rec = { day:{}, night:{}, custom:[], mem:newRecMem() };
   for(var s=0;s<REC_SHIFTS.length;s++){
     var sh = REC_SHIFTS[s];
     for(var i=0;i<sh.items.length;i++){
       var it = sh.items[i];
-      rec[sh.k][it.k] = newRecItem(!it.defOff, !!it.daysOnly);
+      rec[sh.k][it.k] = newRecItem(false, !!it.daysOnly);
     }
   }
   return rec;
@@ -1270,11 +1287,97 @@ function normCustom(c){
     days : days
   };
 }
+/* =========================================================
+   設定メモリー（入居者ごと・完全オフライン）
+   ---------------------------------------------------------
+   ・項目をOFFにしても「最後に使っていた曜日設定」だけを覚えておき、
+     後日また同じ項目をONにしたときに、その設定へ戻せるようにする
+   ・持つのは項目1つにつき { e:毎日かどうか, d:[曜日] } だけ。
+     履歴も日別のコピーも作らないので、長く使ってもデータは増えない
+   ・「いま表示する設定」（rec.day / rec.night / rec.custom）とは別に持つため、
+     印刷・入力画面はこれまでどおり on と曜日だけで決まる（メモリーは表示に影響しない）
+   ========================================================= */
+function newRecMem(){ return { day:{}, night:{}, custom:{} }; }
+/* 独自項目のIDはそのままキーになるため、細工したバックアップで
+   JavaScript の共通の土台（プロトタイプ）を書き換えられない名前だけを使う */
+function safeMemKey(k){
+  return !!k && k !== "__proto__" && k !== "constructor" && k !== "prototype";
+}
+function normMemEntry(v, daysOnly){
+  if(!v || typeof v !== "object" || Array.isArray(v)) return null;
+  var days = normDays(v.d);
+  return { e: daysOnly ? false : ((typeof v.e === "boolean") ? v.e : !days.length), d: days };
+}
+/* 保存されているメモリーを整える。
+   ★ メモリーが無い旧データだけ、いま保存されている設定を初回の覚え書きとして写す。
+     （現在の ON/OFF・曜日そのものは一切書き換えない） */
+function normRecMem(src, rec){
+  var seed = !(src && typeof src === "object" && !Array.isArray(src));
+  var got  = seed ? {} : src;
+  var mem  = newRecMem();
+  for(var s=0;s<REC_SHIFTS.length;s++){
+    var sh = REC_SHIFTS[s];
+    var gs = (got[sh.k] && typeof got[sh.k] === "object" && !Array.isArray(got[sh.k])) ? got[sh.k] : {};
+    for(var i=0;i<sh.items.length;i++){
+      var it = sh.items[i];
+      if(it.noWd) continue;                       // 曜日を持たない項目（メモ）は覚える必要がない
+      var st = rec[sh.k][it.k];
+      var m  = normMemEntry(ownValue(gs, [it.k]), !!it.daysOnly);
+      if(!m && seed && st && (st.on || st.days.length)) m = { e:!!st.every, d:st.days.slice() };
+      if(m) mem[sh.k][it.k] = m;                  // 意味のある設定だけを持つ（空の覚え書きは作らない）
+    }
+  }
+  var gc = (got.custom && typeof got.custom === "object" && !Array.isArray(got.custom)) ? got.custom : {};
+  for(var c=0;c<rec.custom.length;c++){
+    var cc = rec.custom[c];
+    if(!safeMemKey(cc.id)) continue;
+    var cm = normMemEntry(ownValue(gc, [cc.id]), false);
+    if(!cm && seed && (cc.on || cc.days.length)) cm = { e:!!cc.every, d:cc.days.slice() };
+    if(cm) mem.custom[cc.id] = cm;                // 削除した独自項目のメモリーは残さない
+  }
+  return mem;
+}
+function recMemOf(rec){
+  if(!rec.mem || typeof rec.mem !== "object" || Array.isArray(rec.mem)) rec.mem = newRecMem();
+  if(!rec.mem.day    || typeof rec.mem.day    !== "object") rec.mem.day    = {};
+  if(!rec.mem.night  || typeof rec.mem.night  !== "object") rec.mem.night  = {};
+  if(!rec.mem.custom || typeof rec.mem.custom !== "object") rec.mem.custom = {};
+  return rec.mem;
+}
+function recMemBucket(rec, bucket){
+  var m = recMemOf(rec);
+  return (bucket === "custom") ? m.custom : m[bucket === "night" ? "night" : "day"];
+}
+/* いまの曜日設定を「最後に使っていた設定」として覚え直す（職員が変えたら上書きする） */
+function rememberRecDays(rec, bucket, key, st, daysOnly){
+  if(!safeMemKey(key)) return;
+  recMemBucket(rec, bucket)[key] = { e: daysOnly ? false : !!st.every, d: st.days.slice() };
+}
+/* 再びONにしたとき、最後に使っていた曜日設定へ戻す */
+function restoreRecDays(rec, bucket, key, st, daysOnly){
+  if(!safeMemKey(key)) return false;
+  var b = recMemBucket(rec, bucket);
+  var m = Object.prototype.hasOwnProperty.call(b, key) ? b[key] : null;
+  if(!m || typeof m !== "object" || Array.isArray(m)) return false;
+  st.every = daysOnly ? false : !!m.e;
+  st.days  = normDays(m.d);
+  return true;
+}
+function forgetRecDays(rec, bucket, key){
+  if(!safeMemKey(key)) return;
+  var b = recMemBucket(rec, bucket);
+  if(Object.prototype.hasOwnProperty.call(b, key)) delete b[key];
+}
+
 /* 既存データに rec が無くても停止しないよう、足りない部分だけ初期値で補う
    （利用者が設定済みの値は書き換えない） */
 function normRec(v){
   var src = (v && typeof v === "object" && !Array.isArray(v)) ? v : {};
   var rec = { day:{}, night:{}, custom:[] };
+  /* mem を持つデータは「全項目OFFから始める版」以降で保存されたもの。
+     その場合、将来項目を増やしても勝手にONにせずOFFで足す。
+     mem が無い旧データは、これまでどおりの初期値で補う（既存の設定を変えないため）。 */
+  var newStyle = !!(src.mem && typeof src.mem === "object" && !Array.isArray(src.mem));
   for(var s=0;s<REC_SHIFTS.length;s++){
     var sh = REC_SHIFTS[s];
     var got = (src[sh.k] && typeof src[sh.k] === "object" && !Array.isArray(src[sh.k])) ? src[sh.k] : {};
@@ -1286,7 +1389,7 @@ function normRec(v){
       var saved = ownValue(got, aliases);
       if(saved === undefined && sh.k === "day" && it.k === "normalBS") saved = ownValue(src, aliases);
       else if(saved === undefined && Object.prototype.hasOwnProperty.call(src, it.k)) saved = src[it.k];
-      rec[sh.k][it.k] = normRecItem(saved, !it.defOff, !!it.daysOnly);
+      rec[sh.k][it.k] = normRecItem(saved, newStyle ? false : !it.defOff, !!it.daysOnly);
     }
     for(var oldKey in got){
       if(!Object.prototype.hasOwnProperty.call(rec[sh.k], oldKey)) rec[sh.k][oldKey] = got[oldKey];
@@ -1299,8 +1402,9 @@ function normRec(v){
     }
   }
   for(var rootKey in src){
-    if(rootKey !== "day" && rootKey !== "night" && rootKey !== "custom") rec[rootKey] = src[rootKey];
+    if(rootKey !== "day" && rootKey !== "night" && rootKey !== "custom" && rootKey !== "mem") rec[rootKey] = src[rootKey];
   }
+  rec.mem = normRecMem(src.mem, rec);
   return rec;
 }
 function recOf(r){
@@ -2697,8 +2801,8 @@ function renderMaster(){
         + '<button class="iconbtn" data-a="up" title="手動順のときに使えます" '+(!manual||i===0?"disabled":"")+'>↑</button> '
         + '<button class="iconbtn" data-a="down" title="手動順のときに使えます" '+(!manual||i===list.length-1?"disabled":"")+'>↓</button>'
       + '</td>'
-      + '<td><input type="text" data-f="room" value="'+esc(r.room)+'"></td>'
-      + '<td><input type="text" data-f="name" value="'+esc(r.name)+'">'
+      + '<td class="c-room"><input type="text" data-f="room" value="'+esc(r.room)+'"></td>'
+      + '<td class="c-name"><input type="text" data-f="name" value="'+esc(r.name)+'">'
         + (sample ? '<div class="mini"><span class="sample-tag">見本</span></div>' : '') + '</td>'
       + '<td><button class="pill '+stCls+'" data-a="toggle"'
         + (left ? ' disabled title="退居中です。「復帰」で戻せます。"' : ' title="空床にすると人数と印刷から外れます。"')
@@ -2836,12 +2940,15 @@ function renderRecModal(){
     + '<span class="un">' + esc(uLb(r.unit)) + '</span>'
     + (r.status === "empty" ? '<span class="un">空床</span>' : '')
     + (isSample(r) ? '<span class="un">見本</span>' : '');
-  document.getElementById("recNote").textContent = "この設定は入居者ごとに保存され、日付が変わっても続きます（自動保存）。";
+  document.getElementById("recNote").textContent =
+    "この設定は入居者ごとに保存され、日付が変わっても続きます（自動保存）。必要な項目だけONにしてください。";
 
   var dayLb = activeLabels(rec, "day", UI.date), niLb = activeLabels(rec, "night", UI.date);
   var h = '<p class="hint" style="margin:0 0 10px">'
     + 'ONにした項目だけが用紙に印刷されます（OFFの項目は記入線ごと出ません）。'
     + '曜日を指定した項目は、その曜日だけ表示されます。「翌朝BS」だけは、指定した朝の<b>前日の夜勤欄</b>に出ます。'
+    + '<br>OFFにすると用紙にも入力画面にも出ませんが、<b>その項目に設定した曜日は覚えています</b>。'
+    + 'もう一度ONにすると、前に使っていた曜日（毎日・月・木など）へ戻ります。'
     + '</p>'
     + '<div class="cand" style="margin:0 0 12px">'
       + '<div class="ttl">' + esc(jpDate(UI.date)) + ' に印刷される項目</div>'
@@ -4401,7 +4508,22 @@ document.getElementById("recBody").addEventListener("change", function(e){
     for(var i=0;i<rec.custom.length;i++){ if(rec.custom[i].id === cid){ st = rec.custom[i]; break; } }
   }
   if(!st) return;
-  if(x === "on") st.on = e.target.checked;
+  /* 設定メモリー用の置き場所。日勤・夜勤・独自項目をそれぞれ別に覚える */
+  var def      = ri ? recItemDef(ri.getAttribute("data-shift"), ri.getAttribute("data-k")) : null;
+  var bucket   = ri ? ri.getAttribute("data-shift") : "custom";
+  var memKey   = ri ? ri.getAttribute("data-k") : (cu ? cu.getAttribute("data-cid") : "");
+  var daysOnly = !!(def && def.daysOnly);
+  var noWd     = !!(def && def.noWd);
+  if(x === "on"){
+    var was = st.on;
+    st.on = e.target.checked;
+    /* OFF にしても曜日設定は消さず覚えておき、もう一度 ON にしたら元へ戻す。
+       表示・印刷はあくまで on と曜日で決まるので、OFFの間は出ない。 */
+    if(!noWd && st.on !== was){
+      if(st.on) restoreRecDays(rec, bucket, memKey, st, daysOnly);
+      else      rememberRecDays(rec, bucket, memKey, st, daysOnly);
+    }
+  }
   if(x === "every"){ st.every = e.target.checked; }
   if(x === "wd"){
     var d = parseInt(e.target.getAttribute("data-d"), 10);
@@ -4409,9 +4531,10 @@ document.getElementById("recBody").addEventListener("change", function(e){
     if(e.target.checked){ if(at < 0) st.days.push(d); }
     else if(at >= 0) st.days.splice(at, 1);
     st.days.sort(function(a,b){ return a-b; });
-    var def = ri ? recItemDef(ri.getAttribute("data-shift"), ri.getAttribute("data-k")) : null;
-    if(st.days.length || (def && def.daysOnly)) st.every = false;
+    if(st.days.length || daysOnly) st.every = false;
   }
+  /* 職員が曜日を変えたら、それを新しい「最後の設定」として覚え直す */
+  if(!noWd && (x === "every" || x === "wd")) rememberRecDays(rec, bucket, memKey, st, daysOnly);
   if(x === "shift") st.shift = (e.target.value === "night" || e.target.value === "both") ? e.target.value : "day";
   if(x === "size")  st.size  = (e.target.value === "s" || e.target.value === "l") ? e.target.value : "m";
   recChanged();
@@ -4452,6 +4575,7 @@ document.getElementById("recBody").addEventListener("click", function(e){
     for(var i=0;i<rec.custom.length;i++){ if(rec.custom[i].id === cid){ c = rec.custom[i]; break; } }
     if(c && c.name.trim() && !confirm("項目「" + c.name.trim() + "」を削除します。よろしいですか？")) return;
     rec.custom = rec.custom.filter(function(x){ return x.id !== cid; });
+    forgetRecDays(rec, "custom", cid);   // 消した項目の設定メモリーは残さない
     recChanged();
     toast("項目を削除しました");
     return;
