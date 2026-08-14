@@ -5,7 +5,7 @@
   var pass=0, fail=0, lines=[];
   function ok(n,c,e){ if(c){pass++;lines.push("PASS  "+n);} else {fail++;lines.push("FAIL  "+n+(e!==undefined?"  → "+e:""));} }
   ok("旧版の入居者3名がそのまま読める", DB.residents.length === 3, DB.residents.length);
-  ok("既存データがあるので見本は追加されない", DB.residents.filter(isSample).length === 0);
+  ok("更新後も保存型の旧見本は追加されない", DB.residents.filter(isSample).length === 0);
   var l1 = residentById("L1");
   ok("氏名・部屋番号が保持される", !!l1 && l1.name === "旧版 一郎" && l1.room === "210");
   ok("常設メモが保持される", !!l1 && l1.permShort === "歩行見守り", l1 && l1.permShort);

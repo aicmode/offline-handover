@@ -1,6 +1,6 @@
 (function(){
   var lines = [];
-  // 見本を消し、実運用に近い人数（静養室4／U2:34／U3-5:30）を作る
+  // 実運用に近い人数（静養室4／U2:34／U3-5:30）を作る
   DB.residents = DB.residents.filter(function(r){ return !isSample(r); });
   DB.schedules = []; DB.recurring = [];
   var PERM = ["歩行見守り・転倒注意","移乗2人介助・褥瘡処置","食事・水分トロミ・誤嚥注意",

@@ -13,6 +13,7 @@
   DB.recurring.push({ id:"mv-r", unit:2, residentId:"mv1", shift:"night", days:[1],
     title:"移動テストBS", time:"", note:"", on:true, demo:false });
   dailyOf("2026-08-14","mv1").short = "移動前の申し送り";
+  vitalsSet("2026-08-14","mv1","day.T","37.2");
   saveDB();
   UI.unit = 2; switchTab("master");
 
@@ -25,8 +26,13 @@
   ok("静養室へ移動できる", residentById("mv1").unit === 1, residentById("mv1").unit);
   ok("移動すると印刷が5枚構成になる", unitsForPrint().join(",") === "1,2,3,4,5", unitsForPrint().join(","));
   ok("過去の申し送りは残る", dailyGet("2026-08-14","mv1").short === "移動前の申し送り");
+  ok("過去のバイタルも残る", vitalsGet("2026-08-14","mv1")["day.T"] === "37.2");
   ok("予定も一緒に移る", DB.schedules.filter(function(s){return s.id==="mv-s";})[0].unit === 1);
   ok("定期予定も一緒に移る", DB.recurring.filter(function(r){return r.id==="mv-r";})[0].unit === 1);
+  HISTORY_CACHE = null;
+  ok("移動後も過去記録を検索できる", buildHistoryIndex().some(function(x){
+    return x.residentId === "mv1" && x.content.indexOf("移動前の申し送り") >= 0;
+  }));
   ok("静養室の用紙に載る", printableOf(1).filter(function(r){return r.id==="mv1";}).length === 1);
   ok("元のユニットからは外れる", printableOf(2).filter(function(r){return r.id==="mv1";}).length === 0);
 

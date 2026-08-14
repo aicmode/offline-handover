@@ -6,6 +6,7 @@
   vitalsSet("2026-08-14","reload-1","day.T","37.4");
   DB.recurring.push({ id:"reload-rep", unit:3, residentId:"reload-1", shift:"night", days:[1],
     title:"再読込テストBS", time:"", note:"", on:true, demo:false });
+  DB.settings.residentSort = "updated";
   saveDB();
   document.getElementById("TESTOUT").textContent =
     "PASS  入力を保存しました（residents=" + DB.residents.length + "）\n\nRESULT pass=1 fail=0 errors=0";

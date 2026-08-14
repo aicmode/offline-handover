@@ -131,14 +131,19 @@
   click("guideClose");
   ok("使い方が閉じる", !document.getElementById("guideModal").classList.contains("on"));
 
-  // --- 見本の削除 ---
+  // --- 並び順UIと固定記入例 ---
   switchTab("master");
-  var wasSamples = DB.residents.filter(isSample).length;
-  click("btnRemoveSamples");
-  ok("見本の入居者をまとめて削除できる", wasSamples === 4 && DB.residents.filter(isSample).length === 0);
-  ok("見本の予定・定期予定も消える",
-     DB.schedules.filter(function(s){return s.demo;}).length === 0
-     && DB.recurring.filter(function(r){return r.demo;}).length === 0);
+  var dbOrder = DB.residents.map(function(r){return r.id;}).join(",");
+  var sort = document.getElementById("residentSort");
+  sort.value = "name"; fire(sort, "change");
+  ok("五十音順へ切り替えられる", DB.settings.residentSort === "name");
+  sort.value = "updated"; fire(sort, "change");
+  ok("最近編集した順へ切り替えられる", DB.settings.residentSort === "updated");
+  ok("ソート切替でDB配列順を書き換えない", DB.residents.map(function(r){return r.id;}).join(",") === dbOrder);
+  switchTab("input");
+  ok("固定記入例は折りたたみで実カードの外側にある",
+     !!document.querySelector("#fixedExampleHost details.fixed-example")
+     && document.querySelectorAll("#fixedExampleHost .card").length === 0);
   ok("実データの入居者は残る", !!residentById(newId));
 
   var errs = window.__ERR || [];

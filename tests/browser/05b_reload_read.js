@@ -13,8 +13,12 @@
   ok("定期予定が二重に増えていない",
      DB.recurring.filter(function(x){ return x.title === "再読込テストBS"; }).length === 1,
      DB.recurring.filter(function(x){ return x.title === "再読込テストBS"; }).length);
-  ok("見本が作り直されていない", DB.residents.filter(isSample).length === 4,
+  ok("保存される旧見本が作り直されていない", DB.residents.filter(isSample).length === 0,
      DB.residents.filter(isSample).length);
+  ok("固定記入例は再読込後も静的UIとして表示される",
+     document.getElementById("fixedExampleHost").textContent.indexOf("記入例") >= 0);
+  ok("選んだ並び順が再読込後も残る", DB.settings.residentSort === "updated",
+     DB.settings.residentSort);
   ok("月曜夜勤は日曜の用紙に出る（再読込後も）",
      recurringForSheet("2026-08-16",{unit:3}).night.filter(function(x){ return x.rule.id === "reload-rep"; }).length === 1);
   var errs = window.__ERR || [];

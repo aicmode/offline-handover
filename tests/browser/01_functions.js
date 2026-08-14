@@ -19,25 +19,26 @@
   eq("ユニット5の上限", uMax(5), 30);
   eq("静養室ラベル", uLb(1), "静養室");
 
-  // ---- 2. 見本の入居者 -------------------------------------------------
-  var samples = DB.residents.filter(isSample);
-  eq("見本は4人", samples.length, 4);
-  eq("見本はユニット2〜5に1人ずつ",
-     [2,3,4,5].map(function(u){ return DB.residents.filter(function(r){ return isSample(r) && r.unit===u; }).length; }).join(","),
-     "1,1,1,1");
-  eq("見本は実人数に含まれない", realResidentsOf(2).length, 0);
-  eq("見本は登録枠を使わない", registeredCountOf(3), 0);
-  eq("見本は印刷対象に含まれない", printableOf(4).length, 0);
-  ok("見本の申し送りが表示される（どの日付でも）",
-     dailyGet("2030-01-01", "sample-2").short.indexOf("38.0") >= 0);
-  ok("見本のバイタルが表示される", vitalsGet("2030-01-01","sample-2")["day.T"] === "38.0");
-  eq("見本の申し送りは DB.daily に作られない",
-     Object.keys(DB.daily).length, 0);
-  eq("見本の予定は予定一覧に出ない",
-     DB.schedules.filter(schedInCurrentScope).length, 0);
+  // ---- 2. 保存されない固定記入例 ---------------------------------------
+  eq("旧見本はDBに作られない", DB.residents.filter(isSample).length, 0);
+  var beforeExampleDb = JSON.stringify(DB);
+  var fixedOk = true;
+  UNITS.forEach(function(u){
+    UI.unit = u; renderInput();
+    var out = document.getElementById("fixedExampleHost").textContent;
+    if(out.indexOf("記入例") < 0 || out.indexOf(FIXED_EXAMPLES[u].today) < 0) fixedOk = false;
+    if(registeredCountOf(u) !== 0 || printableOf(u).length !== 0) fixedOk = false;
+  });
+  ok("静養室・ユニット2〜5に場所別の固定記入例", fixedOk);
+  eq("固定例の描画でDBを変更しない", JSON.stringify(DB), beforeExampleDb);
+  eq("固定例はlocalStorageへ保存されない",
+     UNITS.filter(function(u){ return localStorage.getItem(KEY).indexOf(FIXED_EXAMPLES[u].today) >= 0; }).length, 0);
+  eq("固定例は入力・操作できるDOMを持たない",
+     document.querySelectorAll("#fixedExampleHost input,#fixedExampleHost textarea,#fixedExampleHost button").length, 0);
   var hidx = buildHistoryIndex();
-  eq("見本は検索結果に混ざらない",
-     hidx.filter(function(x){ return String(x.name).indexOf("見本") >= 0; }).length, 0);
+  eq("固定例は検索結果に混ざらない",
+     hidx.filter(function(x){ return String(x.content).indexOf("排便なし3日目") >= 0; }).length, 0);
+  UI.unit = 2; renderInput();
 
   // ---- 3. 印刷枚数（静養室の有無で自動変更） ---------------------------
   DB.settings.allUnits = true;

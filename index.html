@@ -149,6 +149,29 @@ textarea.draft{min-height:56px;background:var(--soft)}
   border-radius:5px;padding:4px 9px;margin-top:6px;display:inline-block}
 .copied .btn{margin-left:8px;vertical-align:middle}
 
+/* 入力画面からの入居者追加（静養室・各ユニットで同じフォームを使う） */
+.resident-add{display:none;margin-top:12px;padding:12px 14px;border:1px solid var(--accent2);
+  border-radius:8px;background:#f4f8fc}
+.resident-add.on{display:block}
+.resident-add .add-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:9px}
+.resident-add .add-grid{display:grid;grid-template-columns:130px minmax(180px,1fr) minmax(260px,2fr);gap:10px}
+.resident-add label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:800;color:var(--accent)}
+.resident-add input,.resident-add textarea{padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+  background:#fff;font-size:14px;color:var(--ink)}
+.resident-add textarea{min-height:42px;resize:vertical}
+@media (max-width:820px){.resident-add .add-grid{grid-template-columns:1fr}}
+
+/* 保存しない固定記入例（実データのカード一覧とは分離する） */
+.fixed-example{margin:10px 0 12px;border:1px dashed #c9a227;border-radius:8px;background:#fffdf3}
+.fixed-example summary{padding:8px 12px;color:#6b5312;font-weight:800;cursor:pointer}
+.fixed-example .example-body{padding:10px 12px 12px;border-top:1px dashed #d8c27c}
+.fixed-example .example-note{font-size:12px;color:#6b5312;margin-bottom:8px}
+.fixed-example .example-grid{display:grid;grid-template-columns:110px minmax(150px,1fr) 2fr 2fr;gap:8px}
+.fixed-example .example-field{padding:7px 9px;border:1px solid #e1d7a8;border-radius:6px;background:#fff}
+.fixed-example .example-field b{display:block;font-size:11px;color:#7a681f;margin-bottom:3px}
+@media (max-width:900px){.fixed-example .example-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.fixed-example .example-grid{grid-template-columns:1fr}}
+
 /* ---------- 記録・バイタル入力 ---------- */
 .vitals-area{margin-top:11px;border-top:1px dashed var(--line);padding-top:10px}
 .vitals-area .va-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:7px}
@@ -642,8 +665,10 @@ tr.left-row input[type=text]{color:#6a7581}
       <h2>申し送りの入力（<span id="iUnitLabel"></span>）</h2>
       <button class="help-dot" data-guide="guide-input" title="入力の使い方" aria-label="入力の使い方">？</button>
       <span class="sep"></span>
+      <button class="btn pri" id="btnInputAdd" aria-expanded="false">この場所へ追加</button>
       <span class="hint">入力すると自動で保存されます（保存ボタンはありません）</span>
     </div>
+    <div class="resident-add" id="inputAddBox"></div>
     <div class="row-actions">
       <button class="btn pri" id="btnCarryNow">前日の申し送りをこの日に引き継ぐ</button>
       <button class="btn" id="btnMakeAll">この画面の文章をまとめて整える</button>
@@ -667,7 +692,8 @@ tr.left-row input[type=text]{color:#6a7581}
       </div>
     </details>
   </div>
-  <div id="inputList"></div>
+    <div id="fixedExampleHost"></div>
+    <div id="inputList"></div>
 </section>
 
 <!-- ============ 入居者 ============ -->
@@ -681,9 +707,19 @@ tr.left-row input[type=text]{color:#6a7581}
     </div>
     <div class="row-actions" style="margin-bottom:10px">
       <button class="btn pri" id="btnAdd">入居者を追加</button>
-      <button class="btn" id="btnSortRoom">部屋番号の順に並べる</button>
+      <label class="hint" for="residentSort">並び順
+        <select id="residentSort" style="margin-left:4px;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff">
+          <option value="manual">手動順（↑↓）</option>
+          <option value="room">部屋番号順</option>
+          <option value="name">五十音順</option>
+          <option value="added">追加した順</option>
+          <option value="updated">最近編集した順</option>
+        </select>
+      </label>
       <label class="hint"><input type="checkbox" id="optShowLeft"> 退居した人も表示する</label>
     </div>
+    <!-- 固定記入例。一覧（表）の外側に置くので、並び替え・検索・人数・印刷には関わらない -->
+    <div id="masterFixedExampleHost"></div>
     <div style="overflow-x:auto">
       <table class="master">
         <thead>
@@ -730,10 +766,6 @@ tr.left-row input[type=text]{color:#6a7581}
           <button class="btn danger" id="btnHardDelete">この入居者を完全に削除</button>
         </div>
         <p class="hint" style="margin-top:6px">完全削除すると、その人の<b>過去の申し送り・予定・記録もすべて消え、元に戻せません</b>。通常は「退居」を使ってください。</p>
-        <div class="row-actions" style="margin-top:10px">
-          <button class="btn danger" id="btnRemoveSamples">見本の入居者4人をまとめて削除</button>
-          <span class="hint">操作の見本として最初から入っている架空の4人（見本 花子・太郎・みどり・一郎）を削除します。実運用に慣れたら削除して構いません。</span>
-        </div>
       </div>
     </details>
   </div>
@@ -835,7 +867,7 @@ tr.left-row input[type=text]{color:#6a7581}
     <p class="hint">
       1ユニットにつき1枚です。ユニットの内容が次の用紙へ混ざることはありません。<br>
       <b>静養室に1人以上いるときだけ</b>、静養室の用紙が先頭に加わります（0人のときは印刷されません）。<br>
-      空床・退居・見本の入居者は、人数にも印刷にも含まれません。<br>
+      空床・退居・固定記入例は、人数にも印刷にも含まれません。<br>
       用紙サイズは A4、向きは「横」、倍率は「100%（既定）」のままにしてください。
     </p>
     <div class="ovlist" id="ovList"></div>
@@ -939,6 +971,8 @@ tr.left-row input[type=text]{color:#6a7581}
 
       <section class="doc-section" data-guide-section id="guide-input">
         <h4>入力タブ</h4>
+        <h5>入居者を追加する</h5>
+        <p>静養室・ユニット2〜5のどこでも、画面上部の「〇〇へ追加」から部屋番号・お名前・毎日つづく大事なことを登録できます。追加後はそのまま通常の入力カードが表示され、自動で保存されます。「入居者」タブから追加することもできます。</p>
         <h5>毎日つづく大事なこと</h5>
         <p>転倒注意、左上肢BP不可、食事トロミ、移乗2人介助など、<b>毎日ずっと引き継ぐこと</b>を書きます。日付が変わっても消えません。用紙には「重要：」として毎日印刷されます。</p>
         <h5>本日の申し送り</h5>
@@ -963,7 +997,7 @@ tr.left-row input[type=text]{color:#6a7581}
         <ul>
           <li><b>静養室：</b>最大4人。重症の方などを一時的に管理する専用の枠です。</li>
           <li><b>ユニット2：</b>最大34人／<b>ユニット3・4・5：</b>各最大30人（余裕をもたせた上限です）</li>
-          <li><b>↑↓：</b>用紙に出る並び順を変えます。「部屋番号の順に並べる」も使えます。</li>
+          <li><b>並び順：</b>手動順・部屋番号順・五十音順・追加した順・最近編集した順から選べます。↑↓は手動順のときだけ使えます。</li>
           <li><b>前日引継ぎ：</b>チェックした人だけ、前日の申し送りが翌日へ自動で引き継がれます。</li>
         </ul>
         <h5>空床と退居のちがい</h5>
@@ -1012,7 +1046,7 @@ tr.left-row input[type=text]{color:#6a7581}
           <li>静養室が<b>0人</b>のとき：ユニット2・3・4・5 の<b>4枚</b></li>
           <li>静養室に<b>1人以上</b>いるとき：静養室・ユニット2・3・4・5 の<b>5枚</b>（静養室が先頭）</li>
           <li>静養室が0人に戻れば、自動的に4枚へ戻ります。</li>
-          <li>見本の入居者は人数にも印刷にも含まれません。</li>
+          <li>固定記入例は人数にも印刷にも含まれず、保存・検索もされません。</li>
         </ul>
         <p>人数が多いユニットは文字が自動的に小さくなります。入りきらない人がいる場合は、印刷プレビューの下に「要確認」として名前が出ます。</p>
         <p>用紙は<b>A4・横</b>、倍率は「100%（既定）」にしてください。両面印刷を使うかどうかは、ブラウザの印刷画面で選んでください。</p>
@@ -1087,7 +1121,7 @@ tr.left-row input[type=text]{color:#6a7581}
         <h5>「保存できていません」と赤い警告が出る</h5>
         <p>すぐに「バックアップを保存」でファイルへ保存してください。プライベート（シークレット）ウィンドウで開いていないか、保存容量が足りているかを確認してください。</p>
         <h5>静養室の用紙が印刷されない</h5>
-        <p>静養室に登録されている人が0人だと印刷されません（仕様です）。1人以上登録すると自動的に5枚構成へ変わります。見本の入居者は人数に入りません。</p>
+        <p>静養室に登録されている人が0人だと印刷されません（仕様です）。1人以上登録すると自動的に5枚構成へ変わります。固定記入例は人数に入りません。</p>
         <h5>夜勤の定期予定が当日の用紙に出ない</h5>
         <p>夜勤の定期予定は<b>前日の用紙</b>に出る仕様です。月曜夜勤なら日曜の用紙を確認してください。</p>
         <h5>印刷が横向きにならない</h5>
@@ -1410,6 +1444,8 @@ function migrate(){
        旧データで permShort が空のまま permRaw だけある場合は、内容を失わないよう引き継ぐ。 */
     if(prevV < 8 && !r.permShort.trim() && r.permRaw.trim()) r.permShort = r.permRaw;
     if(!isYmd(r.permUpdated)) r.permUpdated = todayYmd();
+    /* 最近編集した順に使う軽量な時刻。旧データには偽の日時を補わない。 */
+    if(typeof r.updatedAt !== "number" || !isFinite(r.updatedAt) || r.updatedAt <= 0) delete r.updatedAt;
     r.autoCarry = r.autoCarry !== false;
     r.demo = r.demo === true;          // 見本の入居者（実データとして数えない）
     r.rec = normRec(r.rec);
@@ -1509,7 +1545,9 @@ function migrate(){
     autoCarry        : st.autoCarry !== false,
     showLeft         : !!st.showLeft,
     lastAutoCarry    : isYmd(st.lastAutoCarry) ? st.lastAutoCarry : "",
-    lastBackup       : isYmd(st.lastBackup) ? st.lastBackup : ""
+    lastBackup       : isYmd(st.lastBackup) ? st.lastBackup : "",
+    residentSort     : ["manual","room","name","added","updated"].indexOf(st.residentSort) >= 0
+                       ? st.residentSort : "manual"
   };
   /* 細工したバックアップで JavaScript の共通の土台（プロトタイプ）が
      書き換えられないよう、危険な名前のキーだけを取り除く。
@@ -1875,8 +1913,70 @@ function tidyToday(raw){
    入居者・予定のヘルパー
    ・見本（demo:true）は「実データ」として数えない
    ========================================================= */
-function isSample(r){ return !!r && r.demo === true; }
+/* 旧版が自動作成した見本入居者だけが持つ印。実データには絶対に付かない。
+   ・id が "sample-数字"　… 実データの id は newId() が作る "r…" のみ
+   ・sample:{...}        … 旧版が見本の申し送り・記録を入れていた専用の入れ物
+   ・demo === true       … 見本を作るコードだけが付ける印（手動追加は必ず false） */
+function isLegacySampleId(id){ return /^sample-\d+$/.test(String(id == null ? "" : id)); }
+function hasSamplePayload(r){
+  return !!r && !!r.sample && typeof r.sample === "object" && !Array.isArray(r.sample);
+}
+/* 見本（＝実データではない）かどうか。印が1つでも残っていれば見本として扱い、
+   人数・上限・印刷・検索・並び替え・保存の対象から外す。 */
+function isSample(r){
+  if(!r) return false;
+  if(r.demo === true) return true;
+  if(isLegacySampleId(r.id)) return true;
+  if(hasSamplePayload(r)) return true;
+  return false;
+}
 function isLeft(r){ return !!r && r.status === "out"; }
+
+/* 固定記入例は保存データの外に置く。描画以外の処理から参照しない。 */
+var FIXED_EXAMPLES = {
+  1:{ room:"静養1", name:"記入例", perm:"状態変化に注意。移乗2人介助。", today:"発熱38.0℃。水分摂取少量。30分後再検予定。" },
+  2:{ room:"201",   name:"記入例", perm:"歩行見守り・転倒注意・食事トロミ。", today:"昼食5割。水分摂取良好。" },
+  3:{ room:"301",   name:"記入例", perm:"外出時は車椅子使用。", today:"外部受診予定。家族へ連絡済み。" },
+  4:{ room:"401",   name:"記入例", perm:"BS測定あり。", today:"朝食前BS測定。記録確認。" },
+  5:{ room:"501",   name:"記入例", perm:"排泄状況確認。", today:"排便なし3日目。水分摂取促し。" }
+};
+
+var LAST_RESIDENT_UPDATE = 0;
+function residentNow(){
+  var now = Date.now();
+  if(now <= LAST_RESIDENT_UPDATE) now = LAST_RESIDENT_UPDATE + 1;
+  LAST_RESIDENT_UPDATE = now;
+  return now;
+}
+function touchResident(r){ if(r && !isSample(r)) r.updatedAt = residentNow(); }
+function touchResidentById(id){ touchResident(residentById(id)); }
+function residentIndex(r){ return DB.residents.indexOf(r); }
+
+function roomSort(a,b){
+  var aa = String(a.room || ""), bb = String(b.room || "");
+  try{ return aa.localeCompare(bb, "ja", {numeric:true, sensitivity:"base"}); }
+  catch(e){ return aa.localeCompare(bb); }
+}
+function nameSort(a,b){
+  var aa = String(a.name || ""), bb = String(b.name || "");
+  var n = 0;
+  try{ n = aa.localeCompare(bb, "ja", {sensitivity:"base"}); }
+  catch(e){ n = aa.localeCompare(bb); }
+  return n || roomSort(a,b);
+}
+function residentSortMode(){ return DB.settings.residentSort || "manual"; }
+function sortedResidentsForDisplay(unit){
+  var list = residentsOf(unit).slice(), mode = residentSortMode();
+  if(mode === "room") list.sort(function(a,b){ return roomSort(a,b) || residentIndex(a)-residentIndex(b); });
+  if(mode === "name") list.sort(function(a,b){ return nameSort(a,b) || residentIndex(a)-residentIndex(b); });
+  if(mode === "added") list.sort(function(a,b){ return residentIndex(a)-residentIndex(b); });
+  if(mode === "updated") list.sort(function(a,b){
+    var aa = (typeof a.updatedAt === "number") ? a.updatedAt : 0;
+    var bb = (typeof b.updatedAt === "number") ? b.updatedAt : 0;
+    return (bb-aa) || (residentIndex(b)-residentIndex(a));
+  });
+  return list;
+}
 
 function residentById(id){ return residentByIdIn(DB.residents, id); }
 function residentsOf(unit){
@@ -1884,9 +1984,9 @@ function residentsOf(unit){
     .filter(function(r){ return r.unit === unit; })
     .sort(function(a,b){ return (a.order||0) - (b.order||0); });
 }
-/* 画面に出す人（退居を除く。見本は含む＝操作の見本として見せる） */
+/* 入力画面に出す実入居者（退居と旧版互換の見本データを除く） */
 function activeResidentsOf(unit){
-  return residentsOf(unit).filter(function(r){ return !isLeft(r); });
+  return sortedResidentsForDisplay(unit).filter(function(r){ return !isLeft(r) && !isSample(r); });
 }
 /* 実データの在籍者（見本・退居・空床を除く）＝人数表示と上限判定に使う */
 function realResidentsOf(unit){
@@ -1895,6 +1995,31 @@ function realResidentsOf(unit){
 /* 登録枠を数える（空床も枠を使う。見本と退居は数えない） */
 function registeredCountOf(unit){
   return residentsOf(unit).filter(function(r){ return !isLeft(r) && !isSample(r); }).length;
+}
+function residentLimitMessage(unit){
+  return uLb(unit) + "は" + uMax(unit) + "名までです。\nこれ以上は追加できません（退居した人と固定記入例は数に入りません）。";
+}
+function hasResidentCapacity(unit, notify){
+  var ok = registeredCountOf(unit) < uMax(unit);
+  if(!ok && notify) alert(residentLimitMessage(unit));
+  return ok;
+}
+/* 入力タブと入居者タブが共有する追加処理。保存データの形も従来と同じ。 */
+function addResident(unit, values){
+  unit = validUnit(unit);
+  if(!unit || !hasResidentCapacity(unit, true)) return null;
+  values = values || {};
+  var list = residentsOf(unit);
+  var r = {
+    id:newId(), unit:unit,
+    room:String(values.room || ""), name:String(values.name || ""),
+    order:(list.length ? Math.max.apply(null, list.map(function(x){ return x.order || 0; })) + 1 : 0),
+    status:"in", permRaw:"", permShort:String(values.permShort || ""), permUpdated:todayYmd(),
+    rec:defaultRec(), autoCarry:true, demo:false, updatedAt:residentNow()
+  };
+  DB.residents.push(r);
+  saveDB();
+  return r;
 }
 /* 印刷対象（実データのみ・ユニット上限まで） */
 function printableOf(unit){
@@ -2079,7 +2204,7 @@ function schedFamily(s){ return s.family ? ("家族付き添い" + s.family) : "
 function schedInCurrentScope(s){
   if(s.demo) return false;                       // 見本の予定は予定一覧に出さない
   var r = residentById(s.residentId);
-  if(!r) return false;
+  if(!r || isSample(r)) return false;            // 見本の入居者の予定も出さない
   return DB.settings.showAllUnitSched ? UNITS.indexOf(r.unit) >= 0 : r.unit === UI.unit;
 }
 function pastSchedulesInScope(){
@@ -2201,6 +2326,7 @@ function vitalsSet(date, id, key, value){
   var rest = 0;
   for(var rid in day){ if(Object.prototype.hasOwnProperty.call(day, rid)) rest++; }
   if(!rest) delete DB.vitals[date];
+  touchResidentById(id);
 }
 function vitalsRemoveResident(id){
   for(var d in DB.vitals){ if(DB.vitals[d]) delete DB.vitals[d][id]; }
@@ -2285,16 +2411,64 @@ function switchTab(t){
    入力タブ
    ========================================================= */
 var WARN_PERM = 44, WARN_TODAY = 68;
+var INPUT_ADD_UNIT = 0;
+
+function renderInputAdd(){
+  var button = document.getElementById("btnInputAdd");
+  var box = document.getElementById("inputAddBox");
+  if(!button || !box) return;
+  button.textContent = uLb(UI.unit) + "へ追加";
+  var open = INPUT_ADD_UNIT === UI.unit;
+  button.setAttribute("aria-expanded", open ? "true" : "false");
+  box.classList.toggle("on", open);
+  if(!open){ box.innerHTML = ""; return; }
+  box.innerHTML = '<div class="add-head"><b>'+esc(uLb(UI.unit))+'へ入居者を追加</b>'
+    + '<span class="hint">登録 '+registeredCountOf(UI.unit)+'名／上限 '+uMax(UI.unit)+'名　追加すると自動で保存されます</span></div>'
+    + '<div class="add-grid">'
+      + '<label>部屋番号<input type="text" data-add-field="room" placeholder="例）静養1、205"></label>'
+      + '<label>お名前<input type="text" data-add-field="name" placeholder="お名前"></label>'
+      + '<label>毎日つづく大事なこと<textarea data-add-field="permShort" placeholder="例）歩行見守り・転倒注意・食事トロミ"></textarea></label>'
+    + '</div>'
+    + '<div class="row-actions" style="margin-top:10px">'
+      + '<button class="btn pri" data-add-action="submit">追加して入力を始める</button>'
+      + '<button class="btn" data-add-action="cancel">やめる</button>'
+      + '<span class="hint">保存ボタンはありません。追加後の入力も自動で保存されます。</span>'
+    + '</div>';
+  hardenInputs(box);
+}
+
+/* 固定記入例の描画。入力タブと入居者タブが同じ FIXED_EXAMPLES を使い、
+   同じ見た目・同じ位置（一覧の外側）で出す。中身は文字を並べるだけで、
+   入力欄も操作ボタンも作らないため、編集・移動・退居・予定登録などはできない。 */
+function renderFixedExample(hostId){
+  var host = document.getElementById(hostId);
+  if(!host) return;
+  var x = FIXED_EXAMPLES[UI.unit];
+  if(!x){ host.innerHTML = ""; return; }
+  host.innerHTML = '<details class="fixed-example">'
+    + '<summary>記入例を見る（説明用・保存されません）</summary>'
+    + '<div class="example-body">'
+      + '<div class="example-note"><b>記入例</b>　これは説明用です。保存・印刷・検索されず、人数にも含まれません。編集や予定登録などの操作はできません。</div>'
+      + '<div class="example-grid">'
+        + '<div class="example-field"><b>部屋番号</b>'+esc(x.room)+'</div>'
+        + '<div class="example-field"><b>お名前</b>'+esc(x.name)+'</div>'
+        + '<div class="example-field"><b>毎日つづく大事なこと</b>'+esc(x.perm)+'</div>'
+        + '<div class="example-field"><b>本日の申し送り</b>'+esc(x.today)+'</div>'
+      + '</div>'
+    + '</div></details>';
+}
 
 function renderInput(){
   var lb = document.getElementById("iUnitLabel");
   if(lb) lb.textContent = uLb(UI.unit);
+  renderInputAdd();
+  renderFixedExample("fixedExampleHost");
   renderTodayRepBox();
   var list = activeResidentsOf(UI.unit);
   var host = document.getElementById("inputList");
   if(!list.length){
     host.innerHTML = '<div class="panel"><p class="hint">'+esc(uLb(UI.unit))
-      + ' にはまだ登録がありません。「入居者」タブの「入居者を追加」から登録してください。</p></div>';
+      + 'にはまだ登録がありません。上の「'+esc(uLb(UI.unit))+'へ追加」から、この画面のまま登録できます。</p></div>';
     return;
   }
   var h = "";
@@ -2514,7 +2688,10 @@ function renderMaster(){
     cap.innerHTML = '登録 <b>' + used + '</b> 名／上限 <b>' + uMax(UI.unit) + '</b> 名'
       + (isRestUnit(UI.unit) ? '　（静養室は一時的に管理する専用の枠です）' : '');
   }
-  var all = residentsOf(UI.unit);
+  var sortSel = document.getElementById("residentSort");
+  if(sortSel) sortSel.value = residentSortMode();
+  renderFixedExample("masterFixedExampleHost");
+  var all = sortedResidentsForDisplay(UI.unit);
   var showLeft = !!DB.settings.showLeft;
   var leftCount = all.filter(isLeft).length;
   var list = showLeft ? all : all.filter(function(r){ return !isLeft(r); });
@@ -2524,10 +2701,11 @@ function renderMaster(){
     var left = isLeft(r), sample = isSample(r);
     var stLb  = left ? "退居" : (r.status === "empty" ? "空床" : "入居中");
     var stCls = left ? "left" : (r.status === "empty" ? "out" : "in");
+    var manual = residentSortMode() === "manual";
     h += '<tr data-id="'+esc(r.id)+'" class="'+(left?"left-row ":"")+(sample?"sample-row":"")+'">'
       + '<td class="ord">'
-        + '<button class="iconbtn" data-a="up" '+(i===0?"disabled":"")+'>↑</button> '
-        + '<button class="iconbtn" data-a="down" '+(i===list.length-1?"disabled":"")+'>↓</button>'
+        + '<button class="iconbtn" data-a="up" title="手動順のときに使えます" '+(!manual||i===0?"disabled":"")+'>↑</button> '
+        + '<button class="iconbtn" data-a="down" title="手動順のときに使えます" '+(!manual||i===list.length-1?"disabled":"")+'>↓</button>'
       + '</td>'
       + '<td><input type="text" data-f="room" value="'+esc(r.room)+'"></td>'
       + '<td><input type="text" data-f="name" value="'+esc(r.name)+'">'
@@ -2618,7 +2796,7 @@ function renderBackupInfo(){
   var days = 0;
   for(var d in DB.daily){ if(Object.prototype.hasOwnProperty.call(DB.daily, d)) days++; }
   el.innerHTML = '保存されている記録：入居者 ' + DB.residents.filter(function(r){ return !isSample(r); }).length
-    + ' 名（見本を除く）／申し送りのある日 ' + days + ' 日分／1回だけの予定 '
+    + ' 名／申し送りのある日 ' + days + ' 日分／1回だけの予定 '
     + DB.schedules.filter(function(s){ return !s.demo; }).length + ' 件／定期予定 '
     + DB.recurring.filter(function(r){ return !r.demo; }).length + ' 件'
     + (DB.settings.lastBackup ? '　最後のバックアップ：' + esc(jpDate(DB.settings.lastBackup)) : '　バックアップはまだ保存されていません');
@@ -2760,6 +2938,7 @@ function recCustomRowHTML(c, dow){
 }
 function custPreview(c){ return (c.name.trim() || "項目名") + "（　　　）" + (c.unit || ""); }
 function recChanged(rerender){
+  touchResident(recResident());
   saveDB();
   renderMaster();
   if(rerender !== false) renderRecModal();
@@ -2829,6 +3008,7 @@ function renderRepList(){
   if(!host) return;
   var list = DB.recurring.filter(function(r){
     if(r.demo) return false;
+    if(r.residentId && isSample(residentById(r.residentId))) return false;
     return DB.settings.showAllUnitSched ? true : r.unit === UI.unit;
   }).sort(sortRecurring);
   if(!list.length){
@@ -3683,6 +3863,7 @@ function autoCarryForDate(date, force){
       raw:"", short:String(from.short), copiedFrom:src, confirmed:false, autoCarry:true,
       h:[r.unit, r.room, r.name]
     };
+    touchResident(r);
     copied++;
   }
   if(copied) saveDB();
@@ -3705,6 +3886,7 @@ function copyEntry(src, dst, id){
   t.copiedFrom = src;
   t.autoCarry = false;
   t.confirmed = true;
+  touchResidentById(id);
 }
 function copyDayToCurrent(srcDate){
   if(!isYmd(srcDate)){ toast("コピー元の日付を入れてください"); return; }
@@ -3810,6 +3992,7 @@ document.querySelector(".tabs").addEventListener("click", function(e){
 });
 document.getElementById("unitBar").addEventListener("click", function(e){
   var b = e.target.closest("button[data-unit]"); if(!b) return;
+  INPUT_ADD_UNIT = 0;
   UI.unit = parseInt(b.getAttribute("data-unit"), 10);
   renderAll();
   if(UI.tab === "print"){ renderPrint(); fitPreview(); }
@@ -3820,6 +4003,36 @@ document.getElementById("btnNextDay").addEventListener("click", function(){ setD
 document.getElementById("btnToday").addEventListener("click", function(){ setDate(todayYmd()); });
 
 /* ---- 入力タブ ---- */
+document.getElementById("btnInputAdd").addEventListener("click", function(){
+  if(!hasResidentCapacity(UI.unit, true)) return;
+  INPUT_ADD_UNIT = UI.unit;
+  renderInput();
+  var first = document.querySelector('#inputAddBox [data-add-field="room"]');
+  if(first) first.focus();
+});
+document.getElementById("inputAddBox").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-add-action]"); if(!b) return;
+  var action = b.getAttribute("data-add-action");
+  if(action === "cancel"){
+    INPUT_ADD_UNIT = 0;
+    renderInput();
+    return;
+  }
+  if(action !== "submit") return;
+  function addValue(name){
+    var el = document.querySelector('#inputAddBox [data-add-field="'+name+'"]');
+    return el ? el.value : "";
+  }
+  var r = addResident(UI.unit, {
+    room:addValue("room"), name:addValue("name"), permShort:addValue("permShort")
+  });
+  if(!r) return;
+  INPUT_ADD_UNIT = 0;
+  renderAll();
+  var today = document.querySelector('#inputList .card[data-id="'+r.id+'"] [data-f="todayShort"]');
+  if(today) today.focus();
+  toast((r.name || "新しい入居者") + "を" + uLb(r.unit) + "へ追加しました");
+});
 document.getElementById("inputList").addEventListener("input", function(e){
   var card = e.target.closest(".card"); if(!card) return;
   var id = card.getAttribute("data-id");
@@ -3835,14 +4048,25 @@ document.getElementById("inputList").addEventListener("input", function(e){
   }else if(f === "todayShort"){
     dailyOf(UI.date, id).short = e.target.value;
   }
+  touchResident(r);
   updWarns(card);
   lazySave();
 });
 document.getElementById("inputList").addEventListener("change", function(e){
-  if(e.target.getAttribute("data-f") !== "empty") return;
+  var changedField = e.target.getAttribute("data-f");
+  if(changedField !== "empty"){
+    var mode = residentSortMode();
+    if((mode === "updated" && (changedField || e.target.getAttribute("data-vk")))
+       || (mode === "room" && changedField === "room")
+       || (mode === "name" && changedField === "name")){
+      saveDB(); renderAll();
+    }
+    return;
+  }
   var card = e.target.closest(".card");
   var r = residentById(card.getAttribute("data-id")); if(!r) return;
   r.status = e.target.checked ? "empty" : "in";
+  touchResident(r);
   card.classList.toggle("empty", e.target.checked);
   saveDB(); renderUnitBar(); renderMaster();
 });
@@ -3867,13 +4091,14 @@ document.getElementById("inputList").addEventListener("click", function(e){
     r.permRaw = before;                    // 「元にもどす」用に整える前の文章を保持
     r.permShort = after;
     r.permUpdated = todayYmd();
+    touchResident(r);
     saveDB(); renderInput(); renderMaster();
     toast(after === before ? "これ以上短くできませんでした" : "文章を整えました（内容を確認してください）");
     return;
   }
   if(a === "permUndo"){
     if(!r.permRaw){ toast("戻せる内容がありません"); return; }
-    r.permShort = r.permRaw; r.permRaw = "";
+    r.permShort = r.permRaw; r.permRaw = ""; touchResident(r);
     saveDB(); renderInput(); renderMaster();
     toast("整える前へ戻しました");
     return;
@@ -3885,6 +4110,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
     var out = tidyToday(src);
     d.raw = src;                           // 「元にもどす」用
     d.short = out;
+    touchResident(r);
     saveDB(); renderInput();
     toast(out === src ? "これ以上短くできませんでした" : "文章を整えました（内容を確認してください）");
     return;
@@ -3892,7 +4118,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
   if(a === "todayUndo"){
     var d2 = dailyOf(UI.date, id);
     if(!d2.raw){ toast("戻せる内容がありません"); return; }
-    d2.short = d2.raw; d2.raw = "";
+    d2.short = d2.raw; d2.raw = ""; touchResident(r);
     saveDB(); renderInput();
     toast("整える前へ戻しました");
     return;
@@ -3902,6 +4128,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
     var d3 = dailyOf(UI.date, id);
     d3.raw = ""; d3.short = "";
     delete d3.copiedFrom; d3.autoCarry = false; d3.confirmed = true;
+    touchResident(r);
     saveDB(); renderInput();
     toast("消しました");
     return;
@@ -3942,6 +4169,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
         place:v.place, dept:v.dept, family:v.family, note:v.note
       });
     }
+    touchResident(r);
     saveDB(); renderInput(); renderSched();
     if(UI.tab === "print"){ renderPrint(); fitPreview(); }
     toast("予定を保存しました（" + jpDate(v.date) + "）");
@@ -3952,6 +4180,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
     var sid3 = host2 ? host2.getAttribute("data-sid") : null;
     if(!sid3 || !confirm("この予定を削除します。よろしいですか？")) return;
     DB.schedules = DB.schedules.filter(function(x){ return x.id !== sid3; });
+    touchResident(r);
     saveDB(); renderInput(); renderSched();
     if(UI.tab === "print"){ renderPrint(); fitPreview(); }
     toast("予定を削除しました");
@@ -3972,7 +4201,7 @@ document.getElementById("btnMakeAll").addEventListener("click", function(){
     var out = tidyToday(cur.short);
     if(out === cur.short) continue;
     var d = dailyOf(UI.date, list[i].id);
-    d.raw = cur.short; d.short = out; n++;
+    d.raw = cur.short; d.short = out; touchResident(list[i]); n++;
   }
   saveDB(); renderInput();
   toast(n ? n + "名分の文章を整えました（内容を確認してください）" : "整える対象がありませんでした");
@@ -3983,7 +4212,7 @@ document.getElementById("btnCarryNow").addEventListener("click", function(){
   if(!confirm(jpDate(src) + " の申し送りを " + jpDate(UI.date) + " へ引き継ぎます。\n\n"
             + "・「前日引継ぎ」の対象にしている人だけが対象です\n"
             + "・すでに入力がある人は書き換えません\n"
-            + "・空床・退居・見本の人は対象外です\n\nよろしいですか？")) return;
+            + "・空床・退居・固定記入例は対象外です\n\nよろしいですか？")) return;
   var n = autoCarryForDate(UI.date, true);
   saveDB(); renderInput();
   if(UI.tab === "print"){ renderPrint(); fitPreview(); }
@@ -4006,38 +4235,17 @@ document.getElementById("btnCopyRun").addEventListener("click", function(){
 
 /* ---- 入居者タブ ---- */
 document.getElementById("btnAdd").addEventListener("click", function(){
-  var list = residentsOf(UI.unit);
-  if(registeredCountOf(UI.unit) >= uMax(UI.unit)){
-    alert(uLb(UI.unit) + " の登録上限は " + uMax(UI.unit) + " 名です。\nこれ以上は追加できません（退居した人と見本は数に入りません）。");
-    return;
-  }
-  DB.residents.push({
-    id:newId(), unit:UI.unit, room:"", name:"",
-    order:(list.length ? Math.max.apply(null, list.map(function(r){ return r.order || 0; })) + 1 : 0),
-    status:"in", permRaw:"", permShort:"", permUpdated:todayYmd(),
-    rec:defaultRec(), autoCarry:true, demo:false
-  });
-  saveDB(); renderAll();
-  var rows = document.querySelectorAll("#masterBody tr");
-  if(rows.length){
-    var inp = rows[rows.length-1].querySelector('[data-f="room"]');
-    if(inp) inp.focus();
-  }
+  var r = addResident(UI.unit);
+  if(!r) return;
+  renderAll();
+  var row = document.querySelector('#masterBody tr[data-id="'+r.id+'"]');
+  var inp = row ? row.querySelector('[data-f="room"]') : null;
+  if(inp) inp.focus();
 });
-document.getElementById("btnSortRoom").addEventListener("click", function(){
-  var list = residentsOf(UI.unit);
-  list.sort(function(a,b){
-    var na = parseInt(String(a.room).replace(/[^0-9]/g,""), 10);
-    var nb = parseInt(String(b.room).replace(/[^0-9]/g,""), 10);
-    if(isNaN(na) && isNaN(nb)) return String(a.room).localeCompare(String(b.room));
-    if(isNaN(na)) return 1;
-    if(isNaN(nb)) return -1;
-    if(na !== nb) return na - nb;
-    return String(a.room).localeCompare(String(b.room));
-  });
-  for(var i=0;i<list.length;i++) list[i].order = i;
+document.getElementById("residentSort").addEventListener("change", function(){
+  DB.settings.residentSort = this.value;
   saveDB(); renderAll();
-  toast("部屋番号の順に並べました");
+  toast("並び順を切り替えました");
 });
 document.getElementById("masterBody").addEventListener("input", function(e){
   var tr = e.target.closest("tr"); if(!tr) return;
@@ -4045,6 +4253,7 @@ document.getElementById("masterBody").addEventListener("input", function(e){
   var r = residentById(tr.getAttribute("data-id")); if(!r) return;
   r[f] = e.target.value;
   if(f === "permShort") r.permUpdated = todayYmd();
+  touchResident(r);
   lazySave();
 });
 document.getElementById("masterBody").addEventListener("change", function(e){
@@ -4052,8 +4261,17 @@ document.getElementById("masterBody").addEventListener("change", function(e){
   var tr = e.target.closest("tr"); if(!tr) return;
   var r = residentById(tr.getAttribute("data-id")); if(!r) return;
 
+  if(f === "room" || f === "name" || f === "permShort"){
+    var mode = residentSortMode();
+    if(mode === "updated" || (mode === "room" && f === "room") || (mode === "name" && f === "name")){
+      saveDB(); renderAll();
+    }
+    return;
+  }
+
   if(f === "autoCarry"){
     r.autoCarry = e.target.checked;
+    touchResident(r);
     saveDB();
     return;
   }
@@ -4079,6 +4297,7 @@ document.getElementById("masterBody").addEventListener("change", function(e){
     }
     var from = r.unit;
     r.unit = to;
+    touchResident(r);
     /* 予定の所属ユニットも移動先に合わせる（予定一覧の絞り込みがずれないように） */
     for(var i=0;i<DB.schedules.length;i++){
       if(DB.schedules[i].residentId === r.id) DB.schedules[i].unit = to;
@@ -4097,7 +4316,7 @@ document.getElementById("masterBody").addEventListener("click", function(e){
   var b = e.target.closest("button[data-a]"); if(!b) return;
   var tr = b.closest("tr");
   var id = tr.getAttribute("data-id");
-  var all = residentsOf(UI.unit);
+  var all = sortedResidentsForDisplay(UI.unit);
   var list = DB.settings.showLeft ? all : all.filter(function(r){ return !isLeft(r); });
   var idx = -1;
   for(var i=0;i<list.length;i++) if(list[i].id === id) idx = i;
@@ -4106,11 +4325,12 @@ document.getElementById("masterBody").addEventListener("click", function(e){
 
   if(a === "history"){ openResidentHistory(id); return; }
   if(a === "rec"){ openRecModal(id); return; }
-  if(a === "up"   && idx > 0)              swapOrder(list, idx, idx-1);
-  if(a === "down" && idx < list.length-1)  swapOrder(list, idx, idx+1);
+  if(residentSortMode() === "manual" && a === "up"   && idx > 0)             swapOrder(list, idx, idx-1);
+  if(residentSortMode() === "manual" && a === "down" && idx < list.length-1) swapOrder(list, idx, idx+1);
   if(a === "toggle"){
     if(isLeft(list[idx])) return;
     list[idx].status = list[idx].status === "empty" ? "in" : "empty";
+    touchResident(list[idx]);
   }
   if(a === "leave"){
     var r = list[idx];
@@ -4123,7 +4343,7 @@ document.getElementById("masterBody").addEventListener("click", function(e){
     if(fut) msg += "\nこの方には今後の予定が " + fut + " 件あります（削除せず残します）。\n";
     msg += "\nよろしいですか？";
     if(!confirm(msg)) return;
-    r.status = "out"; r.leftAt = todayYmd();
+    r.status = "out"; r.leftAt = todayYmd(); touchResident(r);
     saveDB(); renderAll();
     toast(nm + " を退居にしました（記録は残っています）");
     return;
@@ -4136,7 +4356,7 @@ document.getElementById("masterBody").addEventListener("click", function(e){
       return;
     }
     if(!confirm(nm2 + " を在籍へ戻します。よろしいですか？")) return;
-    r2.status = "in"; delete r2.leftAt;
+    r2.status = "in"; delete r2.leftAt; touchResident(r2);
     saveDB(); renderAll();
     toast(nm2 + " を在籍へ戻しました");
     return;
@@ -4175,26 +4395,6 @@ document.getElementById("btnHardDelete").addEventListener("click", function(){
   saveDB(); renderAll();
   toast(nm + " を完全に削除しました");
 });
-document.getElementById("btnRemoveSamples").addEventListener("click", function(){
-  var samples = DB.residents.filter(isSample);
-  if(!samples.length){ toast("見本の入居者はいません"); return; }
-  if(!confirm("見本の入居者 " + samples.length + " 名と、その見本データ（申し送り・記録・予定・定期予定）を削除します。\n"
-            + "実際に登録した入居者のデータには影響しません。\n\nよろしいですか？")) return;
-  var ids = {};
-  for(var i=0;i<samples.length;i++) ids[samples[i].id] = 1;
-  DB.residents = DB.residents.filter(function(r){ return !ids[r.id]; });
-  DB.schedules = DB.schedules.filter(function(s){ return !ids[s.residentId]; });
-  DB.recurring = DB.recurring.filter(function(r){ return !ids[r.residentId]; });
-  for(var d in DB.daily){
-    for(var id in ids){ if(DB.daily[d]) delete DB.daily[d][id]; }
-  }
-  for(var vd in DB.vitals){
-    for(var vid in ids){ if(DB.vitals[vd]) delete DB.vitals[vd][vid]; }
-  }
-  saveDB(); renderAll();
-  toast("見本の入居者を削除しました");
-});
-
 /* ---- 記録する項目（設定パネル） ---- */
 document.getElementById("recClose").addEventListener("click", closeRecModal);
 document.getElementById("recClose2").addEventListener("click", closeRecModal);
@@ -4236,6 +4436,7 @@ document.getElementById("recBody").addEventListener("input", function(e){
   for(var i=0;i<rec.custom.length;i++){ if(rec.custom[i].id === cid){ c = rec.custom[i]; break; } }
   if(!c) return;
   c[x] = e.target.value;
+  touchResident(r);
   var pv = cu.querySelector("[data-prev]");
   if(pv) pv.textContent = custPreview(c);
   lazySave();
@@ -4292,6 +4493,7 @@ document.getElementById("btnRepAdd").addEventListener("click", function(){
   /* 同じ内容の定期予定は二重に作らない（再読み込みでも増えない） */
   if(recurringExists(rule)){ toast("同じ内容の定期予定がすでに登録されています"); return; }
   DB.recurring.push(rule);
+  if(v.residentId) touchResidentById(v.residentId);
   saveDB();
   document.getElementById("repTitle").value = "";
   document.getElementById("repTime").value = "";
@@ -4315,6 +4517,7 @@ document.getElementById("repList").addEventListener("click", function(e){
   if(b.getAttribute("data-a") === "repDel"){
     if(!confirm("定期予定「" + recurringLabel(rule) + "（" + recurringDaysLabel(rule) + "）」を削除します。よろしいですか？")) return;
     DB.recurring = DB.recurring.filter(function(x){ return x.id !== rid; });
+    if(rule.residentId) touchResidentById(rule.residentId);
     saveDB(); renderSched(); renderInput();
     if(UI.tab === "print"){ renderPrint(); fitPreview(); }
     toast("定期予定を削除しました");
@@ -4367,6 +4570,7 @@ document.getElementById("schedList").addEventListener("click", function(e){
     var v = readSchedForm(host);
     if(!isYmd(v.date)){ toast("日付を入れてください"); return; }
     for(var kk in v) target[kk] = v[kk];
+    touchResidentById(target.residentId);
     saveDB(); renderSched(); renderInput();
     if(UI.tab === "print"){ renderPrint(); fitPreview(); }
     toast("予定を保存しました");
@@ -4375,6 +4579,7 @@ document.getElementById("schedList").addEventListener("click", function(e){
   if(a === "schedDelete"){
     if(!target || !confirm("この予定を削除します。よろしいですか？")) return;
     DB.schedules = DB.schedules.filter(function(x){ return x.id !== sid2; });
+    touchResidentById(target.residentId);
     saveDB(); renderSched(); renderInput();
     if(UI.tab === "print"){ renderPrint(); fitPreview(); }
     toast("予定を削除しました");
@@ -4598,6 +4803,7 @@ document.getElementById("fileImport").addEventListener("change", function(e){
     try{
       DB = obj;
       migrate();                      // 途中で失敗したら元のデータへ戻す
+      removeLegacySeedSamples();      // 旧版のバックアップに残る見本入居者は戻さない
     }catch(err2){
       DB = prev;
       if(prevJson){ try{ DB = JSON.parse(prevJson); }catch(e3){ DB = prev; } }
@@ -4668,120 +4874,78 @@ document.addEventListener("keydown", function(e){
   if(document.getElementById("guideModal").classList.contains("on")) setModalOpen("guideModal", false);
 });
 
-/* =========================================================
-   操作の見本（架空の入居者 4 名）
-   ---------------------------------------------------------
-   ★ ここに書かれている氏名・部屋番号・記録・数値はすべて架空です。
-     実在の施設・入居者・患者・職員・医療機関とは一切関係ありません。
-   ★ 見本は「実データ」として扱いません。
-     ・実際の登録人数に含めない　・印刷に載せない　・予定一覧に載せない
-     ・集計に含めない　　　　　　・「さがす」の結果に出さない
-   ★ 見本の申し送り・記録は DB.daily / DB.vitals には保存せず、
-     入居者データの中（sample）に持つ。実データを汚さず、削除も簡単。
-   ========================================================= */
-var SAMPLE_DEFS = [
-  {
-    unit:2, room:"202", name:"見本 花子",
-    perm:"歩行見守り・転倒注意",
-    permRaw:"歩行するときは転倒する可能性があるので、必ず職員が横について見守ってください。",
-    short:"発熱38.0℃。カロナール服用。水分摂取。昼食3割。",
-    raw:"発熱 38.0 カロナール服用 水分摂取 昼食3割",
-    vitals:{ "day.T":"38.0", "day.P":"92", "day.BP":"128/74", "day.SpO2":"96",
-             "day.mealB":"8", "day.mealL":"3", "night.T":"37.2", "night.mealD":"5",
-             "night.memo":"夜間の様子を記入" },
-    rec:function(rec){ rec.day.memo.on = true; }
-  },
-  {
-    unit:3, room:"305", name:"見本 太郎",
-    perm:"食事一部介助・血糖測定",
-    permRaw:"食事は一部介助です。血糖測定を行っています。",
-    short:"BS 156。指示どおり実施。夕食10割。特変なし。",
-    raw:"BS156 指示どおり実施 夕食10割 特変なし",
-    vitals:{ "day.T":"36.4", "day.P":"70", "day.BP":"118/70", "day.SpO2":"98",
-             "day.normalBS":"156", "day.mealB":"10", "day.mealL":"10",
-             "night.nightBS":"132", "night.mealD":"10" },
-    rec:function(rec){
-      rec.day.normalBS  = { on:true, every:true, days:[] };
-      rec.night.nightBS = { on:true, every:true, days:[] };
-      rec.day.targetBS  = { on:true, every:false, days:[1] };   // 毎週月曜のターゲス
-    },
-    /* 定期予定の見本：日勤（当日の用紙）と夜勤（前日の用紙）の両方 */
-    recurring:[
-      { title:"ターゲス", shift:"day",   days:[1], time:"" },
-      { title:"BS測定",   shift:"night", days:[1], time:"" }
-    ]
-  },
-  {
-    unit:4, room:"410", name:"見本 みどり",
-    perm:"食事・水分トロミ・誤嚥注意・服薬は職員管理",
-    permRaw:"食事と水分にはトロミをつけてください。むせ込みに注意して見守りをお願いします。内服薬は職員が管理しています。",
-    short:"昼食8割。水分700ml。排便1回。むせ込みなく経過。",
-    raw:"昼食8割 水分700 排便1回 むせ込みなし",
-    vitals:{ "day.T":"36.7", "day.P":"76", "day.mealB":"10", "day.mealL":"8",
-             "night.mealD":"9" },
-    rec:function(rec){
-      rec.custom.push(normCustom({ id:"sample-water", name:"水分量", unit:"ml", shift:"day", size:"l", on:true, every:true, days:[] }));
-      rec.custom.push(normCustom({ id:"sample-stool", name:"排便",   unit:"回", shift:"day", size:"s", on:true, every:true, days:[] }));
-    },
-    vitalsExtra:{ "day.c:sample-water":"700", "day.c:sample-stool":"1" }
-  },
-  {
-    unit:5, room:"512", name:"見本 一郎",
-    perm:"褥瘡処置・移乗2人介助",
-    permRaw:"仙骨部に褥瘡があります。移乗は2人介助で行ってください。",
-    short:"仙骨部の処置実施。発赤の範囲に変化なし。夕食10割。",
-    raw:"仙骨部 処置実施 発赤 変化なし 夕食10割",
-    vitals:{ "day.T":"36.5", "day.P":"68", "day.BP":"124/68", "day.SpO2":"97",
-             "day.mealB":"10", "day.mealL":"10", "night.mealD":"10",
-             "day.memo":"処置の内容を記入" },
-    rec:function(rec){ rec.day.memo.on = true; rec.day.BW = { on:true, every:false, days:[4] }; },
-    /* 1回だけの予定の見本（予定一覧・印刷には出しません） */
-    schedule:{ offset:3, kind:"受診", title:"定期受診", place:"（見本）中央クリニック", dept:"内科", start:"10:00", end:"11:30", family:"あり" }
-  }
-];
 
-function seedSamples(){
-  if(DB.samplesSeeded === true) return false;
-  /* すでに実運用のデータがある場合は、見本を作らない（職場データを優先） */
-  if(DB.residents.length){ DB.samplesSeeded = true; saveDB(); return false; }
-  var today = todayYmd();
-  for(var i=0;i<SAMPLE_DEFS.length;i++){
-    var s = SAMPLE_DEFS[i];
-    var rec = defaultRec();
-    if(typeof s.rec === "function") s.rec(rec);
-    var vals = {};
-    for(var k in s.vitals){ if(Object.prototype.hasOwnProperty.call(s.vitals, k)) vals[k] = s.vitals[k]; }
-    for(var k2 in (s.vitalsExtra || {})){
-      if(Object.prototype.hasOwnProperty.call(s.vitalsExtra, k2)) vals[k2] = s.vitalsExtra[k2];
+/* =========================================================
+   旧版が自動作成した「見本入居者」の整理
+   ---------------------------------------------------------
+   固定記入例（FIXED_EXAMPLES）へ置き換えたため、保存データの中に残っている
+   旧版の見本だけを取り除く。実際に登録した入居者は絶対に消さない。
+
+   ★ 消してよいと断定できる条件（どちらか）
+     ① demo === true
+        見本を作るコードだけが付ける印。手動で追加した入居者は
+        addResident() が必ず demo:false を入れるため、この印は付かない。
+     ② id が "sample-数字" で、かつ 見本専用の sample:{...} を持つ／
+        旧版の見本4件と 所属・部屋番号・お名前・毎日つづく大事なこと が
+        4項目とも完全一致する
+        （demo の印が失われていても、旧版の見本だと確定できる形）
+
+   ★ お名前だけが似ている、部屋番号だけが同じ、といったデータは消さない。
+     断定できないものは LEGACY_SAMPLE_KEPT に記録して残す。
+   ========================================================= */
+var LEGACY_SAMPLE_SIGNATURES = [
+  { unit:2, room:"202", name:"見本 花子",   permShort:"歩行見守り・転倒注意" },
+  { unit:3, room:"305", name:"見本 太郎",   permShort:"食事一部介助・血糖測定" },
+  { unit:4, room:"410", name:"見本 みどり", permShort:"食事・水分トロミ・誤嚥注意・服薬は職員管理" },
+  { unit:5, room:"512", name:"見本 一郎",   permShort:"褥瘡処置・移乗2人介助" }
+];
+var LEGACY_SAMPLE_KEPT = [];      // 断定できず残したデータ（確認用。保存はしない）
+
+function matchesLegacySampleSignature(r){
+  for(var i=0;i<LEGACY_SAMPLE_SIGNATURES.length;i++){
+    var s = LEGACY_SAMPLE_SIGNATURES[i];
+    if(r.unit === s.unit && String(r.room) === s.room
+       && String(r.name) === s.name && String(r.permShort) === s.permShort) return true;
+  }
+  return false;
+}
+/* 旧見本だと断定できる根拠を並べる（0件なら実データとして残す） */
+function legacySampleReasons(r){
+  var why = [];
+  if(!r || typeof r !== "object") return why;
+  if(r.demo === true) why.push("demo印");
+  if(isLegacySampleId(r.id)){
+    if(hasSamplePayload(r)) why.push("見本ID＋見本専用データ");
+    else if(matchesLegacySampleSignature(r)) why.push("見本ID＋見本4項目一致");
+  }
+  return why;
+}
+function removeLegacySeedSamples(){
+  var ids = {}, changed = false;
+  LEGACY_SAMPLE_KEPT = [];
+  for(var i=0;i<DB.residents.length;i++){
+    var r = DB.residents[i];
+    if(legacySampleReasons(r).length){ ids[r.id] = 1; changed = true; continue; }
+    /* 見本らしく見えるが断定できないものは消さずに残す（実データ保護） */
+    if(isSample(r) || matchesLegacySampleSignature(r)){
+      LEGACY_SAMPLE_KEPT.push({ id:r.id, unit:r.unit, room:r.room, name:r.name });
     }
-    var rid = "sample-" + s.unit;
-    DB.residents.push({
-      id:rid, unit:s.unit, room:s.room, name:s.name, order:-1,
-      status:"in", permRaw:s.permRaw, permShort:s.perm, permUpdated:today,
-      autoCarry:false, demo:true, rec:rec,
-      sample:{ short:s.short, raw:s.raw, vitals:vals }
-    });
-    if(s.schedule){
-      DB.schedules.push({
-        id:"sample-sch-" + s.unit, residentId:rid, unit:s.unit, h:[s.unit, s.room, s.name], demo:true,
-        date:shiftDate(today, s.schedule.offset), kind:s.schedule.kind, start:s.schedule.start,
-        end:s.schedule.end, title:s.schedule.title, place:s.schedule.place, dept:s.schedule.dept,
-        family:s.schedule.family, note:"見本の予定です"
-      });
-    }
-    if(s.recurring){
-      for(var q=0;q<s.recurring.length;q++){
-        var rp = s.recurring[q];
-        DB.recurring.push({
-          id:"sample-rep-" + s.unit + "-" + q, unit:s.unit, residentId:rid,
-          shift:rp.shift, days:normDays(rp.days), title:rp.title, time:rp.time || "",
-          note:"見本の定期予定です", on:true, demo:true
-        });
-      }
-    }
+  }
+  if(!changed) return false;
+  DB.residents = DB.residents.filter(function(r){ return !ids[r.id]; });
+  DB.schedules = DB.schedules.filter(function(s){ return !ids[s.residentId]; });
+  DB.recurring = DB.recurring.filter(function(r){ return !ids[r.residentId]; });
+  for(var d in DB.daily){
+    if(!DB.daily[d]) continue;
+    for(var id in ids) delete DB.daily[d][id];
+    if(!Object.keys(DB.daily[d]).length) delete DB.daily[d];
+  }
+  for(var vd in DB.vitals){
+    if(!DB.vitals[vd]) continue;
+    for(var vid in ids) delete DB.vitals[vd][vid];
+    if(!Object.keys(DB.vitals[vd]).length) delete DB.vitals[vd];
   }
   DB.samplesSeeded = true;
-  saveDB();
   return true;
 }
 
@@ -4811,6 +4975,7 @@ function initUIFromDB(){
   document.getElementById("optSchedAllUnits").checked = !!DB.settings.showAllUnitSched;
   document.getElementById("optAutoCarry").checked     = DB.settings.autoCarry !== false;
   document.getElementById("optShowLeft").checked      = !!DB.settings.showLeft;
+  document.getElementById("residentSort").value      = residentSortMode();
   document.body.classList.toggle("pw", !!DB.settings.printWarn);
   var cs = document.getElementById("copySrc");
   if(cs && !cs.value) cs.value = prevDate(UI.date);
@@ -4846,7 +5011,7 @@ function showNonLocalNotice(){
 }
 
 loadDB();
-seedSamples();
+if(removeLegacySeedSamples() || !storeGet()) saveDB();
 initStaticUI();
 UI.unit = validUnit(UI.unit) || DEFAULT_UNIT;
 UI.date = todayYmd();

@@ -8,7 +8,7 @@
 
      1. ユニット構成・登録上限
      2. 静養室の有無で印刷対象が 4 ユニット / 5 ユニットへ自動で変わること
-     3. 見本の入居者が実データに混ざらないこと
+     3. 保存されない固定記入例が実データに混ざらないこと
      4. 定期予定（日勤＝当日 / 夜勤＝前日の用紙）と、月末・年末年始をまたぐ計算
      5. 定期予定が重複生成されないこと
      6. 自動保存と、アプリ更新を想定した旧データの移行（データを失わない）
@@ -166,29 +166,196 @@ function run(){
     assert.equal(app.uMax(3), 31);
     def.max = 30;
   });
-
-  console.log("\n■ 2. 見本の入居者（実データに混ぜない）");
-  check("見本は4人・ユニット2〜5に1人ずつ", () => {
-    const samples = app.DB.residents.filter(app.isSample);
-    assert.equal(samples.length, 4);
-    assert.equal(samples.map((r) => r.unit).sort().join(","), "2,3,4,5");
+  check("入力画面の追加フォームは静養室・各ユニットで共通", () => {
+    for(const unit of app.UNITS){
+      app.UI.unit = unit;
+      app.INPUT_ADD_UNIT = unit;
+      app.renderInput();
+      const form = elements.get("inputAddBox").innerHTML;
+      assert.ok(form.includes('data-add-field="room"'), app.uLb(unit));
+      assert.ok(form.includes('data-add-field="name"'), app.uLb(unit));
+      assert.ok(form.includes('data-add-field="permShort"'), app.uLb(unit));
+      assert.ok(form.includes("追加して入力を始める"), app.uLb(unit));
+    }
+    app.INPUT_ADD_UNIT = 0;
   });
-  check("見本は実人数・登録枠・印刷に含まれない", () => {
-    for(const u of [2, 3, 4, 5]){
+  check("静養室0人でも入力画面から同じ保存形式で直接追加できる", () => {
+    app.UI.unit = 1;
+    const added = app.addResident(1, { room:"静養1", name:"静養テスト", permShort:"転倒注意" });
+    assert.ok(added);
+    assert.equal(app.registeredCountOf(1), 1);
+    assert.equal(added.rec.day.T.on, true);
+    const saved = JSON.parse(storage.get(app.KEY));
+    assert.equal(saved.residents.find((r) => r.id === added.id).permShort, "転倒注意");
+    app.DB.residents = app.DB.residents.filter((r) => r.id !== added.id);
+    app.saveDB();
+  });
+  check("満員時の案内は場所名と上限を明記する", () => {
+    assert.equal(app.residentLimitMessage(1).includes("静養室は4名までです"), true);
+    assert.equal(app.residentLimitMessage(2).includes("ユニット2は34名までです"), true);
+  });
+
+  console.log("\n■ 2. 保存されない固定記入例");
+  check("静養室・ユニット2〜5に場所別の固定記入例がある", () => {
+    assert.equal(Object.keys(app.FIXED_EXAMPLES).sort().join(","), "1,2,3,4,5");
+    for(const u of app.UNITS){
+      app.UI.unit = u;
+      app.renderInput();
+      const out = elements.get("fixedExampleHost").innerHTML;
+      assert.ok(out.includes("記入例を見る"), app.uLb(u));
+      assert.ok(out.includes(app.FIXED_EXAMPLES[u].room), app.uLb(u));
+      assert.ok(out.includes(app.FIXED_EXAMPLES[u].today), app.uLb(u));
+      assert.ok(!out.includes("<input") && !out.includes("<textarea") && !out.includes("data-id="));
+    }
+  });
+  check("入力タブと入居者タブが同じ固定記入例を使う（二重管理をしない）", () => {
+    for(const u of app.UNITS){
+      app.UI.unit = u;
+      app.renderInput();
+      app.renderMaster();
+      const inHtml = elements.get("fixedExampleHost").innerHTML;
+      const mHtml  = elements.get("masterFixedExampleHost").innerHTML;
+      assert.equal(mHtml, inHtml, app.uLb(u));
+      assert.ok(mHtml.includes(app.FIXED_EXAMPLES[u].perm), app.uLb(u));
+      assert.ok(!mHtml.includes("<input") && !mHtml.includes("data-a=") && !mHtml.includes("data-f="));
+      /* 一覧（表）の中には入れない＝並び替え・検索・人数に関われない */
+      assert.equal(elements.get("masterBody").innerHTML.includes("fixed-example"), false);
+    }
+  });
+  check("固定記入例はDB・localStorage・バックアップ対象に存在しない", () => {
+    const dbJson = JSON.stringify(app.DB);
+    const saved = storage.get(app.KEY);
+    for(const u of app.UNITS){
+      assert.equal(dbJson.includes(app.FIXED_EXAMPLES[u].today), false);
+      assert.equal(saved.includes(app.FIXED_EXAMPLES[u].today), false);
+    }
+    assert.equal(app.DB.residents.filter(app.isSample).length, 0);
+  });
+  check("固定記入例は実人数・登録枠・印刷に含まれない", () => {
+    for(const u of app.UNITS){
       assert.equal(app.realResidentsOf(u).length, 0);
       assert.equal(app.registeredCountOf(u), 0);
       assert.equal(app.printableOf(u).length, 0);
     }
   });
-  check("見本の申し送りは日次データを作らない", () => {
+  check("固定記入例を描画しても日次・バイタルデータを作らない", () => {
     assert.equal(Object.keys(app.DB.daily).length, 0);
-    assert.ok(app.dailyGet("2030-05-05", "sample-2").short.includes("38.0"));
+    assert.equal(Object.keys(app.DB.vitals).length, 0);
   });
-  check("見本は検索結果に出ない／予定一覧にも出ない", () => {
+  check("固定記入例は検索結果・予定一覧に出ない", () => {
     app.HISTORY_CACHE = null;
-    assert.equal(app.buildHistoryIndex().filter((x) => String(x.name).includes("見本")).length, 0);
+    const idx = app.buildHistoryIndex();
+    for(const u of app.UNITS) assert.equal(idx.some((x) => String(x.content).includes(app.FIXED_EXAMPLES[u].today)), false);
     assert.equal(app.DB.schedules.filter(app.schedInCurrentScope).length, 0);
   });
+
+  console.log("\n■ 2a. 旧見本入居者の判定と整理");
+  check("見本の印が1つでも残っていれば実データとして数えない", () => {
+    assert.equal(app.isSample({ id:"r1", demo:true }), true, "demo印");
+    assert.equal(app.isSample({ id:"sample-3", demo:false }), true, "見本ID");
+    assert.equal(app.isSample({ id:"r1", demo:false, sample:{ short:"", raw:"" } }), true, "見本専用データ");
+    assert.equal(app.isSample({ id:"r1", demo:false }), false, "実データ");
+    assert.equal(app.isSample({ id:"r1", demo:false, sample:"x" }), false, "文字列は見本の入れ物ではない");
+    assert.equal(app.isSample(null), false);
+  });
+  check("旧見本と断定できる根拠だけを削除の理由にする", () => {
+    /* demo印：見本を作るコードだけが付ける */
+    assert.ok(app.legacySampleReasons({ id:"r1", demo:true }).length > 0);
+    /* 見本ID＋見本専用データ／見本ID＋4項目一致（demo印が失われた形） */
+    assert.ok(app.legacySampleReasons({ id:"sample-3", sample:{} }).length > 0);
+    assert.ok(app.legacySampleReasons({ id:"sample-2", unit:2, room:"202",
+      name:"見本 花子", permShort:"歩行見守り・転倒注意" }).length > 0);
+    /* 実データは1つも該当しない */
+    assert.equal(app.legacySampleReasons({ id:"r1", demo:false, unit:2, room:"202", name:"見本 花子" }).length, 0);
+    assert.equal(app.legacySampleReasons({ id:"sample-2", unit:2, room:"777",
+      name:"見本 花子", permShort:"ちがう内容" }).length, 0, "IDだけでは消さない");
+    assert.equal(app.legacySampleReasons({ id:"r1", unit:2, room:"202",
+      name:"見本 花子", permShort:"歩行見守り・転倒注意" }).length, 0, "お名前・部屋番号だけでは消さない");
+  });
+  check("整理しても実入居者と実データは消えない", () => {
+    const keep = app.DB.residents.slice();
+    app.DB.residents = [
+      { id:"sample-2", unit:2, room:"202", name:"見本 花子", order:-1, status:"in",
+        permRaw:"", permShort:"歩行見守り・転倒注意", permUpdated:"2026-06-01",
+        autoCarry:false, demo:true, sample:{ short:"見本", raw:"" }, rec:app.defaultRec() },
+      { id:"sample-5", unit:5, room:"512", name:"見本 一郎", order:-1, status:"in",
+        permRaw:"", permShort:"褥瘡処置・移乗2人介助", permUpdated:"2026-06-01",
+        autoCarry:false, demo:false, rec:app.defaultRec() },
+      makeResident(app, 2, "999", "見本 花子", {id:"real-lookalike"}),
+      makeResident(app, 3, "310", "実データ 太郎", {id:"real-normal"})
+    ];
+    app.DB.daily = { "2026-06-01":{ "sample-2":{ raw:"", short:"見本" },
+                                    "real-lookalike":{ raw:"", short:"実データの申し送り" } } };
+    app.DB.vitals = { "2026-06-01":{ "sample-2":{ "day.T":"38.0" }, "real-normal":{ "day.T":"36.5" } } };
+    assert.equal(app.removeLegacySeedSamples(), true);
+    const ids = app.DB.residents.map((r) => r.id).sort().join(",");
+    assert.equal(ids, "real-lookalike,real-normal");
+    assert.equal(app.DB.daily["2026-06-01"]["sample-2"], undefined);
+    assert.equal(app.DB.daily["2026-06-01"]["real-lookalike"].short, "実データの申し送り");
+    assert.equal(app.DB.vitals["2026-06-01"]["real-normal"]["day.T"], "36.5");
+    assert.equal(app.realResidentsOf(5).length, 0);
+    assert.equal(app.realResidentsOf(2).length, 1);
+    /* 元へ戻す */
+    app.DB.residents = keep; app.DB.daily = {}; app.DB.vitals = {};
+  });
+  check("断定できないデータは消さずに確認用へ記録する", () => {
+    const keep = app.DB.residents.slice();
+    app.DB.residents = [
+      { id:"sample-9", unit:2, room:"777", name:"あとで確認", order:0, status:"in",
+        permRaw:"", permShort:"", permUpdated:"2026-06-01", autoCarry:true, demo:false, rec:app.defaultRec() },
+      { id:"sample-2", unit:2, room:"202", name:"見本 花子", order:-1, status:"in",
+        permRaw:"", permShort:"", permUpdated:"2026-06-01", autoCarry:false, demo:true, rec:app.defaultRec() }
+    ];
+    app.removeLegacySeedSamples();
+    assert.equal(app.DB.residents.map((r) => r.id).join(","), "sample-9");
+    assert.equal(app.LEGACY_SAMPLE_KEPT.map((x) => x.id).join(","), "sample-9");
+    app.DB.residents = keep;
+  });
+
+  console.log("\n■ 2b. 入居者一覧の表示ソート");
+  const sortRows = [
+    makeResident(app, 1, "静養10", "さとう", {id:"sort-a", order:3, updatedAt:100}),
+    makeResident(app, 1, "静養2",  "あべ",   {id:"sort-b", order:1, updatedAt:300}),
+    makeResident(app, 1, "静養1",  "いとう", {id:"sort-c", order:2, updatedAt:200})
+  ];
+  check("部屋番号順・五十音順・追加順・最近編集順が表示だけを変える", () => {
+    const dbOrder = app.DB.residents.map((r) => r.id).join(",");
+    app.DB.settings.residentSort = "room";
+    assert.equal(app.sortedResidentsForDisplay(1).map((r) => r.id).join(","), "sort-c,sort-b,sort-a");
+    app.DB.settings.residentSort = "name";
+    assert.equal(app.sortedResidentsForDisplay(1).map((r) => r.id).join(","), "sort-b,sort-c,sort-a");
+    app.DB.settings.residentSort = "added";
+    assert.equal(app.sortedResidentsForDisplay(1).map((r) => r.id).join(","), "sort-a,sort-b,sort-c");
+    app.DB.settings.residentSort = "updated";
+    assert.equal(app.sortedResidentsForDisplay(1).map((r) => r.id).join(","), "sort-b,sort-c,sort-a");
+    assert.equal(app.DB.residents.map((r) => r.id).join(","), dbOrder, "DB配列順は不変");
+  });
+  check("既存日時なしは追加順の逆順へ自然にフォールバックする", () => {
+    delete sortRows[0].updatedAt; delete sortRows[1].updatedAt; delete sortRows[2].updatedAt;
+    app.DB.settings.residentSort = "updated";
+    assert.equal(app.sortedResidentsForDisplay(1).map((r) => r.id).join(","), "sort-c,sort-b,sort-a");
+  });
+  check("主要データの編集時刻で最近編集順が更新される", () => {
+    app.touchResident(sortRows[0]);
+    assert.equal(app.sortedResidentsForDisplay(1)[0].id, "sort-a");
+  });
+  check("ソート設定は軽量なsettings値として保存される", () => {
+    app.DB.settings.residentSort = "name";
+    app.saveDB();
+    assert.equal(JSON.parse(storage.get(app.KEY)).settings.residentSort, "name");
+  });
+  check("同じソート処理が静養室・ユニット2〜5すべてで動く", () => {
+    app.DB.settings.residentSort = "room";
+    for(const u of app.UNITS){
+      const a = makeResident(app, u, "部屋10", "後", {id:"all-sort-"+u+"-a"});
+      const b = makeResident(app, u, "部屋2", "先", {id:"all-sort-"+u+"-b"});
+      const ids = app.sortedResidentsForDisplay(u).filter((r) => r.id.startsWith("all-sort-")).map((r) => r.id);
+      assert.equal(ids.join(","), b.id+","+a.id, app.uLb(u));
+    }
+    app.DB.residents = app.DB.residents.filter((r) => !r.id.startsWith("all-sort-"));
+  });
+  app.DB.residents = app.DB.residents.filter((r) => !r.id.startsWith("sort-"));
+  app.DB.settings.residentSort = "manual";
 
   console.log("\n■ 3. 印刷対象（静養室の有無で自動変更）");
   makeResident(app, 2, "201", "テスト 二郎");
@@ -344,8 +511,8 @@ function run(){
     assert.equal(app.DB.daily["2026-08-14"][r.id].short, "前日の申し送り");
     assert.equal(app.DB.daily["2026-08-14"]["t-2-201"].short, "修正しました。");
   });
-  check("見本の入居者は引継ぎの対象にならない", () => {
-    assert.equal(app.DB.daily["2026-08-14"]["sample-2"], undefined);
+  check("固定記入例は引継ぎの対象にならない", () => {
+    assert.equal(app.DB.residents.some((r) => String(r.id).startsWith("fixed-example")), false);
   });
 
   console.log("\n■ 6. アプリ更新を想定した移行（データを失わない）");
@@ -384,6 +551,22 @@ function run(){
     app.migrate();
     assert.equal(app.DB.residents[0].unit, app.DEFAULT_UNIT);
     assert.equal(app.DEFAULT_UNIT, 2);
+    app.DB = keep;
+  });
+  check("旧版の自動見本だけを除去し、実入居者と記録は維持する", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const real = makeResident(app, 2, "209", "実 入居者", {id:"keep-real"});
+    makeResident(app, 2, "202", "旧 見本", {id:"sample-2", demo:true});
+    const sameIdReal = makeResident(app, 3, "309", "実 入居者2", {id:"sample-3", demo:false});
+    app.dailyOf("2026-08-14", real.id).short = "残す記録";
+    app.dailyOf("2026-08-14", "sample-2").short = "旧見本記録";
+    app.dailyOf("2026-08-14", sameIdReal.id).short = "同名IDでも残す記録";
+    assert.equal(app.removeLegacySeedSamples(), true);
+    assert.ok(app.residentById("keep-real"));
+    assert.equal(app.dailyGet("2026-08-14", "keep-real").short, "残す記録");
+    assert.equal(app.dailyGet("2026-08-14", "sample-3").short, "同名IDでも残す記録");
+    assert.equal(app.residentById("sample-2"), null);
     app.DB = keep;
   });
 
@@ -816,9 +999,9 @@ function run(){
   });
 
   console.log("\n■ 14. 確認用の公開ページ（GitHub Pages）への注意");
-  check("見本データは架空の4名だけで、実在しそうな情報を含まない", () => {
-    for(const s of app.SAMPLE_DEFS) assert.ok(s.name.startsWith("見本 "), s.name);
-    assert.equal(app.SAMPLE_DEFS.length, 4);
+  check("固定記入例は説明用の静的内容だけで構成される", () => {
+    for(const u of app.UNITS) assert.equal(app.FIXED_EXAMPLES[u].name, "記入例");
+    assert.equal(Object.keys(app.FIXED_EXAMPLES).length, 5);
   });
   check("file:// 以外で開いたときだけ注意書きを出す仕組みがある", () => {
     assert.equal(typeof app.showNonLocalNotice, "function");
