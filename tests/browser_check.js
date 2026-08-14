@@ -12,9 +12,12 @@
      ・04a/04b        … アプリ更新（旧版データの入ったPCで新しい本体を開く）
      ・05a/05b        … 再読込（閉じて開き直しても入力が残る）
      ・06_unit_move.js … 静養室への移動と、印刷構成の切り替え
+   ・07_security.js  … タグ入力が実行されないこと・入力欄の保護属性・
+                       壊れた保存データ・不正バックアップ・外部通信0件
 
    実行：
      node tests/browser_check.js
+     node tests/browser_check.js 07                          # 一部だけ実行する場合
      CHROME="/path/to/chrome" node tests/browser_check.js   # 場所を指定する場合
 
    ※ 検証用の一時HTMLは OS の一時フォルダに作られ、index.html は変更しない。
@@ -139,11 +142,22 @@ function main(){
       title:"アプリ更新（旧版データの入ったPCで新しい index.html を開く）" },
     { files:["05a_reload_write.js", "05b_reload_read.js"],
       title:"再読込（ブラウザを閉じて開き直しても入力が残る）" },
-    { files:["06_unit_move.js"], title:"静養室への移動（印刷構成が4枚⇄5枚で切り替わる）" }
+    { files:["06_unit_move.js"], title:"静養室への移動（印刷構成が4枚⇄5枚で切り替わる）" },
+    { files:["07_security.js"],  title:"セキュリティ（タグ入力・入力欄の保護・不正データ・外部通信0件）" }
   ];
 
+  /* 引数を渡すと、その名前を含む検証だけを実行する（例： node tests/browser_check.js 07） */
+  const only = process.argv.slice(2).filter((a) => !a.startsWith("-"));
+  const targets = only.length
+    ? suites.filter((s) => s.files.some((f) => only.some((o) => f.includes(o))))
+    : suites;
+  if(!targets.length){
+    console.log("該当する検証がありません: " + only.join(", "));
+    process.exit(1);
+  }
+
   let totalFail = 0, totalErr = 0;
-  for(const s of suites){
+  for(const s of targets){
     console.log("\n■ " + s.title);
     /* 続けて開く組は、同じプロファイル＝同じ保存領域を使う */
     const profile = path.join(WORK, "profile-" + s.files[0]);

@@ -1,10 +1,24 @@
 <!DOCTYPE html>
-<html lang="ja">
+<!-- spellcheck / writingsuggestions / translate は子要素へ引き継がれる。
+     ブラウザの校正・入力予測・翻訳がクラウドへ本文を送る経路を、ページ全体で断つ。 -->
+<html lang="ja" spellcheck="false" writingsuggestions="false" autocapitalize="off" translate="no" class="notranslate">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>申し送りメーカー（職場用・完全オフライン）</title>
 <meta name="description" content="介護・医療現場の申し送り／勤務記録を、このPCの中だけで作成・保存・印刷するオフラインアプリです。">
+<!-- ===== 通信を一切させないための宣言（ブラウザ側で強制される） =====
+     default-src 'none'  … 既定ですべての読み込み先を禁止する
+     connect-src 'none'  … 通信系ブラウザAPI（取得・送信・ソケット・計測送信）をすべて禁止する
+     script-src / style-src 'unsafe-inline' … この単一HTMLファイルの中に直接書いた
+                                             スクリプト・スタイルだけを許可する
+                                             （外部ファイル・外部URLは許可しない）
+     img-src data: … 外部画像を読み込ませない（このアプリは画像を使っていない）
+     form-action 'none' / base-uri 'none' … 入力内容の送信先を作らせない
+     ※ この行を消すと、万一コードへ通信処理が混入したときに止められなくなる。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
 <style>
 /* =========================================================
    申し送りメーカー（職場実運用版 / 単一HTML / 完全オフライン）
@@ -283,6 +297,13 @@ tr.left-row input[type=text]{color:#6a7581}
 #capacityWarning{display:none;font-size:12.5px;color:#6b5312;margin-top:6px;padding:6px 9px;
   background:#fffdf3;border:1px solid #e2c46f;border-radius:5px;font-weight:700}
 #capacityWarning.on{display:block}
+/* file:// 以外（GitHub Pages などの確認用公開）で開いたときだけ出る注意書き */
+#webnote{display:none;margin:8px 0 2px;padding:9px 12px;border:2px solid #e2c46f;
+  border-left-width:7px;border-radius:6px;background:#fffdf3;color:#6b5312;
+  font-size:13px;font-weight:700;line-height:1.7}
+#webnote.on{display:block}
+#webnote .sub{display:block;font-weight:400;font-size:12px;margin-top:3px}
+@media print{ #webnote{display:none !important} }
 .notice{border-left:5px solid var(--accent2);background:#eef4fb;padding:10px 12px;margin:9px 0;border-radius:5px;font-size:13.5px;line-height:1.75}
 .notice.warn{border-left-color:var(--warn);background:#fdf1f1;color:#7d1c1c;font-weight:700}
 .notice.care{border-left-color:#c9a227;background:#fffdf3;color:#6b5312;font-weight:700}
@@ -587,7 +608,7 @@ tr.left-row input[type=text]{color:#6a7581}
   <div class="topbar">
     <label for="theDate">日付</label>
     <button class="btn sm" id="btnPrevDay">← 前日</button>
-    <input type="date" id="theDate">
+    <input type="date" id="theDate" spellcheck="false" autocomplete="off">
     <button class="btn sm" id="btnNextDay">翌日 →</button>
     <button class="btn sm" id="btnToday">今日</button>
     <span class="datelb" id="dateLabel"></span>
@@ -596,6 +617,10 @@ tr.left-row input[type=text]{color:#6a7581}
     <span class="savest" id="saveState">✓ 保存しました</span>
   </div>
   <div id="capacityWarning">保存データが増えています。バックアップ保存と、古い予定の整理を行ってください。</div>
+  <div id="webnote" role="note">
+    ⚠ これは<b>動作確認用の公開ページ</b>です。実在する入居者のお名前・部屋番号・申し送り・バイタルは入力しないでください。
+    <span class="sub">入力した内容は外部へ送信されませんが、いま使っているブラウザの保存領域（localStorage）に残ります。実運用は、職場PCに置いた index.html をダブルクリックで開いて行ってください。</span>
+  </div>
   <div id="memnote" role="alert">
     ⚠ いま入力した内容をこのPCへ保存できていません。このページを閉じると入力が失われる可能性があります。
     <span class="sub">「入居者」タブの「バックアップを保存」でファイルへ保存してください。ブラウザのプライベートモード・保存容量・サイト設定が原因のことがあります。保存できるようになると、この警告は自動的に消えます。</span>
@@ -635,7 +660,7 @@ tr.left-row input[type=text]{color:#6a7581}
         </div>
         <div class="row-actions" style="margin-top:10px">
           <label class="hint" for="copySrc">コピー元の日付</label>
-          <input type="date" id="copySrc" style="padding:6px 8px;border:1px solid var(--line);border-radius:5px">
+          <input type="date" id="copySrc" spellcheck="false" autocomplete="off" style="padding:6px 8px;border:1px solid var(--line);border-radius:5px">
           <button class="btn" id="btnCopyRun">この日から申し送りをコピー</button>
           <span class="hint">コピー先が未入力の人だけコピーします（入力済みの内容は消しません）。</span>
         </div>
@@ -733,7 +758,7 @@ tr.left-row input[type=text]{color:#6a7581}
             <select id="repResident"></select>
           </label>
           <label class="f"><span>内容</span>
-            <input type="text" id="repTitle" placeholder="例）BS測定、ターゲス、体重測定">
+            <input type="text" id="repTitle" placeholder="例）BS測定、ターゲス、体重測定" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
           </label>
           <label class="f"><span>勤務帯</span>
             <select id="repShift">
@@ -742,7 +767,7 @@ tr.left-row input[type=text]{color:#6a7581}
             </select>
           </label>
           <label class="f"><span>時間（任意）</span>
-            <input type="time" id="repTime">
+            <input type="time" id="repTime" spellcheck="false" autocomplete="off">
           </label>
         </div>
         <div style="margin-top:10px">
@@ -827,17 +852,17 @@ tr.left-row input[type=text]{color:#6a7581}
     </div>
     <div class="search-tools">
       <label class="search-keyword">言葉でさがす
-        <input type="search" id="historyKeyword" placeholder="例）山田、405、受診、2026年8月、14日" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
+        <input type="search" id="historyKeyword" placeholder="例）山田、405、受診、2026年8月、14日" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
         <div class="suggest" id="searchSuggest" role="listbox"></div>
       </label>
       <label>ユニット
         <select id="historyUnit"></select>
       </label>
       <label>この日から
-        <input type="date" id="historyFrom" aria-label="開始日">
+        <input type="date" id="historyFrom" aria-label="開始日" spellcheck="false" autocomplete="off">
       </label>
       <label>この日まで
-        <input type="date" id="historyTo" aria-label="終了日">
+        <input type="date" id="historyTo" aria-label="終了日" spellcheck="false" autocomplete="off">
       </label>
     </div>
     <div class="search-interpret" id="historyInterpret" aria-live="polite"></div>
@@ -896,7 +921,7 @@ tr.left-row input[type=text]{color:#6a7581}
     </div>
     <div class="guide-tools">
       <label for="guideSearch">さがす</label>
-      <input type="search" id="guideSearch" placeholder="例）印刷、定期予定、夜勤、バックアップ、静養室" autocomplete="off">
+      <input type="search" id="guideSearch" placeholder="例）印刷、定期予定、夜勤、バックアップ、静養室" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off">
       <button class="btn sm" id="guideSearchClear">消す</button>
     </div>
     <div class="guide-body" id="guideBody">
@@ -1043,7 +1068,16 @@ tr.left-row input[type=text]{color:#6a7581}
         </ul>
         <p>「文章を整える」も、入力された事実を読みやすく並べ直すだけで、内容を勝手に足したり変えたりはしません。判断は必ず職員・医療者が行ってください。</p>
         <h5>通信について</h5>
-        <p>このアプリは、外部サーバー・外部AI・解析サービスへの送信処理を一切実装していません。インターネットに接続していてもいなくても、同じように動きます。</p>
+        <p>このアプリは、外部サーバー・外部AI・解析サービスへの送信処理を一切実装していません。インターネットに接続していてもいなくても、同じように動きます。万一そうした処理が混ざっても止まるよう、ブラウザ側で通信を禁止する設定（Content-Security-Policy）もこのファイルに書いてあります。</p>
+        <h5>ブラウザの設定もご確認ください</h5>
+        <p>このアプリは、入力欄のスペルチェック・入力予測・オートコンプリート・翻訳を止めるよう指定していますが、<b>ブラウザ側の設定が優先されることがあります</b>。管理者の方は、職場PCで次をOFF（またはローカル処理）にしてください。</p>
+        <ul>
+          <li>Edge：文章作成の支援（Microsoft Editor の「拡張」）、文法とスペルチェック、テキスト予測</li>
+          <li>Edge / Chrome：住所・パスワードなどの自動入力、ページの翻訳の提案、拡張スペルチェック</li>
+          <li>Windows：入力データの送信、IME のクラウド候補</li>
+          <li>ブラウザのプロファイル同期（サインインして同期する設定）</li>
+        </ul>
+        <p>また、バックアップしたファイルは、クラウド同期フォルダ（OneDrive など）ではなく施設の規定に沿った場所へ保存してください。</p>
       </section>
 
       <section class="doc-section" data-guide-section id="guide-trouble">
@@ -1477,8 +1511,28 @@ function migrate(){
     lastAutoCarry    : isYmd(st.lastAutoCarry) ? st.lastAutoCarry : "",
     lastBackup       : isYmd(st.lastBackup) ? st.lastBackup : ""
   };
+  /* 細工したバックアップで JavaScript の共通の土台（プロトタイプ）が
+     書き換えられないよう、危険な名前のキーだけを取り除く。
+     日付・入居者ID・設定など、通常のデータには存在しない名前なので実データは消えない。 */
+  stripUnsafeKeys(DB);
+
   DB.v   = DATA_VERSION;
   DB.app = APP_VERSION;
+}
+var UNSAFE_KEYS = ["__proto__", "constructor", "prototype"];
+function stripUnsafeKeys(obj, depth){
+  if(!obj || typeof obj !== "object") return;
+  var lv = depth || 0;
+  if(lv > 6) return;
+  for(var i=0;i<UNSAFE_KEYS.length;i++){
+    if(Object.prototype.hasOwnProperty.call(obj, UNSAFE_KEYS[i])){
+      try{ delete obj[UNSAFE_KEYS[i]]; }catch(e){}
+    }
+  }
+  for(var k in obj){
+    if(!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+    if(obj[k] && typeof obj[k] === "object") stripUnsafeKeys(obj[k], lv + 1);
+  }
 }
 
 /* 同じ内容の定期予定を二重に持たない（再読み込み・復元での重複生成を防ぐ） */
@@ -1902,10 +1956,77 @@ function hasDaily(date, id){
   var e = (DB.daily[date] && DB.daily[date][id]) || null;
   return !!(e && ((e.raw && e.raw.trim()) || (e.short && e.short.trim())));
 }
+/* 画面に出す文字はすべてここを通す。
+   お名前・部屋番号・申し送りに < > & " ' が入っていても「文字」として表示し、
+   HTML やスクリプトとして解釈させない（HTMLインジェクション対策）。 */
 function esc(s){
   return String(s == null ? "" : s)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
+
+/* =========================================================
+   入力欄の保護（ブラウザ側のクラウド処理を止める）
+   ---------------------------------------------------------
+   Edge / Chrome は、スペルチェック・入力予測（Microsoft Editor 等）・
+   オートコンプリート・翻訳のために、入力文字列を端末外へ送ることがある。
+   アプリからの通信が無くても、この経路で氏名や申し送りが外へ出る恐れがあるため、
+   すべての入力欄へ抑止用の属性を付ける。
+   ・新しい入力欄を後から追加しても漏れないよう、
+     ①<html> への継承属性 ②描画後の一括付与 ③MutationObserver の三重で掛ける
+   ・値や name/id は変更しないので、既存の保存・読込には影響しない
+   ========================================================= */
+var NO_CLOUD_ATTRS = {
+  spellcheck: "false",           // 校正（クラウド校正の入口）
+  autocomplete: "off",           // 入力履歴・オートフィル
+  autocorrect: "off",            // 自動修正（WebKit系）
+  autocapitalize: "off",         // 自動大文字化
+  "data-gramm": "false",         // 校正拡張（Grammarly等）が本文を読むのを抑止
+  "data-gramm_editor": "false",
+  "data-enable-grammarly": "false"
+};
+/* 文字を打たない入力欄（チェックボックス等）には付けない */
+var NO_CLOUD_SKIP_TYPES = { checkbox:1, radio:1, file:1, hidden:1, button:1, submit:1, reset:1, range:1, color:1 };
+
+function hardenField(el){
+  if(!el || el.__noCloud) return;
+  var tag = (el.tagName || "").toLowerCase();
+  if(tag === "input"){
+    var t = String(el.getAttribute("type") || "text").toLowerCase();
+    if(NO_CLOUD_SKIP_TYPES[t]){ el.__noCloud = true; return; }
+  }else if(tag !== "textarea"){ return; }
+  for(var k in NO_CLOUD_ATTRS){
+    if(!Object.prototype.hasOwnProperty.call(NO_CLOUD_ATTRS, k)) continue;
+    /* すでに指定がある欄は、そのまま尊重して重複させない */
+    var cur = el.getAttribute(k);
+    if(cur === null || cur === "") el.setAttribute(k, NO_CLOUD_ATTRS[k]);
+  }
+  /* 入力予測（Edge の Text Prediction / Chrome の writing suggestions） */
+  if(el.getAttribute("writingsuggestions") === null) el.setAttribute("writingsuggestions", "false");
+  el.__noCloud = true;
+}
+function hardenInputs(root){
+  var host = root || document;
+  if(host.nodeType === 1) hardenField(host);
+  var list = host.querySelectorAll ? host.querySelectorAll("input,textarea") : [];
+  for(var i=0;i<list.length;i++) hardenField(list[i]);
+}
+/* 描画のたびに呼ぶのに加え、後から作られた入力欄も自動で保護する */
+function startFieldGuard(){
+  hardenInputs(document);
+  if(typeof MutationObserver !== "function") return;
+  try{
+    new MutationObserver(function(recs){
+      for(var i=0;i<recs.length;i++){
+        var added = recs[i].addedNodes;
+        for(var j=0;j<added.length;j++){
+          if(added[j] && added[j].nodeType === 1) hardenInputs(added[j]);
+        }
+      }
+    }).observe(document.documentElement, { childList:true, subtree:true });
+  }catch(e){}
+}
+
 var toastT = null;
 function toast(msg){
   var el = document.getElementById("toast");
@@ -2157,6 +2278,7 @@ function switchTab(t){
   if(t === "sched")   renderSched();
   if(t === "print"){  renderPrint(); fitPreview(); }
   if(t === "history") renderHistory();
+  hardenInputs(document);            // 作り直した入力欄にも保護属性を付け直す
 }
 
 /* =========================================================
@@ -2233,6 +2355,7 @@ function renderInput(){
     + '</div>';
   }
   host.innerHTML = h;
+  hardenInputs(host);
   updAllWarns();
 }
 
@@ -2434,6 +2557,7 @@ function renderMaster(){
        + ' 名います（過去の記録・予定は残っています）。「退居した人も表示する」で一覧に出せます。</td></tr>';
   }
   document.getElementById("masterBody").innerHTML = h;
+  hardenInputs(document.getElementById("masterBody"));
   renderAdminDeleteList();
   renderBackupInfo();
 }
@@ -2576,6 +2700,7 @@ function renderRecModal(){
      + '<span class="hint" style="margin-left:10px">項目名・勤務帯・曜日・単位・記入欄の大きさを設定できます（上限 '+MAX_CUSTOM+' 件）。</span>'
      + '</div></div>';
   document.getElementById("recBody").innerHTML = h;
+  hardenInputs(document.getElementById("recBody"));
 }
 function wdaysHTML(st, disabled){
   var h = '<div class="wd'+(disabled?" dim":"")+'">'
@@ -3647,6 +3772,7 @@ function renderAll(){
   renderSched();
   if(UI.tab === "print"){ renderPrint(); fitPreview(); }
   if(UI.tab === "history") renderHistory();
+  hardenInputs(document);            // 作り直した入力欄にも保護属性を付け直す
 }
 function setDate(d, followToday){
   if(!isYmd(d)) d = todayYmd();
@@ -3784,6 +3910,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
     var box = card.querySelector("[data-sform]");
     box.removeAttribute("data-sid");
     box.innerHTML = schedFormHTML({ date:UI.date }, "new");
+    hardenInputs(box);
     box.classList.add("on");
     return;
   }
@@ -3795,6 +3922,7 @@ document.getElementById("inputList").addEventListener("click", function(e){
     var box2 = card.querySelector("[data-sform]");
     box2.setAttribute("data-sid", sid);
     box2.innerHTML = schedFormHTML(sc, "edit");
+    hardenInputs(box2);
     box2.classList.add("on");
     return;
   }
@@ -4226,6 +4354,7 @@ document.getElementById("schedList").addEventListener("click", function(e){
     if(box.classList.contains("on")){ box.classList.remove("on"); box.innerHTML = ""; return; }
     box.setAttribute("data-sid", sid);
     box.innerHTML = schedFormHTML(sc, "edit");
+    hardenInputs(box);
     box.classList.add("on");
     return;
   }
@@ -4705,6 +4834,17 @@ function initStaticUI(){
   if(fv) fv.textContent = "　バージョン " + APP_VERSION;
 }
 
+/* 職場での実運用は、PC内の index.html を直接開く（file://）ことを前提にしている。
+   GitHub Pages などサーバー経由で開かれたときだけ、確認用である旨を画面に出す。
+   （入力内容はそのブラウザの localStorage に残るため、実データを入れない） */
+function showNonLocalNotice(){
+  var proto = "";
+  try{ proto = String(location.protocol || ""); }catch(e){ return; }
+  if(proto === "file:" || proto === "") return;
+  var el = document.getElementById("webnote");
+  if(el) el.classList.add("on");
+}
+
 loadDB();
 seedSamples();
 initStaticUI();
@@ -4714,6 +4854,8 @@ document.getElementById("theDate").value = UI.date;
 initUIFromDB();
 autoCarryToday();
 renderAll();
+startFieldGuard();        // 入力欄をブラウザのクラウド処理から守る（以後に作られる欄も含む）
+showNonLocalNotice();
 LAST_LOCAL_DAY = todayYmd();
 FOLLOW_TODAY = true;
 startLocalDateWatch();

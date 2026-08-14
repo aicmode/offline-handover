@@ -14,7 +14,10 @@
      6. 自動保存と、アプリ更新を想定した旧データの移行（データを失わない）
      7. バックアップの形式検証（壊れたファイルで既存データを消さない）
      8. オフライン文章整形
-     9. 外部通信のコードが 1 件も無いこと
+     9. 外部通信のコードが 1 件も無いこと（CSP 宣言・Blob の用途を含む）
+    10. すべての入力欄で spellcheck / autocomplete などを止めていること
+    11. 入力文字がコードとして実行されないこと（XSS / HTMLインジェクション）
+    12. 不正なバックアップ・壊れた保存データで既存データを失わないこと
 
      実行： node tests/app.test.js
    ========================================================= */
@@ -579,6 +582,14 @@ function run(){
       assert.equal(pattern.test(script), false, "禁止APIが見つかりました: " + pattern);
     }
   });
+  check("HTML全体（コメント・CSSを含む）にも送信APIの名前が1件も無い", () => {
+    for(const pattern of [/\bfetch\b/i, /XMLHttpRequest/i, /\bWebSocket\b/i, /sendBeacon/i,
+                          /EventSource/i, /importScripts/i, /indexedDB/i, /ServiceWorker/i,
+                          /\bnavigator\s*\./i, /document\.write/i, /insertAdjacentHTML/i,
+                          /\bouterHTML\b/i, /\beval\s*\(/]){
+      assert.equal(pattern.test(html), false, "見つかりました: " + pattern);
+    }
+  });
   check("外部リソースを読み込む記述が無い", () => {
     for(const pattern of [/<script[^>]+src=/i, /<link[^>]+href=/i, /<img[^>]+src=/i,
                           /<iframe/i, /@import/i, /url\(\s*['"]?https?:/i]){
@@ -593,6 +604,226 @@ function run(){
     for(const word of ["analytics", "gtag", "googletagmanager", "telemetry", "sentry", "cdn."]){
       assert.equal(html.toLowerCase().includes(word), false, word + " が含まれています");
     }
+  });
+  check("Blob（バックアップ保存）はPC内のファイル作成だけに使っている", () => {
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+    /* createObjectURL は exportBackup の中だけ。作った URL はすぐ revoke している */
+    assert.equal((script.match(/createObjectURL/g) || []).length, 1);
+    assert.equal((script.match(/revokeObjectURL/g) || []).length, 1);
+    const fn = script.slice(script.indexOf("function exportBackup"),
+                            script.indexOf("function validBackup"));
+    assert.ok(fn.includes("createObjectURL"), "createObjectURL は exportBackup の中にある");
+    assert.ok(fn.includes('a.download'), "ダウンロード（PC内保存）にだけ使っている");
+    assert.ok(fn.includes("revokeObjectURL"), "使い終わったら破棄する");
+  });
+  check("通信を禁止する Content-Security-Policy を宣言している", () => {
+    const m = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/);
+    assert.ok(m, "CSP の meta が必要です");
+    for(const rule of ["default-src 'none'", "connect-src 'none'", "form-action 'none'",
+                       "base-uri 'none'", "object-src 'none'", "frame-src 'none'"]){
+      assert.ok(m[1].includes(rule), "CSP に " + rule + " が必要です");
+    }
+    assert.equal(/https?:/.test(m[1]), false, "CSP に外部ホストを書かない");
+  });
+
+  console.log("\n■ 11. 入力内容がブラウザ経由で外へ出ないこと（spellcheck 等）");
+  check("ページ全体で校正・入力予測・翻訳を止めている", () => {
+    const tag = html.match(/<html[^>]*>/)[0];
+    for(const attr of ['spellcheck="false"', 'writingsuggestions="false"',
+                       'autocapitalize="off"', 'translate="no"']){
+      assert.ok(tag.includes(attr), "<html> に " + attr + " が必要です: " + tag);
+    }
+  });
+  check("画面に固定で置かれた入力欄すべてに spellcheck=false / autocomplete=off がある", () => {
+    const body = html.slice(html.indexOf("<body>"), html.indexOf("<script>"));
+    const fields = body.match(/<(input|textarea)\b[^>]*>/g) || [];
+    const typed = fields.filter((f) => !/type="(checkbox|radio|file|hidden|button|submit|reset)"/.test(f));
+    assert.ok(typed.length >= 8, "検査対象の入力欄が見つかりません: " + typed.length);
+    for(const f of typed){
+      assert.ok(/spellcheck="false"/.test(f), "spellcheck が無い: " + f);
+      assert.ok(/autocomplete="off"/.test(f), "autocomplete が無い: " + f);
+    }
+  });
+  check("後から作られる入力欄も共通処理で保護する（付け忘れ防止）", () => {
+    assert.equal(typeof app.hardenInputs, "function");
+    assert.equal(typeof app.hardenField, "function");
+    assert.equal(typeof app.startFieldGuard, "function");
+    assert.equal(app.NO_CLOUD_ATTRS.spellcheck, "false");
+    assert.equal(app.NO_CLOUD_ATTRS.autocomplete, "off");
+    assert.equal(app.NO_CLOUD_ATTRS.autocorrect, "off");
+    assert.equal(app.NO_CLOUD_ATTRS.autocapitalize, "off");
+    /* 文字入力欄には付ける／チェックボックスには付けない */
+    const ta = { tagName:"TEXTAREA", attrs:{},
+      getAttribute(n){ return this.attrs[n] === undefined ? null : this.attrs[n]; },
+      setAttribute(n, v){ this.attrs[n] = String(v); } };
+    app.hardenField(ta);
+    assert.equal(ta.attrs.spellcheck, "false");
+    assert.equal(ta.attrs.autocomplete, "off");
+    assert.equal(ta.attrs.writingsuggestions, "false");
+    const cb = Object.assign({}, ta, { tagName:"INPUT", attrs:{ type:"checkbox" } });
+    app.hardenField(cb);
+    assert.equal(cb.attrs.spellcheck, undefined, "チェックボックスには付けない");
+  });
+  check("すでに指定がある欄の設定を上書きしない", () => {
+    const el = { tagName:"INPUT", attrs:{ type:"search", autocomplete:"off" },
+      getAttribute(n){ return this.attrs[n] === undefined ? null : this.attrs[n]; },
+      setAttribute(n, v){ this.attrs[n] = String(v); } };
+    app.hardenField(el);
+    assert.equal(el.attrs.autocomplete, "off");
+    assert.equal(el.attrs.spellcheck, "false");
+  });
+
+  console.log("\n■ 12. 入力文字がコードとして実行されないこと（XSS / HTMLインジェクション）");
+  /* 描画結果に「実行されるタグ」が混ざっていないかを見る目印 */
+  const DANGER_TAG = /<\s*(script|img|svg|iframe|object|embed|link|style|meta|body|base)\b/i;
+  const ATTACKS = [
+    '<script>window.__x=1</script>',
+    '<img src=x onerror="window.__x=1">',
+    '"><b>太字</b>',
+    "'><svg onload=alert(1)>",
+    '<>&"\'',
+    '</textarea><script>alert(1)</script>'
+  ];
+  check("esc() が < > & \" ' をすべて文字へ変える", () => {
+    assert.equal(app.esc('<>&"\''), "&lt;&gt;&amp;&quot;&#39;");
+    assert.equal(app.esc('<script>alert(1)</script>'),
+      "&lt;script&gt;alert(1)&lt;/script&gt;");
+    assert.equal(app.esc(null), "");
+    assert.equal(app.esc(undefined), "");
+  });
+  check("お名前・部屋番号にタグを入れても描画結果に実行可能なタグが出ない", () => {
+    const victim = makeResident(app, 2, ATTACKS[1], ATTACKS[0]);
+    app.UI.unit = 2;
+    app.renderInput();
+    app.renderMaster();
+    const inputHtml  = elements.get("inputList").innerHTML;
+    const masterHtml = elements.get("masterBody").innerHTML;
+    for(const out of [inputHtml, masterHtml]){
+      assert.equal(DANGER_TAG.test(out), false, "タグが生のまま出ています");
+      assert.ok(out.includes("&lt;script&gt;"), "文字として表示されること");
+      assert.ok(out.includes("&lt;img"), "文字として表示されること");
+    }
+    app.DB.residents = app.DB.residents.filter((r) => r.id !== victim.id);
+  });
+  check("申し送り・毎日つづく大事なことにタグを入れても実行されない", () => {
+    const victim = makeResident(app, 2, "301", "テスト 太郎");
+    victim.permShort = ATTACKS[1];
+    const d = app.dailyOf(app.UI.date, victim.id);
+    d.short = ATTACKS[0];
+    d.raw   = ATTACKS[5];
+    app.UI.unit = 2;
+    app.renderInput();
+    const out = elements.get("inputList").innerHTML;
+    assert.equal(DANGER_TAG.test(out), false);
+    /* 入力欄を途中で閉じて抜け出していないこと（開いた数＝閉じた数） */
+    assert.equal((out.match(/<textarea\b/gi) || []).length,
+                 (out.match(/<\/textarea>/gi) || []).length,
+                 "textarea を閉じて抜け出せない");
+    app.DB.residents = app.DB.residents.filter((r) => r.id !== victim.id);
+    delete app.DB.daily[app.UI.date][victim.id];
+  });
+  check("予定・定期予定・記録項目名にタグを入れても実行されない", () => {
+    const victim = makeResident(app, 3, "302", "テスト 次郎");
+    app.DB.schedules.push({
+      id:"xss-sched", residentId:victim.id, unit:3, date:app.UI.date,
+      kind:ATTACKS[0], start:"", end:"", title:ATTACKS[1], place:ATTACKS[2],
+      dept:"", family:"", note:ATTACKS[3], h:[3, "302", "テスト 次郎"], demo:false
+    });
+    addRule(app, 3, victim.id, "day", [0,1,2,3,4,5,6], ATTACKS[1]);
+    victim.rec.custom.push({ k:"c1", name:ATTACKS[0], unit:ATTACKS[1], size:"m",
+      on:true, shift:"day", every:true, days:[] });
+    app.UI.unit = 3;
+    app.renderInput();
+    app.renderSched();
+    const form = app.schedFormHTML(app.DB.schedules[app.DB.schedules.length-1], "edit");
+    const printed = app.sheetHTML(3, [victim], app.UI.date);
+    for(const out of [elements.get("inputList").innerHTML, form, printed]){
+      assert.equal(DANGER_TAG.test(out), false);
+    }
+    app.DB.schedules = app.DB.schedules.filter((s) => s.id !== "xss-sched");
+    app.DB.recurring = app.DB.recurring.filter((r) => r.residentId !== victim.id);
+    app.DB.residents = app.DB.residents.filter((r) => r.id !== victim.id);
+  });
+  check("検索の入力文字と候補が、そのままHTMLとして出ない", () => {
+    const victim = makeResident(app, 2, "303", ATTACKS[1]);
+    const kw = elements.get("historyKeyword");
+    kw.value = ATTACKS[1];
+    app.HISTORY_UI.residentId = "";
+    app.renderHistory();
+    const out = elements.get("historyResults").innerHTML;
+    assert.equal(DANGER_TAG.test(out), false, "タグが生のまま出ています");
+    kw.value = "";
+    app.renderHistory();
+    app.DB.residents = app.DB.residents.filter((r) => r.id !== victim.id);
+  });
+  check("タグを入れた文字も、保存して読み直すと元の文字のまま残る", () => {
+    const victim = makeResident(app, 2, "304", ATTACKS[0]);
+    app.saveDB();
+    const again = JSON.parse(storage.get(app.KEY));
+    const found = again.residents.filter((r) => r.id === victim.id)[0];
+    assert.equal(found.name, ATTACKS[0], "入力した文字をそのまま保存する（勝手に消さない）");
+    app.DB.residents = app.DB.residents.filter((r) => r.id !== victim.id);
+    app.saveDB();
+  });
+
+  console.log("\n■ 13. 復元・保存データの異常系（既存データを壊さない）");
+  check("バックアップに見せかけた不正データを受け付けない", () => {
+    for(const bad of ["", "null", "[]", "{}", '{"residents":"x"}', '{"residents":[[]]}',
+                      '{"residents":[],"daily":"x"}', '{"residents":[],"settings":[]}',
+                      '{"residents":[],"schedules":{}}', "<html>", "{壊れ"]){
+      let obj = null;
+      try{ obj = JSON.parse(bad); }catch(e){ obj = null; }
+      assert.equal(app.validBackup(obj), false, "受け入れてはいけない: " + bad);
+    }
+  });
+  check("復元の途中で失敗しても、いまのデータへ戻せる", () => {
+    const before = JSON.stringify(app.DB);
+    let threw = false;
+    try{
+      /* 読んだ瞬間に例外を出す値＝migrate が途中で落ちるバックアップ */
+      app.DB = { residents: [{ id:"x", get unit(){ throw new Error("壊れた値"); } }] };
+      app.migrate();
+    }catch(e){
+      threw = true;
+      app.DB = JSON.parse(before);       // 本体と同じ「元へ戻す」処理
+    }
+    assert.equal(threw, true, "壊れた値では migrate が失敗すること");
+    assert.equal(JSON.stringify(app.DB), before, "元のデータへ戻る");
+    app.saveDB();
+    assert.equal(JSON.parse(storage.get(app.KEY)).residents.length,
+                 JSON.parse(before).residents.length, "保存内容も元のまま");
+  });
+  check("細工したバックアップでも共通の土台（プロトタイプ）を汚さない", () => {
+    const evil = JSON.parse('{"residents":[],"daily":{"__proto__":{"汚染":1}},'
+      + '"vitals":{},"schedules":[],"recurring":[],"settings":{}}');
+    assert.equal(app.validBackup(evil), true, "形式としては正しいので通る");
+    const keep = app.DB;
+    app.DB = evil;
+    app.migrate();
+    assert.equal(({}).汚染, undefined, "他の場所へ影響していない");
+    assert.equal(Object.prototype.hasOwnProperty.call(app.DB.daily, "__proto__"), false,
+      "危険なキーは取り除く");
+    app.DB = keep;
+    app.saveDB();
+  });
+  check("保存キーは常に kaigo_handover_v2（退避先も別キーにする）", () => {
+    assert.equal(app.KEY, "kaigo_handover_v2");
+    const keys = [...storage.keys()];
+    for(const k of keys){
+      assert.ok(k === app.KEY || k === app.KEY + "_broken", "想定外の保存キー: " + k);
+    }
+    assert.ok(storage.get(app.KEY), "実データは残っている");
+  });
+
+  console.log("\n■ 14. 確認用の公開ページ（GitHub Pages）への注意");
+  check("見本データは架空の4名だけで、実在しそうな情報を含まない", () => {
+    for(const s of app.SAMPLE_DEFS) assert.ok(s.name.startsWith("見本 "), s.name);
+    assert.equal(app.SAMPLE_DEFS.length, 4);
+  });
+  check("file:// 以外で開いたときだけ注意書きを出す仕組みがある", () => {
+    assert.equal(typeof app.showNonLocalNotice, "function");
+    assert.ok(html.includes('id="webnote"'), "注意書きの置き場所が必要です");
+    assert.ok(html.includes("実在する入居者"), "実データを入れない旨を書く");
   });
 
   console.log("\n" + passed + " 件すべて成功しました。");

@@ -1,10 +1,41 @@
 # 実運用データ・バックアップを絶対にコミットしないための設定
 # （個人情報を含む可能性があるファイルはすべて除外する）
+#
+# ★ このリポジトリに置いてよいのは index.html / README.md / tests/ のコードだけ。
+#   入居者のお名前・部屋番号・申し送り・バイタル・記録が入りうるファイルは
+#   拡張子でまとめて除外する。アプリ動作に必要な設定ファイルは存在しない
+#   （単一HTML・依存パッケージなしのため、除外して困るファイルは無い）。
+
+# バックアップ・書き出しファイル
 *.json
 moushiokuri_backup_*
 handover_backup_*
 *.backup
 *.bak
 *.csv
+*.tsv
 *.pdf
+
+# 表計算・文書・圧縮（申し送り一覧などを持ち出した場合）
+*.xls
+*.xlsx
+*.doc
+*.docx
+*.zip
+
+# 画面キャプチャ（実データが写り込むため）
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# localStorage の書き出し・ブラウザプロファイル・作業用
+*.localstorage
+*.log
+localStorage*
+handover-check-*/
+tmp/
+_work/
+
 .DS_Store
