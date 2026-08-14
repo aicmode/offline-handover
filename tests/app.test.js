@@ -998,15 +998,27 @@ function run(){
     assert.ok(storage.get(app.KEY), "実データは残っている");
   });
 
-  console.log("\n■ 14. 確認用の公開ページ（GitHub Pages）への注意");
+  console.log("\n■ 14. 職場実運用版の表示とバージョン");
   check("固定記入例は説明用の静的内容だけで構成される", () => {
     for(const u of app.UNITS) assert.equal(app.FIXED_EXAMPLES[u].name, "記入例");
     assert.equal(Object.keys(app.FIXED_EXAMPLES).length, 5);
   });
-  check("file:// 以外で開いたときだけ注意書きを出す仕組みがある", () => {
-    assert.equal(typeof app.showNonLocalNotice, "function");
-    assert.ok(html.includes('id="webnote"'), "注意書きの置き場所が必要です");
-    assert.ok(html.includes("実在する入居者"), "実データを入れない旨を書く");
+  check("公開ページ注意帯のDOM・CSS・表示判定が残っていない", () => {
+    assert.equal(typeof app.showNonLocalNotice, "undefined");
+    assert.equal(html.includes('id="webnote"'), false);
+    assert.equal(html.includes("動作確認用の公開ページ"), false);
+    assert.equal(html.includes("showNonLocalNotice"), false);
+  });
+  check("アプリ版番号は1か所の定義からVer1.0と表示する", () => {
+    assert.equal(app.APP_VERSION, "1.0");
+    assert.equal(elements.get("footVer").textContent, "　Ver1.0");
+    assert.equal((html.match(/var APP_VERSION\s*=/g) || []).length, 1);
+  });
+  check("アプリ版番号と保存データ版数・保存キーを分離する", () => {
+    assert.equal(app.KEY, "kaigo_handover_v2");
+    assert.equal(app.DATA_VERSION, 8);
+    assert.equal(app.DB.app, app.APP_VERSION);
+    assert.equal(app.DB.v, app.DATA_VERSION);
   });
 
   console.log("\n" + passed + " 件すべて成功しました。");

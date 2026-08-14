@@ -6,6 +6,16 @@
   window.confirm = function(){ return true; };
   window.alert   = function(m){ window.__ALERT = m; };
 
+  // --- 職場実運用版の表示 ---
+  ok("file:// 直接起動で公開ページ注意帯が存在しない",
+     location.protocol === "file:" && !document.getElementById("webnote"));
+  ok("公開ページ注意帯の文言が画面に存在しない",
+     document.querySelector("header.top").textContent.indexOf("動作確認用の公開ページ") < 0);
+  ok("フッターにVer1.0と表示される",
+     APP_VERSION === "1.0" && document.getElementById("footVer").textContent.trim() === "Ver1.0");
+  ok("表示版番号と保存キー・データ版数は別管理",
+     KEY === "kaigo_handover_v2" && DATA_VERSION === 8);
+
   // --- 入居者をUIから追加 ---
   UI.unit = 2; switchTab("master");
   var before = registeredCountOf(2);

@@ -320,13 +320,6 @@ tr.left-row input[type=text]{color:#6a7581}
 #capacityWarning{display:none;font-size:12.5px;color:#6b5312;margin-top:6px;padding:6px 9px;
   background:#fffdf3;border:1px solid #e2c46f;border-radius:5px;font-weight:700}
 #capacityWarning.on{display:block}
-/* file:// 以外（GitHub Pages などの確認用公開）で開いたときだけ出る注意書き */
-#webnote{display:none;margin:8px 0 2px;padding:9px 12px;border:2px solid #e2c46f;
-  border-left-width:7px;border-radius:6px;background:#fffdf3;color:#6b5312;
-  font-size:13px;font-weight:700;line-height:1.7}
-#webnote.on{display:block}
-#webnote .sub{display:block;font-weight:400;font-size:12px;margin-top:3px}
-@media print{ #webnote{display:none !important} }
 .notice{border-left:5px solid var(--accent2);background:#eef4fb;padding:10px 12px;margin:9px 0;border-radius:5px;font-size:13.5px;line-height:1.75}
 .notice.warn{border-left-color:var(--warn);background:#fdf1f1;color:#7d1c1c;font-weight:700}
 .notice.care{border-left-color:#c9a227;background:#fffdf3;color:#6b5312;font-weight:700}
@@ -640,10 +633,6 @@ tr.left-row input[type=text]{color:#6a7581}
     <span class="savest" id="saveState">✓ 保存しました</span>
   </div>
   <div id="capacityWarning">保存データが増えています。バックアップ保存と、古い予定の整理を行ってください。</div>
-  <div id="webnote" role="note">
-    ⚠ これは<b>動作確認用の公開ページ</b>です。実在する入居者のお名前・部屋番号・申し送り・バイタルは入力しないでください。
-    <span class="sub">入力した内容は外部へ送信されませんが、いま使っているブラウザの保存領域（localStorage）に残ります。実運用は、職場PCに置いた index.html をダブルクリックで開いて行ってください。</span>
-  </div>
   <div id="memnote" role="alert">
     ⚠ いま入力した内容をこのPCへ保存できていません。このページを閉じると入力が失われる可能性があります。
     <span class="sub">「入居者」タブの「バックアップを保存」でファイルへ保存してください。ブラウザのプライベートモード・保存容量・サイト設定が原因のことがあります。保存できるようになると、この警告は自動的に消えます。</span>
@@ -1146,7 +1135,8 @@ tr.left-row input[type=text]{color:#6a7581}
    ・データ構造を変えるときは DATA_VERSION を上げ、migrate() で非破壊的に補完する
    ========================================================= */
 
-var APP_VERSION  = "2026.08 職場運用版";
+/* ユーザー向けアプリ版番号。更新時はこの値だけを変更する。 */
+var APP_VERSION  = "1.0";
 /* ★★ 保存キー。アプリ本体を更新しても絶対に変更しないこと ★★
    これを変えると、職場PCに蓄積した入居者・申し送り・記録・予定が読めなくなる。 */
 var KEY          = "kaigo_handover_v2";
@@ -4996,18 +4986,7 @@ function initStaticUI(){
   qw.innerHTML = q;
 
   var fv = document.getElementById("footVer");
-  if(fv) fv.textContent = "　バージョン " + APP_VERSION;
-}
-
-/* 職場での実運用は、PC内の index.html を直接開く（file://）ことを前提にしている。
-   GitHub Pages などサーバー経由で開かれたときだけ、確認用である旨を画面に出す。
-   （入力内容はそのブラウザの localStorage に残るため、実データを入れない） */
-function showNonLocalNotice(){
-  var proto = "";
-  try{ proto = String(location.protocol || ""); }catch(e){ return; }
-  if(proto === "file:" || proto === "") return;
-  var el = document.getElementById("webnote");
-  if(el) el.classList.add("on");
+  if(fv) fv.textContent = "　Ver" + APP_VERSION;
 }
 
 loadDB();
@@ -5020,7 +4999,6 @@ initUIFromDB();
 autoCarryToday();
 renderAll();
 startFieldGuard();        // 入力欄をブラウザのクラウド処理から守る（以後に作られる欄も含む）
-showNonLocalNotice();
 LAST_LOCAL_DAY = todayYmd();
 FOLLOW_TODAY = true;
 startLocalDateWatch();
