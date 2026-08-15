@@ -11,8 +11,8 @@
      location.protocol === "file:" && !document.getElementById("webnote"));
   ok("公開ページ注意帯の文言が画面に存在しない",
      document.querySelector("header.top").textContent.indexOf("動作確認用の公開ページ") < 0);
-  ok("フッターにVer1.0と表示される",
-     APP_VERSION === "1.0" && document.getElementById("footVer").textContent.trim() === "Ver1.0");
+  ok("フッターにVer1.1と表示される",
+     APP_VERSION === "1.1" && document.getElementById("footVer").textContent.trim() === "Ver1.1");
   ok("表示版番号と保存キー・データ版数は別管理",
      KEY === "kaigo_handover_v2" && DATA_VERSION === 8);
 

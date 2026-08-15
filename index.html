@@ -470,6 +470,36 @@ tr.left-row input[type=text]{color:#6a7581}
 /* 人数が少ない用紙は1人分の欄を広くとり、手書きしやすくする */
 .sheet[data-den="1"] .prow{max-height:42mm}
 .sheet[data-den="2"] .prow{max-height:30mm}
+
+/* ---- 行の高さを内容に合わせて配分する（Adaptive Row Height） ----
+   記録項目・申し送り・大事なこと・予定の量を calculateResidentPrintHeight() で数え、
+   getAdaptiveRowClass() が付ける段階クラスで用紙の取り分（flex-grow）を変える。
+   ・項目が少ない人はコンパクトに、多い人は必要な高さを確保する
+   ・下限（min-height）は人数の段階ごとに決め、手書きできない細さにはしない
+   ・下限の合計は用紙の行エリアより必ず小さくしてあるので、行が切れることはない */
+.prow.h-compact{flex-grow:2.2}
+.prow.h-normal {flex-grow:2.9}
+.prow.h-large  {flex-grow:3.7}
+.prow.h-xlarge {flex-grow:4.7}
+/* 上限も段階で変える。用紙に余りがあるときは行を広く使い（手書きしやすさ優先）、
+   そのうえで項目の少ない行が多い行より広くならないようにする。 */
+.prow.h-compact{max-height:16mm}
+.prow.h-normal {max-height:19mm}
+.prow.h-large  {max-height:21.5mm}
+.prow.h-xlarge {max-height:24mm}
+.sheet[data-den="1"] .prow{min-height:11mm}
+.sheet[data-den="1"] .prow.h-compact{max-height:30mm}
+.sheet[data-den="1"] .prow.h-normal {max-height:34mm}
+.sheet[data-den="1"] .prow.h-large  {max-height:38mm}
+.sheet[data-den="1"] .prow.h-xlarge {max-height:42mm}
+.sheet[data-den="2"] .prow{min-height:7.6mm}
+.sheet[data-den="2"] .prow.h-compact{max-height:22mm}
+.sheet[data-den="2"] .prow.h-normal {max-height:25mm}
+.sheet[data-den="2"] .prow.h-large  {max-height:27.5mm}
+.sheet[data-den="2"] .prow.h-xlarge {max-height:30mm}
+.sheet[data-den="3"] .prow{min-height:5.8mm}
+.sheet[data-den="4"] .prow{min-height:4.6mm}
+.sheet[data-den="5"] .prow{min-height:4mm}
 .pc{min-width:0;overflow:hidden}
 .prow .p-day,.prow .p-ni{border-left:.5pt dotted #444;padding-left:1.4mm;display:flex;flex-direction:column}
 .prow .p-day > .fl,.prow .p-ni > .fl{flex:1 0 auto;min-height:0}
@@ -827,7 +857,7 @@ tr.left-row input[type=text]{color:#6a7581}
       <span class="sep"></span>
       <button class="btn" id="btnSchedPrint">この日の予定を印刷（別紙）</button>
     </div>
-    <p class="hint" style="margin:0 0 8px">受診・外出・面会などは「入力」タブの入居者カードから追加できます。印刷されるのは<b>画面上部の日付の1日分</b>で、申し送り用紙とは別紙になります。</p>
+    <p class="hint" style="margin:0 0 8px">受診・外出・面会などは「入力」タブの入居者カードから追加できます。印刷されるのは<b>画面上部の日付の1日分</b>で、申し送り用紙とは別紙になります。<br><b>画面上部の日付より前の予定は、この一覧では自動的に隠れます（データは消えません）。</b>その日付へ戻すか「過ぎた予定も表示する」で、いつでも確認できます。</p>
     <div class="sched-summary" id="schedPastSummary"></div>
     <div id="schedList"></div>
     <details class="more" id="schedCleanupBox">
@@ -903,6 +933,7 @@ tr.left-row input[type=text]{color:#6a7581}
     <div class="search-toolbar">
       <span class="history-person" id="historyPerson"></span>
       <button class="btn sm" id="historyClear">条件をすべて消す</button>
+      <button class="btn sm" id="historyForget" title="検索の入力・条件・変換候補だけを消します">検索履歴を消去</button>
       <span class="search-count" id="historyCount">0件</span>
       <label class="hint">並び順
         <select id="historyOrder" style="padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:#fff">
@@ -1036,7 +1067,9 @@ tr.left-row input[type=text]{color:#6a7581}
         <ul>
           <li>用紙の左側に「予定：」として、その日の分だけ印刷されます。</li>
           <li>詳しい一覧は「予定」タブの「この日の予定を印刷（別紙）」からA4横で印刷できます。</li>
-          <li>過ぎた予定は自動では消えません。「過ぎた予定を整理する」から確認して削除できます。</li>
+          <li><b>画面上部の日付より前の予定は、「予定」タブの一覧では自動的に隠れます。</b>データは消えません。その日付へ戻せばまた表示され、「過ぎた予定も表示する」を入れればいつでも確認できます。</li>
+          <li>隠れた予定も、保存・バックアップ・復元・「さがす」には残ります。</li>
+          <li>過ぎた予定は自動では消えません。「過ぎた予定を整理する」から確認して削除できます（削除は本体の日付が基準で、表示の隠す・隠さないとは別の操作です）。</li>
         </ul>
       </section>
 
@@ -1064,6 +1097,7 @@ tr.left-row input[type=text]{color:#6a7581}
           <li>ユニット・期間・種類でしぼれます。</li>
           <li>結果を押すと、その日のその人の入力画面へ移動します。</li>
           <li>退居した方の記録も残っていて、さがせます。</li>
+          <li><b>「検索履歴を消去」</b>は、いま入力した言葉・しぼり込み条件・入力候補だけを消します。入居者・申し送り・記録・予定・過去記録は削除されません（消去したあとでも、同じ言葉でもう一度さがせます）。</li>
         </ul>
       </section>
 
@@ -1148,7 +1182,7 @@ tr.left-row input[type=text]{color:#6a7581}
    ========================================================= */
 
 /* ユーザー向けアプリ版番号。更新時はこの値だけを変更する。 */
-var APP_VERSION  = "1.0";
+var APP_VERSION  = "1.1";
 /* ★★ 保存キー。アプリ本体を更新しても絶対に変更しないこと ★★
    これを変えると、職場PCに蓄積した入居者・申し送り・記録・予定が読めなくなる。 */
 var KEY          = "kaigo_handover_v2";
@@ -2301,10 +2335,16 @@ function schedInCurrentScope(s){
   if(!r || isSample(r)) return false;            // 見本の入居者の予定も出さない
   return DB.settings.showAllUnitSched ? UNITS.indexOf(r.unit) >= 0 : r.unit === UI.unit;
 }
-function pastSchedulesInScope(){
-  var today = todayYmd();
+/* 1回だけの予定の「過ぎた／これから」は、いま画面で選んでいる日付を基準に判定する。
+   （PC本体の日付では判定しない＝過去の日を開けば、その日の予定はふつうに出る）
+   ・データは消さない。隠すだけ。保存・バックアップ・復元・検索には常に残る
+   ・「過ぎた予定を整理する」（削除）は別機能で、そちらは本体の日付を基準にする */
+function schedBaseDate(){ return isYmd(UI.date) ? UI.date : todayYmd(); }
+function isPastSched(s, base){ return String(s.date || "") < (base || schedBaseDate()); }
+function pastSchedulesInScope(base){
+  var b = base || todayYmd();
   return DB.schedules.filter(function(s){
-    return schedInCurrentScope(s) && s.date < today;
+    return schedInCurrentScope(s) && isPastSched(s, b);
   }).sort(sortSched);
 }
 function cutoffDate(days){ return shiftDate(todayYmd(), -parseInt(days, 10)); }
@@ -3140,15 +3180,24 @@ function renderSched(){
   if(!host) return;
   var showPast = !!DB.settings.showPastSched;
   var today = todayYmd();
-  var past = pastSchedulesInScope();
+  var base  = schedBaseDate();                       // 表示中の日付を基準に「過ぎた」を判定する
+  var hidden = pastSchedulesInScope(base);           // いま隠れている（消えていない）予定
+  var past = pastSchedulesInScope(today);            // 「整理する」の対象になりうる予定
   var summary = document.getElementById("schedPastSummary");
   if(summary){
-    summary.textContent = past.length ? "過ぎた予定：" + past.length + "件（自動では削除されません）" : "";
-    summary.classList.toggle("on", past.length > 0);
+    var msg = "";
+    if(hidden.length && !showPast){
+      msg = jpDate(base) + " より前の予定 " + hidden.length + " 件は、いま一覧に出していません"
+          + "（データは残っています。「過ぎた予定も表示する」で確認できます）";
+    }else if(past.length){
+      msg = "過ぎた予定：" + past.length + "件（自動では削除されません）";
+    }
+    summary.textContent = msg;
+    summary.classList.toggle("on", !!msg);
   }
   var list = DB.schedules.filter(function(s){
     if(!schedInCurrentScope(s)) return false;
-    if(!showPast && s.date < today) return false;
+    if(!showPast && isPastSched(s, base)) return false;
     return true;
   }).sort(sortSched);
 
@@ -3321,6 +3370,80 @@ function repCellHTML(residentId, date, shift){
   for(var i=0;i<arr.length;i++) seg.push(recurringLabel(arr[i].rule));
   return '<div class="rep-print fl"><b>定期</b>' + esc(seg.join("／")) + '</div>';
 }
+/* =========================================================
+   印刷1行の高さ（Adaptive Row Height）
+   ---------------------------------------------------------
+   記録項目が少ない人の欄が、項目の多い人と同じ高さで印刷されると
+   用紙に無駄な空白ができる。そこで「その人がどれだけ書く欄を必要とするか」を
+   行数のめやすとして数え、行の取り分（flex-grow）を段階で変える。
+     ・数えるもの：日勤の表示項目／夜勤の表示項目／申し送り／
+                   毎日つづく大事なこと／その日の予定／定期予定
+     ・日勤と夜勤は多い側を採用する（片方だけ多い人も欄が足りるように）
+     ・少ない人でも手書きできる高さは CSS の min-height で必ず確保する
+     ・基本は1ユニット＝1枚。配分しても収まらないときだけ、文字を小さくせず
+       2枚に分ける（printSplitCheck()／printPagesOf()）
+   ========================================================= */
+var ADAPT_ROW_CLASSES = ["h-compact", "h-normal", "h-large", "h-xlarge"];
+/* 全角まじりの文章を、その欄の幅で何行になるかで数える */
+function printTextLines(text, perLine){
+  var s = String(text == null ? "" : text).trim();
+  if(!s) return 0;
+  return Math.ceil(s.length / (perLine || 26));
+}
+/* 記録欄（日勤／夜勤）が必要とする行数 */
+function shiftPrintLines(rec, shift, date, rid){
+  var list = fieldDefsFor(rec, shift, date);
+  var vit = 0, mid = 0, tgt = 0, memo = 0;
+  for(var i=0;i<list.length;i++){
+    var g = list[i].g;
+    if(g === "vit")            vit++;
+    else if(g === "targetBS")  tgt++;
+    else if(g === "memo")      memo++;
+    else                       mid++;                 // 食事・Hr・その他（独自項目を含む）
+  }
+  var lines = 0;
+  if(vit)  lines += Math.ceil(vit / 4);               // バイタルは1行に4つほど並ぶ
+  if(mid)  lines += Math.ceil(mid / 4);
+  if(tgt)  lines += 1;                                // BSターゲスは1行
+  if(memo) lines += 1;
+  if(rid){
+    var rep = recurringForSheet(date, { residentId:rid });
+    if(((shift === "night") ? rep.night : rep.day).length) lines += 1;
+  }
+  return lines;
+}
+/* その人の1行が必要とする高さ（行数のめやす）を返す */
+function calculateResidentPrintHeight(r, date){
+  var rec = r ? recOf(r) : defaultRec();
+  var rid = r ? r.id : "";
+  var dayLines   = shiftPrintLines(rec, "day", date, rid);
+  var nightLines = shiftPrintLines(rec, "night", date, rid);
+  var infoLines  = 1;                                 // 部屋番号・お名前の行
+  if(r){
+    var d = dailyGet(date, r.id);
+    infoLines += printTextLines(r.permShort, 24);     // 毎日つづく大事なこと
+    infoLines += printTextLines(d.short, 24);         // 本日の申し送り
+    var plans = schedOfResident(r.id, date), pl = [];
+    for(var i=0;i<plans.length;i++) pl.push(schedBody(plans[i]) || plans[i].kind || "予定");
+    if(pl.length) infoLines += printTextLines(pl.join("／"), 22);
+  }
+  return {
+    info: infoLines,
+    day: dayLines,
+    night: nightLines,
+    shift: Math.max(dayLines, nightLines),            // 日勤／夜勤は多い側で決める
+    lines: Math.max(infoLines, dayLines, nightLines)
+  };
+}
+/* 行数のめやすを、印刷用の段階クラスへ変える */
+function getAdaptiveRowClass(need){
+  var n = (need && typeof need === "object") ? need.lines : need;
+  n = Number(n) || 0;
+  if(n <= 2) return "h-compact";
+  if(n <= 3) return "h-normal";
+  if(n <= 4) return "h-large";
+  return "h-xlarge";
+}
 function rowHTML(r, date){
   var info;
   if(r){
@@ -3341,7 +3464,8 @@ function rowHTML(r, date){
   }
   var rec = r ? recOf(r) : defaultRec();
   var rid = r ? r.id : "";
-  return '<div class="prow">'
+  var need = calculateResidentPrintHeight(r, date);
+  return '<div class="prow ' + getAdaptiveRowClass(need) + '" data-need="' + need.lines + '">'
     + '<div class="pc p-info">'+info+'<span class="ovwarn">⚠要確認</span></div>'
     + '<div class="pc p-day">' + shiftFieldsHTML(rec, "day", date, rid) + (rid ? repCellHTML(rid, date, "day") : "") + '</div>'
     + '<div class="pc p-ni">'  + shiftFieldsHTML(rec, "night", date, rid) + (rid ? repCellHTML(rid, date, "night") : "") + '</div>'
@@ -3367,13 +3491,17 @@ function sheetRepBandHTML(unit, date){
   return '<div class="sh-rep">' + cell(got.day, "日勤")
        + cell(got.night, "夜勤（翌" + shortJp(nextDate(date)) + "分）") + '</div>';
 }
-function sheetHTML(unit, people, date){
+function sheetHTML(unit, people, date, page){
   var rows = "";
   for(var i=0;i<people.length;i++) rows += rowHTML(people[i], date);
   var rest = isRestUnit(unit);
-  return '<div class="sheet'+(rest?" rest-sheet":"")+'" data-den="'+densityFor(people.length)+'" data-unit="'+unit+'">'
+  var pageLb = (page && page.of > 1) ? '<small>（' + page.no + ' / ' + page.of + '枚目）</small>' : '';
+  /* 2枚に分けたときは文字を大きく戻さない（同じ文字サイズのまま、書く高さだけ増やす） */
+  var den = densityFor((page && page.total) ? page.total : people.length);
+  return '<div class="sheet'+(rest?" rest-sheet":"")+'" data-den="'+den+'" data-unit="'+unit+'"'
+    + (page && page.of > 1 ? ' data-page="'+page.no+'/'+page.of+'"' : '') + '>'
     + '<div class="sh-head">'
-      + '<div class="u">'+esc(uLb(unit))+(rest?'<small>（一時管理）</small>':'')+'<small>入居 '+people.length+' 名</small></div>'
+      + '<div class="u">'+esc(uLb(unit))+(rest?'<small>（一時管理）</small>':'')+'<small>入居 '+people.length+' 名</small>'+pageLb+'</div>'
       + '<div class="d">'+esc(jpDate(date))+'</div>'
       + '<div class="sig">日勤<span></span>夜勤<span></span></div>'
     + '</div>'
@@ -3393,16 +3521,39 @@ function sheetHTML(unit, people, date){
     + '</div>'
   + '</div>';
 }
-function renderPrint(){
+/* 1ユニット＝1枚が基本。行の高さを配分してもどうしても収まらないユニットだけ、
+   文字をさらに小さくするのではなく2枚に分ける（実測して決める：printSplitCheck()）。 */
+var PRINT_SPLIT = {};        // { ユニットID: 2 }（2枚に分けるユニット）
+var PRINT_SPLIT_DONE = false;
+function printPagesOf(unit, list){
+  var pages = (PRINT_SPLIT[unit] === 2 && list.length >= 2) ? 2 : 1;
+  if(pages === 1) return [list];
+  var half = Math.ceil(list.length / 2);
+  return [list.slice(0, half), list.slice(half)];
+}
+function buildPrintSheets(){
   var units = DB.settings.allUnits ? unitsForPrint() : [UI.unit];
-  var html = "";
+  var html = "", sheetNo = 0, total = 0;
   for(var i=0;i<units.length;i++){
-    var u = units[i];
-    var list = printableOf(u);
-    if(!list.length && DB.settings.allUnits) continue;     // 0人のユニットは用紙を作らない
-    var lbl = uLb(u) + '　入居 ' + list.length + ' 名　' + (i+1) + ' / ' + units.length + ' 枚目';
-    html += '<div class="sheetWrap"><div class="pv-label">'+esc(lbl)+'</div>'
-          + '<div class="sheetScale">' + sheetHTML(u, list, UI.date) + '</div></div>';
+    var list = printableOf(units[i]);
+    if(!list.length && DB.settings.allUnits) continue;
+    total += printPagesOf(units[i], list).length;
+  }
+  for(var k=0;k<units.length;k++){
+    var u = units[k];
+    var people = printableOf(u);
+    if(!people.length && DB.settings.allUnits) continue;   // 0人のユニットは用紙を作らない
+    var pages = printPagesOf(u, people);
+    for(var p=0;p<pages.length;p++){
+      sheetNo++;
+      var lbl = uLb(u) + '　入居 ' + people.length + ' 名'
+        + (pages.length > 1 ? '（この用紙は ' + pages[p].length + ' 名・' + (p+1) + '/' + pages.length + '枚目）' : '')
+        + '　' + sheetNo + ' / ' + total + ' 枚目';
+      html += '<div class="sheetWrap"><div class="pv-label">'+esc(lbl)+'</div>'
+            + '<div class="sheetScale">'
+            + sheetHTML(u, pages[p], UI.date, { no:p+1, of:pages.length, total:people.length })
+            + '</div></div>';
+    }
   }
   if(!html) html = '<div class="panel"><p class="hint">印刷する入居者がいません。「入居者」タブから登録してください。</p></div>';
   document.getElementById("printArea").innerHTML = html;
@@ -3412,27 +3563,39 @@ function renderPrint(){
   if(sheets.length) sheets[sheets.length-1].classList.add("last");
   renderPrintPlan();
 }
+function renderPrint(){
+  PRINT_SPLIT = {};                 // 分けるかどうかは毎回、実測してから決め直す
+  PRINT_SPLIT_DONE = false;
+  buildPrintSheets();
+}
 /* 何枚印刷されるかを、印刷前に必ず文章で示す */
 function renderPrintPlan(){
   var el = document.getElementById("printPlan");
   if(!el) return;
   if(!DB.settings.allUnits){
-    el.innerHTML = '<b>' + esc(uLb(UI.unit)) + ' だけを印刷します（1枚）。</b>'
-      + '全ユニットを印刷するときは上のチェックを入れてください。';
+    var one = printPagesOf(UI.unit, printableOf(UI.unit)).length;
+    el.innerHTML = '<b>' + esc(uLb(UI.unit)) + ' だけを印刷します（' + one + '枚）。</b>'
+      + '全ユニットを印刷するときは上のチェックを入れてください。'
+      + (one > 1 ? '<br>記録欄が1枚に収まらないため、<b>文字を小さくせず2枚に分けて</b>印刷します。' : '');
     return;
   }
-  var units = unitsForPrint(), names = [], n = 0;
+  var units = unitsForPrint(), names = [], n = 0, split = [];
   for(var i=0;i<units.length;i++){
     var cnt = printableOf(units[i]).length;
     if(!cnt) continue;
-    n++;
-    names.push(uLb(units[i]) + "（" + cnt + "名）");
+    var pages = printPagesOf(units[i], printableOf(units[i])).length;
+    n += pages;
+    names.push(uLb(units[i]) + "（" + cnt + "名" + (pages > 1 ? "・" + pages + "枚" : "") + "）");
+    if(pages > 1) split.push(uLb(units[i]));
   }
   var rest = restRoomOccupied();
   el.innerHTML = '<b>この日の印刷は ' + n + ' 枚です。</b>　' + esc(names.join(" → ") || "（対象なし）")
     + '<br>' + (rest
         ? '静養室に入居者がいるため、<b>静養室を先頭に加えた構成</b>で印刷します。'
-        : '静養室は0人のため、<b>印刷されません</b>（1人以上になると自動的に追加されます）。');
+        : '静養室は0人のため、<b>印刷されません</b>（1人以上になると自動的に追加されます）。')
+    + (split.length
+        ? '<br>' + esc(split.join("・")) + ' は記録欄が1枚に収まらないため、<b>文字を小さくせず2枚に分けて</b>印刷します。'
+        : '');
 }
 /* 印刷欄からはみ出す人を実測で検知（段階縮小 → それでも超える場合は警告） */
 function markOverflow(){
@@ -3464,6 +3627,34 @@ function markOverflow(){
     if(c.scrollHeight > c.clientHeight + 1){ row.classList.add("over"); list.push(rowLabel(row)); }
   }
   renderOvList(list, itemWarn);
+  return printSplitCheck();
+}
+/* 縮小しきっても収まらないユニットを、実測から拾い出す。
+   （高さの不足が小さい＝丸め程度のものは対象にしない） */
+function printSplitCheck(){
+  var host = document.getElementById("printArea");
+  var need = [];
+  if(!host) return need;
+  var sheets = host.querySelectorAll(".sheet");
+  for(var s=0;s<sheets.length;s++){
+    var sheet = sheets[s];
+    if(sheet.getAttribute("data-page")) continue;          // すでに2枚に分けている
+    var unit = parseInt(sheet.getAttribute("data-unit"), 10);
+    var rows = sheet.querySelectorAll(".prow");
+    if(rows.length < 6) continue;                          // 少人数は分けても改善しない
+    var short = 0;
+    for(var i=0;i<rows.length;i++){
+      var cells = rows[i].querySelectorAll(".pc");
+      for(var ci=0;ci<cells.length;ci++){
+        var cell = cells[ci];
+        if(!cell.clientHeight) continue;
+        var gap = cell.scrollHeight - cell.clientHeight;
+        if(gap > 2 && gap > cell.clientHeight * 0.12) short++;   // 1行ぶん近く足りない
+      }
+    }
+    if(short && need.indexOf(unit) < 0) need.push(unit);
+  }
+  return need;
 }
 function rowLabel(row){
   var nm = row.querySelector(".p-info .nm");
@@ -3489,9 +3680,9 @@ function renderOvList(list, itemWarn){
   if(!h) h = '<span class="none">✓ はみ出しはありません（全員が用紙に収まります）</span>';
   el.innerHTML = h;
 }
-function fitPreview(){
+function fitPreviewScale(){
   var host = document.getElementById("printArea");
-  if(!host) return;
+  if(!host) return false;
   var avail = host.clientWidth || 900;
   var mm = 96/25.4;
   var sheetW = 285*mm, sheetH = 197*mm;
@@ -3502,7 +3693,19 @@ function fitPreview(){
     var sc2 = wraps[i].querySelector(".sheetScale");
     if(sc2) sc2.style.height = (sheetH*sc + 4) + "px";
   }
-  markOverflow();
+  return true;
+}
+function fitPreview(){
+  if(!fitPreviewScale()) return;
+  var need = markOverflow() || [];
+  /* 行の高さを配分しても収まらないユニットだけ、2枚に分けて測り直す（1回だけ） */
+  if(need.length && !PRINT_SPLIT_DONE){
+    PRINT_SPLIT_DONE = true;
+    for(var i=0;i<need.length;i++) PRINT_SPLIT[need[i]] = 2;
+    buildPrintSheets();
+    fitPreviewScale();
+    markOverflow();
+  }
 }
 
 /* =========================================================
@@ -4810,7 +5013,16 @@ document.getElementById("searchSuggest").addEventListener("mousedown", function(
 ["historyUnit","historyFrom","historyTo","historyKind","historyOrder"].forEach(function(id){
   document.getElementById(id).addEventListener("change", renderHistory);
 });
-document.getElementById("historyClear").addEventListener("click", function(){
+/* さがすの「検索操作だけ」の状態を初期化する。
+   ---------------------------------------------------------
+   このアプリは検索語を保存していない（保存キー kaigo_handover_v2 の中にも
+   検索履歴は無い）。画面に残るのは次の3つだけなので、それだけを消す。
+     ・入力欄と絞り込み条件（言葉・ユニット・期間・種類・並び順・この人だけ）
+     ・入力候補（保存済みデータから毎回作り直す一時的な索引）
+     ・画面に出ている検索結果
+   入居者・申し送り・記録・予定などの保存データには一切触れない
+   （保存領域への書き込みも、まるごと消す処理も行わない）。 */
+function resetSearchUI(){
   HISTORY_UI.residentId = "";
   document.getElementById("historyKeyword").value = "";
   document.getElementById("historyUnit").value = "";
@@ -4819,7 +5031,22 @@ document.getElementById("historyClear").addEventListener("click", function(){
   document.getElementById("historyKind").value = "";
   document.getElementById("historyOrder").value = "new";
   hideSuggest();
+}
+function clearSearchHistory(){
+  resetSearchUI();
+  SUGGEST_CACHE = null;              // 入力候補は保存済みデータから作り直す（実データは消えない）
   renderHistory();
+  return true;
+}
+document.getElementById("historyClear").addEventListener("click", function(){
+  resetSearchUI();
+  renderHistory();
+});
+document.getElementById("historyForget").addEventListener("click", function(){
+  if(!confirm("検索履歴だけを消去します。入居者・申し送り・記録・予定は削除されません。よろしいですか？")) return;
+  clearSearchHistory();
+  toast("検索履歴を消去しました。入居者・記録は削除されていません。");
+  document.getElementById("historyKeyword").focus();
 });
 document.getElementById("quickWords").addEventListener("click", function(e){
   var b = e.target.closest("button[data-qw]"); if(!b) return;

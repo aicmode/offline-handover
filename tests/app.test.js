@@ -1167,6 +1167,194 @@ function run(){
     assert.ok(storage.get(app.KEY), "実データは残っている");
   });
 
+  console.log("\n■ 13a. 過ぎた「1回だけの予定」の表示（隠すだけ・消さない）");
+  check("表示中の日付を基準に「過ぎた予定」を判定する（PC本体の日付では判定しない）", () => {
+    const keep = app.DB, keepDate = app.UI.date;
+    app.DB = app.defaultDB();
+    const r = makeResident(app, 2, "201", "予定 花子", { id:"ps-1" });
+    app.DB.schedules.push({ id:"one1", residentId:r.id, date:"2026-08-22", kind:"受診",
+      title:"整形外科", place:"", dept:"", start:"", end:"", family:"", note:"", demo:false });
+    app.UI.unit = 2;
+    app.UI.date = "2026-08-22";
+    assert.equal(app.schedBaseDate(), "2026-08-22");
+    assert.equal(app.isPastSched(app.DB.schedules[0]), false, "その日は過ぎていない");
+    app.UI.date = "2026-08-23";
+    assert.equal(app.isPastSched(app.DB.schedules[0]), true, "翌日を表示中なら過ぎた扱い");
+    app.UI.date = "2026-08-22";
+    assert.equal(app.isPastSched(app.DB.schedules[0]), false, "戻せばまた表示対象");
+    app.DB = keep; app.UI.date = keepDate; app.saveDB();
+  });
+  check("隠れている予定もデータ・保存内容から消えない", () => {
+    const keep = app.DB, keepDate = app.UI.date;
+    app.DB = app.defaultDB();
+    const r = makeResident(app, 2, "201", "予定 花子", { id:"ps-2" });
+    app.DB.schedules.push({ id:"one2", residentId:r.id, date:"2026-08-22", kind:"受診",
+      title:"整形外科", place:"", dept:"", start:"", end:"", family:"", note:"", demo:false });
+    app.UI.unit = 2;
+    app.UI.date = "2026-08-23";
+    app.saveDB();
+    app.renderSched();                                  // 一覧を描き直しても
+    assert.equal(app.DB.schedules.length, 1, "予定は残る");
+    assert.ok(storage.get(app.KEY).includes("one2"), "保存データにも残る");
+    assert.equal(app.pastSchedulesInScope("2026-08-23").length, 1, "隠れている件数は数えられる");
+    assert.equal(app.pastSchedulesInScope("2026-08-22").length, 0);
+    app.loadDB();
+    assert.equal(app.DB.schedules.length, 1, "読み直しても残っている");
+    app.DB = keep; app.UI.date = keepDate; app.saveDB();
+  });
+  check("削除（過ぎた予定の整理）は本体の日付が基準のまま＝表示とは別処理", () => {
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+    assert.ok(script.includes("function cutoffDate(days){ return shiftDate(todayYmd()"),
+      "整理（削除）は todayYmd() を基準にしている");
+    assert.ok(script.includes("function schedBaseDate(){ return isYmd(UI.date)"),
+      "表示は UI.date を基準にしている");
+  });
+
+  console.log("\n■ 13b. 検索履歴の消去（検索操作の状態だけを消す）");
+  check("保存データに検索履歴・検索キャッシュの欄を作っていない", () => {
+    const db = app.defaultDB();
+    for(const k of ["searchHistory", "recentSearch", "searchWords", "lastSearch", "suggest"]){
+      assert.equal(k in db, false, "DB に " + k + " を作らない");
+      assert.equal(k in db.settings, false, "settings に " + k + " を作らない");
+    }
+  });
+  check("検索履歴の消去で保存データを書きかえない・実データが残る", () => {
+    const keep = app.DB, keepDate = app.UI.date;
+    app.DB = app.defaultDB();
+    const r = makeResident(app, 2, "201", "記録 次郎", { id:"sh-1", permShort:"移乗は2人介助" });
+    app.dailyOf("2026-08-21", r.id).short = "夜間に発熱。カロナール内服。";
+    app.vitalsSet("2026-08-21", r.id, "day.T", "37.8");
+    app.DB.schedules.push({ id:"one3", residentId:r.id, date:"2026-08-22", kind:"受診",
+      title:"整形外科", place:"", dept:"", start:"", end:"", family:"", note:"", demo:false });
+    app.saveDB();
+    const before = storage.get(app.KEY);
+    storage.set("__other_key__", "keep-me");
+
+    elements.get("historyKeyword").value = "発熱";
+    elements.get("historyUnit").value = "2";
+    elements.get("historyFrom").value = "2026-08-01";
+    elements.get("historyKind").value = "申し送り";
+    elements.get("historyOrder").value = "old";
+    app.HISTORY_UI.residentId = r.id;
+    app.buildSuggestIndex();
+    assert.ok(app.SUGGEST_CACHE, "入力候補の索引ができている");
+
+    assert.equal(app.clearSearchHistory(), true);
+    assert.equal(elements.get("historyKeyword").value, "", "入力した言葉が消える");
+    assert.equal(elements.get("historyUnit").value, "");
+    assert.equal(elements.get("historyFrom").value, "");
+    assert.equal(elements.get("historyTo").value, "");
+    assert.equal(elements.get("historyKind").value, "");
+    assert.equal(elements.get("historyOrder").value, "new");
+    assert.equal(app.HISTORY_UI.residentId, "", "「この人だけ」が解除される");
+    assert.equal(app.SUGGEST_CACHE, null, "索引は作り直しになる");
+
+    assert.equal(storage.get(app.KEY), before, "保存データは1文字も変わらない");
+    assert.equal(storage.get("__other_key__"), "keep-me", "他のキーも消さない");
+    assert.equal(app.DB.residents.length, 1, "入居者が残る");
+    assert.equal(app.residentById("sh-1").permShort, "移乗は2人介助");
+    assert.equal(app.dailyGet("2026-08-21", "sh-1").short, "夜間に発熱。カロナール内服。");
+    assert.equal(app.vitalsGet("2026-08-21", "sh-1")["day.T"], "37.8");
+    assert.equal(app.DB.schedules.length, 1, "予定が残る");
+    /* 消したあとでも、同じ言葉でもう一度さがせる */
+    const hit = app.buildHistoryIndex().filter((x) => x.content.includes("カロナール"));
+    assert.equal(hit.length >= 1, true, "記録は再検索できる");
+    storage.delete("__other_key__");
+    app.DB = keep; app.UI.date = keepDate; app.saveDB();
+  });
+  check("localStorage.clear() をどこでも使っていない", () => {
+    assert.equal(/localStorage\s*\.\s*clear/.test(html), false);
+    assert.equal(/\bstorage\s*\.\s*clear\s*\(/.test(html), false);
+  });
+
+  console.log("\n■ 13c. 印刷の行の高さ（Adaptive Row Height）");
+  check("記録項目が少ない人ほど、必要な高さが小さく見積もられる", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const few = makeResident(app, 2, "201", "少 項目", { id:"ah-few" });
+    few.rec.day.T.on = true; few.rec.day.P.on = true; few.rec.day.BP.on = true;
+    const many = makeResident(app, 2, "202", "多 項目", { id:"ah-many" });
+    for(const k of ["T","P","BP","SpO2","mealB","mealL","hr1","hr2","normalBS"]) many.rec.day[k].on = true;
+    for(const k of ["T","mealD","nightBS"]) many.rec.night[k].on = true;
+    const date = "2026-08-14";
+    const nFew = app.calculateResidentPrintHeight(few, date);
+    const nMany = app.calculateResidentPrintHeight(many, date);
+    assert.ok(nFew.lines < nMany.lines, "少項目 < 多項目: " + nFew.lines + " / " + nMany.lines);
+    assert.equal(app.getAdaptiveRowClass(nFew), "h-compact");
+    const rank = (n) => app.ADAPT_ROW_CLASSES.indexOf(app.getAdaptiveRowClass(n));
+    assert.ok(rank(nMany) > rank(nFew),
+      "多項目のほうが大きい段階になる: " + app.getAdaptiveRowClass(nFew) + " / " + app.getAdaptiveRowClass(nMany));
+    /* 段階は4つ。項目を全部ONにした人は、さらに大きい段階になる */
+    const all = makeResident(app, 2, "203", "全 項目", { id:"ah-all" });
+    for(const sh of app.REC_SHIFTS){ for(const it of sh.items) all.rec[sh.k][it.k].on = true; }
+    assert.ok(rank(app.calculateResidentPrintHeight(all, date)) >= rank(nMany),
+      app.getAdaptiveRowClass(app.calculateResidentPrintHeight(all, date)));
+    /* 項目も文章も多い人は、いちばん大きい段階になる */
+    all.permShort = "移乗は必ず2人介助。左上肢はBP測定不可。食事はトロミ付きで誤嚥に注意する。";
+    app.dailyOf(date, all.id).short =
+      "午前中に38.2℃の発熱あり。医師指示でカロナール内服。水分は日中800ml摂取。昼食は3割。";
+    assert.equal(app.getAdaptiveRowClass(app.calculateResidentPrintHeight(all, date)), "h-xlarge");
+    app.DB = keep; app.saveDB();
+  });
+  check("日勤・夜勤は多い側で高さを決める", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const r = makeResident(app, 2, "203", "夜勤 多め", { id:"ah-night" });
+    for(const k of ["T","P","BP","SpO2","mealD","nightBS"]) r.rec.night[k].on = true;
+    r.rec.day.T.on = true;
+    const need = app.calculateResidentPrintHeight(r, "2026-08-14");
+    assert.ok(need.night > need.day, "夜勤のほうが多い: " + need.day + " / " + need.night);
+    assert.equal(need.shift, need.night, "多い側を採用する");
+    app.DB = keep; app.saveDB();
+  });
+  check("申し送り・大事なこと・予定の文字量も高さに反映する", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const plain = makeResident(app, 2, "204", "短 文", { id:"ah-plain" });
+    const wordy = makeResident(app, 2, "205", "長 文", { id:"ah-wordy",
+      permShort:"移乗は必ず2人介助。左上肢はBP測定不可。食事はトロミ付きで誤嚥に注意する。" });
+    plain.rec.day.T.on = true; wordy.rec.day.T.on = true;
+    const date = "2026-08-14";
+    app.dailyOf(date, wordy.id).short =
+      "午前中に38.2℃の発熱あり。医師指示でカロナール内服。水分は日中800ml摂取。昼食は3割。";
+    app.DB.schedules.push({ id:"one4", residentId:wordy.id, date:date, kind:"受診",
+      title:"整形外科 定期受診", place:"市立総合病院", dept:"整形外科",
+      start:"09:30", end:"12:00", family:"あり", note:"", demo:false });
+    const a = app.calculateResidentPrintHeight(plain, date);
+    const b = app.calculateResidentPrintHeight(wordy, date);
+    assert.ok(b.info > a.info, "長文のほうが情報欄の行数が多い: " + a.info + " / " + b.info);
+    assert.ok(b.lines > a.lines);
+    app.DB = keep; app.saveDB();
+  });
+  check("印刷の行に段階クラスが付く（CSSに4段階の定義がある）", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const r = makeResident(app, 2, "206", "行 太郎", { id:"ah-row" });
+    r.rec.day.T.on = true;
+    const rowHtml = app.rowHTML(r, "2026-08-14");
+    assert.ok(/<div class="prow h-(compact|normal|large|xlarge)" data-need="\d+"/.test(rowHtml), rowHtml.slice(0, 90));
+    for(const c of ["h-compact", "h-normal", "h-large", "h-xlarge"]){
+      assert.ok(new RegExp("\\.prow\\." + c + "\\s*\\{flex-grow:").test(html), c + " の取り分がCSSにある");
+      assert.ok(new RegExp("\\.prow\\." + c + "\\s*\\{max-height:").test(html), c + " の上限がCSSにある");
+    }
+    assert.equal(app.ADAPT_ROW_CLASSES.length, 4);
+    app.DB = keep; app.saveDB();
+  });
+  check("1ユニット＝1枚が基本。収まらないときだけ2枚に分ける", () => {
+    const keep = app.DB;
+    app.DB = app.defaultDB();
+    const list = [];
+    for(let i=0;i<10;i++) list.push(makeResident(app, 2, "21" + i, "分割 太郎" + i, { id:"sp-" + i }));
+    app.PRINT_SPLIT = {};
+    assert.equal(app.printPagesOf(2, list).length, 1, "ふだんは1枚");
+    app.PRINT_SPLIT = { 2: 2 };
+    const pages = app.printPagesOf(2, list);
+    assert.equal(pages.length, 2, "収まらないときだけ2枚");
+    assert.equal(pages[0].length + pages[1].length, list.length, "全員が必ずどちらかに入る");
+    app.PRINT_SPLIT = {};
+    app.DB = keep; app.saveDB();
+  });
+
   console.log("\n■ 14. 職場実運用版の表示とバージョン");
   check("固定記入例は説明用の静的内容だけで構成される", () => {
     for(const u of app.UNITS) assert.equal(app.FIXED_EXAMPLES[u].name, "記入例");
@@ -1178,9 +1366,9 @@ function run(){
     assert.equal(html.includes("動作確認用の公開ページ"), false);
     assert.equal(html.includes("showNonLocalNotice"), false);
   });
-  check("アプリ版番号は1か所の定義からVer1.0と表示する", () => {
-    assert.equal(app.APP_VERSION, "1.0");
-    assert.equal(elements.get("footVer").textContent, "　Ver1.0");
+  check("アプリ版番号は1か所の定義からVer1.1と表示する", () => {
+    assert.equal(app.APP_VERSION, "1.1");
+    assert.equal(elements.get("footVer").textContent, "　Ver1.1");
     assert.equal((html.match(/var APP_VERSION\s*=/g) || []).length, 1);
   });
   check("アプリ版番号と保存データ版数・保存キーを分離する", () => {

@@ -16,6 +16,8 @@
                        壊れた保存データ・不正バックアップ・外部通信0件
      ・08a/08b        … 静養室の入力画面から直接追加・上限・閉じて開き直した後の復元
      ・11_master_width.js … 入居者一覧の部屋番号・お名前の幅（全ユニット共通）
+     ・12_adaptive_print.js … 印刷の行の高さ（少項目はコンパクト／多項目は必要な高さ・満床まで）
+     ・13_past_sched_search.js … 過ぎた予定の自動非表示（データは残す）と検索履歴の消去
 
    実行：
      node tests/browser_check.js
@@ -153,7 +155,11 @@ function main(){
     { files:["10a_legacy_sample_write.js", "10b_legacy_sample_read.js"],
       title:"旧見本入居者の整理（旧見本だけを消し、実データは残す）" },
     { files:["11_master_width.js"],
-      title:"入居者一覧の幅（部屋番号は狭く・お名前は広く／全ユニット共通）" }
+      title:"入居者一覧の幅（部屋番号は狭く・お名前は広く／全ユニット共通）" },
+    { files:["12_adaptive_print.js"],
+      title:"印刷の行の高さ（項目が少ない人はコンパクト・多い人は必要な高さ）" },
+    { files:["13_past_sched_search.js"],
+      title:"過ぎた予定の自動非表示（データは残す）と検索履歴の消去" }
   ];
 
   /* 引数を渡すと、その名前を含む検証だけを実行する（例： node tests/browser_check.js 07） */
