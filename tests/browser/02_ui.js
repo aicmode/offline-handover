@@ -6,15 +6,28 @@
   window.confirm = function(){ return true; };
   window.alert   = function(m){ window.__ALERT = m; };
 
-  // --- 職場実運用版の表示 ---
-  ok("file:// 直接起動で公開ページ注意帯が存在しない",
-     location.protocol === "file:" && !document.getElementById("webnote"));
-  ok("公開ページ注意帯の文言が画面に存在しない",
-     document.querySelector("header.top").textContent.indexOf("動作確認用の公開ページ") < 0);
-  ok("フッターにVer1.1と表示される",
-     APP_VERSION === "1.1" && document.getElementById("footVer").textContent.trim() === "Ver1.1");
+  // --- 公開デモ版の表示 ---
+  ok("file:// 直接起動でも動く", location.protocol === "file:");
+  ok("大きな警告帯ではなく小さなデモ表示になっている",
+     !document.getElementById("webnote")
+     && document.querySelector("header.top .badge.demo").textContent === "デモ版");
+  ok("架空データであることをヘッダーで明示している",
+     document.querySelector("header.top").textContent.indexOf("すべて架空です") >= 0);
+  ok("実データ入力を止める注意がヘッダーにある",
+     document.querySelector("header.top").textContent.indexOf("実在する個人情報は入力しないでください") >= 0);
+  ok("フッターにもデモ表示と注意がある",
+     document.querySelector("p.foot").textContent.indexOf("すべて架空です") >= 0
+     && document.querySelector("p.foot").textContent.indexOf("実在する個人情報は入力しないでください") >= 0);
+  ok("フッターにVer2.0と表示される",
+     APP_VERSION === "2.0" && document.getElementById("footVer").textContent.trim() === "Ver2.0");
   ok("表示版番号と保存キー・データ版数は別管理",
-     KEY === "kaigo_handover_v2" && DATA_VERSION === 8);
+     KEY === "handover_portfolio_demo_v2" && DATA_VERSION === 9);
+  /* 画面本体と使い方の全文に、旧構成の語が1件も無いこと
+     （<script> の中身は textContent に含まれるため、本文の要素だけを見る） */
+  ok("画面と使い方に旧構成（静養室・ユニット）の文字が出ない", (function(){
+    var t = document.querySelector(".app").textContent + document.getElementById("guideBody").textContent;
+    return t.indexOf("\u9759\u990a") < 0 && t.indexOf("\u30e6\u30cb\u30c3\u30c8") < 0;
+  })());
 
   // --- 入居者をUIから追加 ---
   UI.unit = 2; switchTab("master");
@@ -24,7 +37,7 @@
   var row = document.querySelector('#masterBody tr:last-child');
   var newId = row.getAttribute("data-id");
   var roomInput = row.querySelector('[data-f="room"]');
-  roomInput.value = "205"; fire(roomInput, "input");
+  roomInput.value = "B120"; fire(roomInput, "input");
   var nameInput = row.querySelector('[data-f="name"]');
   nameInput.value = "テスト 花子"; fire(nameInput, "input");
   saveDB();
@@ -159,9 +172,11 @@
   ok("印刷枚数の案内が出る",
      document.getElementById("printPlan").textContent.indexOf("枚です") >= 0,
      document.getElementById("printPlan").textContent.slice(0,60));
-  ok("印刷は4枚（静養室0人）", document.querySelectorAll("#printArea .sheet").length === 1
-     || document.querySelectorAll("#printArea .sheet").length === 4,
+  ok("印刷は A〜D の基本4枚", document.querySelectorAll("#printArea .sheet").length === 4,
      document.querySelectorAll("#printArea .sheet").length);
+  ok("印刷案内に基本4枚と書かれる",
+     document.getElementById("printPlan").textContent.indexOf("基本4枚") >= 0,
+     document.getElementById("printPlan").textContent.slice(0, 120));
 
   // --- 検索 ---
   switchTab("history");

@@ -10,6 +10,7 @@
 *.json
 moushiokuri_backup_*
 handover_backup_*
+handover_demo_backup_*
 *.backup
 *.bak
 *.csv

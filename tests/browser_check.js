@@ -11,10 +11,11 @@
      ・03_print.js     … 満床に近い人数での印刷レイアウト（1ユニット＝1枚）
      ・04a/04b        … アプリ更新（旧版データの入ったPCで新しい本体を開く）
      ・05a/05b        … 再読込（閉じて開き直しても入力が残る）
-     ・06_unit_move.js … 静養室への移動と、印刷構成の切り替え
+     ・06_block_move.js … A〜Dブロック間の移動と上限確認
      ・07_security.js  … タグ入力が実行されないこと・入力欄の保護属性・
                        壊れた保存データ・不正バックアップ・外部通信0件
-     ・08a/08b        … 静養室の入力画面から直接追加・上限・閉じて開き直した後の復元
+     ・08a/08b        … ブロックの入力画面から直接追加・上限・閉じて開き直した後の復元
+     ・10a/10b        … 初回デモseedの61名・再読込・初期状態への復帰
      ・11_master_width.js … 入居者一覧の部屋番号・お名前の幅（全ユニット共通）
      ・12_adaptive_print.js … 印刷の行の高さ（少項目はコンパクト／多項目は必要な高さ・満床まで）
      ・13_past_sched_search.js … 過ぎた予定の自動非表示（データは残す）と検索履歴の消去
@@ -146,16 +147,16 @@ function main(){
       title:"アプリ更新（旧版データの入ったPCで新しい index.html を開く）" },
     { files:["05a_reload_write.js", "05b_reload_read.js"],
       title:"再読込（ブラウザを閉じて開き直しても入力が残る）" },
-    { files:["06_unit_move.js"], title:"静養室への移動（印刷構成が4枚⇄5枚で切り替わる）" },
+    { files:["06_block_move.js"], title:"ブロック移動（A〜Dの移動・上限20名）" },
     { files:["07_security.js"],  title:"セキュリティ（タグ入力・入力欄の保護・不正データ・外部通信0件）" },
-    { files:["08a_rest_input_write.js", "08b_rest_input_read.js"],
-      title:"静養室の入力画面から直接追加（上限・自動保存・再起動後の復元）" },
+    { files:["08a_block_input_write.js", "08b_block_input_read.js"],
+      title:"ブロックの入力画面から直接追加（上限・自動保存・再起動後の復元）" },
     { files:["09_fixed_example.js"],
       title:"固定記入例（人数・上限・保存・印刷・検索・並び替え・操作不可）" },
-    { files:["10a_legacy_sample_write.js", "10b_legacy_sample_read.js"],
-      title:"旧見本入居者の整理（旧見本だけを消し、実データは残す）" },
+    { files:["10a_demo_seed_write.js", "10b_demo_seed_read.js"],
+      title:"初回デモseed（61名・再読込で重複なし・初期状態への復帰）" },
     { files:["11_master_width.js"],
-      title:"入居者一覧の幅（部屋番号は狭く・お名前は広く／全ユニット共通）" },
+      title:"入居者一覧の幅（部屋番号は狭く・お名前は広く／A〜D共通）" },
     { files:["12_adaptive_print.js"],
       title:"印刷の行の高さ（項目が少ない人はコンパクト・多い人は必要な高さ）" },
     { files:["13_past_sched_search.js"],

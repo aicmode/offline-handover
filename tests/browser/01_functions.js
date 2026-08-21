@@ -8,19 +8,43 @@
   function eq(name, got, want){ ok(name, got === want, "got=" + JSON.stringify(got) + " want=" + JSON.stringify(want)); }
 
   // ---- 1. 起動時の状態 -------------------------------------------------
-  eq("保存キーが kaigo_handover_v2", KEY, "kaigo_handover_v2");
-  eq("データ版数", DB.v, 8);
+  eq("保存キーが公開デモ専用", KEY, "handover_portfolio_demo_v2");
+  eq("データ版数", DB.v, DATA_VERSION);
   ok("localStorage へ保存できている", !!localStorage.getItem(KEY));
-  eq("ユニット構成", UNITS.join(","), "1,2,3,4,5");
-  eq("静養室の上限", uMax(1), 4);
-  eq("ユニット2の上限", uMax(2), 34);
-  eq("ユニット3の上限", uMax(3), 30);
-  eq("ユニット4の上限", uMax(4), 30);
-  eq("ユニット5の上限", uMax(5), 30);
-  eq("静養室ラベル", uLb(1), "静養室");
+  eq("ブロック構成", UNITS.join(","), "1,2,3,4");
+  eq("Aブロックの上限", uMax(1), 20);
+  eq("Bブロックの上限", uMax(2), 20);
+  eq("Cブロックの上限", uMax(3), 20);
+  eq("Dブロックの上限", uMax(4), 20);
+  eq("Aブロックのラベル", uLb(1), "Aブロック");
+  eq("Dブロックのラベル", uLb(4), "Dブロック");
+
+  // ---- 1b. 初回表示のデモデータ（file:// で開いた実ブラウザ） -----------
+  eq("初回表示で合計61名の架空データ", DB.residents.length, 61);
+  eq("Aブロック15名", realResidentsOf(1).length, 15);
+  eq("Bブロック12名", realResidentsOf(2).length, 12);
+  eq("Cブロック18名", realResidentsOf(3).length, 18);
+  eq("Dブロック16名", realResidentsOf(4).length, 16);
+  eq("同姓同名がない", new Set(DB.residents.map(function(r){ return r.name; })).size, 61);
+  eq("部屋番号も重複しない", new Set(DB.residents.map(function(r){ return r.room; })).size, 61);
+  ok("部屋番号は A101 形式の架空番号",
+     DB.residents.every(function(r){ return /^[ABCD]1\d\d$/.test(r.room); }), DB.residents[0].room);
+  eq("デモ生成の版が記録される", DB.demoSeed, DEMO_SEED_VERSION);
+  eq("人数表示は A 15／20", (function(){
+    renderUnitBar();
+    return document.querySelector('#unitBar button[data-unit="1"] .cnt').textContent;
+  })(), "15／20");
+  eq("人数表示は C 18／20",
+     document.querySelector('#unitBar button[data-unit="3"] .cnt').textContent, "18／20");
+  renderPrint();
+  eq("デモ初期状態の印刷は基本4枚", document.querySelectorAll("#printArea .sheet").length, 4);
+  eq("デモの単発予定がある", DB.schedules.length > 0, true);
+  eq("デモの定期予定がある", DB.recurring.length > 0, true);
+  /* これ以降は「まっさらな状態」で個別の機能を確かめる */
+  DB = defaultDB(); migrate(); saveDB(); UI.unit = 1; renderAll();
 
   // ---- 2. 保存されない固定記入例 ---------------------------------------
-  eq("旧見本はDBに作られない", DB.residents.filter(isSample).length, 0);
+  eq("見本印のある入居者はDBに作られない", DB.residents.filter(isSample).length, 0);
   var beforeExampleDb = JSON.stringify(DB);
   var fixedOk = true;
   UNITS.forEach(function(u){
@@ -29,7 +53,7 @@
     if(out.indexOf("記入例") < 0 || out.indexOf(FIXED_EXAMPLES[u].today) < 0) fixedOk = false;
     if(registeredCountOf(u) !== 0 || printableOf(u).length !== 0) fixedOk = false;
   });
-  ok("静養室・ユニット2〜5に場所別の固定記入例", fixedOk);
+  ok("A〜Dブロックに場所別の固定記入例", fixedOk);
   eq("固定例の描画でDBを変更しない", JSON.stringify(DB), beforeExampleDb);
   eq("固定例はlocalStorageへ保存されない",
      UNITS.filter(function(u){ return localStorage.getItem(KEY).indexOf(FIXED_EXAMPLES[u].today) >= 0; }).length, 0);
@@ -37,12 +61,13 @@
      document.querySelectorAll("#fixedExampleHost input,#fixedExampleHost textarea,#fixedExampleHost button").length, 0);
   var hidx = buildHistoryIndex();
   eq("固定例は検索結果に混ざらない",
-     hidx.filter(function(x){ return String(x.content).indexOf("排便なし3日目") >= 0; }).length, 0);
-  UI.unit = 2; renderInput();
+     UNITS.filter(function(u){
+       return hidx.some(function(x){ return String(x.content).indexOf(FIXED_EXAMPLES[u].today) >= 0; });
+     }).length, 0);
+  UI.unit = 1; renderInput();
 
-  // ---- 3. 印刷枚数（静養室の有無で自動変更） ---------------------------
+  // ---- 3. 印刷枚数（A・B・C・D の基本4枚） -----------------------------
   DB.settings.allUnits = true;
-  eq("静養室0人 → 4枚", unitsForPrint().join(","), "2,3,4,5");
   // 実データを 1 人ずつ入れる
   function addResident(unit, room, name){
     var r = { id:"t-"+unit+"-"+room, unit:unit, room:room, name:name, order:10,
@@ -50,37 +75,30 @@
       autoCarry:true, demo:false, rec:defaultRec() };
     DB.residents.push(r); return r;
   }
-  addResident(2,"201","テスト 二郎");
-  addResident(3,"301","テスト 三郎");
-  addResident(4,"401","テスト 四郎");
-  addResident(5,"501","テスト 五郎");
+  addResident(1,"A101","テスト 一郎");
+  addResident(2,"B101","テスト 二郎");
+  addResident(3,"C101","テスト 三郎");
+  var d1 = addResident(4,"D101","テスト 四郎");
   renderPrint();
-  eq("静養室0人のとき印刷は4枚", document.querySelectorAll("#printArea .sheet").length, 4);
-  ok("静養室の用紙が無い", !document.querySelector('#printArea .sheet[data-unit="1"]'));
-
-  var rest = addResident(1,"S1","テスト 静子");
-  renderPrint();
-  eq("静養室1人以上で印刷は5枚", document.querySelectorAll("#printArea .sheet").length, 5);
-  eq("静養室が先頭",
-     document.querySelector("#printArea .sheet").getAttribute("data-unit"), "1");
-  eq("印刷順",
+  eq("A〜Dで印刷は4枚", document.querySelectorAll("#printArea .sheet").length, 4);
+  eq("印刷順は A→B→C→D",
      Array.prototype.map.call(document.querySelectorAll("#printArea .sheet"),
-       function(s){ return s.getAttribute("data-unit"); }).join(","), "1,2,3,4,5");
-  ok("静養室の用紙は見た目を区別している",
-     document.querySelector('#printArea .sheet[data-unit="1"]').classList.contains("rest-sheet"));
+       function(s2){ return s2.getAttribute("data-unit"); }).join(","), "1,2,3,4");
+  ok("静養室のような特別枠の用紙クラスが無い",
+     !document.querySelector("#printArea .rest-sheet"));
 
-  // 静養室の人を空床に→再び0人扱いで4枚
-  rest.status = "empty";
+  // 0人のブロックは用紙を作らない（並び自体は A→B→C→D のまま）
+  d1.status = "empty";
   renderPrint();
-  eq("静養室が空床のみ → 4枚に戻る", document.querySelectorAll("#printArea .sheet").length, 4);
-  rest.status = "out";
+  eq("Dが空床だけなら3枚", document.querySelectorAll("#printArea .sheet").length, 3);
+  d1.status = "out";
   renderPrint();
-  eq("静養室が退居のみ → 4枚のまま", document.querySelectorAll("#printArea .sheet").length, 4);
-  rest.status = "in";
+  eq("Dが退居だけでも3枚", document.querySelectorAll("#printArea .sheet").length, 3);
+  d1.status = "in";
   renderPrint();
-  eq("静養室に戻すと5枚", document.querySelectorAll("#printArea .sheet").length, 5);
+  eq("Dに戻すと4枚", document.querySelectorAll("#printArea .sheet").length, 4);
 
-  // 各ユニットのページが混ざらないこと
+  // 各ブロックのページが混ざらないこと
   var mixed = false;
   Array.prototype.forEach.call(document.querySelectorAll("#printArea .sheet"), function(sh){
     var u = parseInt(sh.getAttribute("data-unit"), 10);
@@ -88,13 +106,16 @@
     var expect = printableOf(u).map(function(r){ return r.room + r.name; });
     if(names.length !== expect.length) mixed = true;
   });
-  ok("ユニットごとの人数が用紙と一致（混在なし）", !mixed);
+  ok("ブロックごとの人数が用紙と一致（混在なし）", !mixed);
 
-  // 上限
-  eq("静養室の上限は4人（5人目は追加できない）", (function(){
-    for(var i=0;i<3;i++) addResident(1,"S"+(i+2),"テスト静"+i);
-    return registeredCountOf(1);
-  })(), 4);
+  // 上限20名（満床）
+  eq("Aブロックの上限は20名（21人目は数に入らない）", (function(){
+    for(var i=0;i<25;i++) addResident(1,"A2"+(i+10),"満床テスト"+i);
+    return printableOf(1).length;
+  })(), 20);
+  DB.residents = DB.residents.filter(function(r){ return String(r.id).indexOf("t-1-A2") !== 0; });
+  renderPrint();
+  eq("満床の整理後も4枚", document.querySelectorAll("#printArea .sheet").length, 4);
 
   // ---- 4. 定期予定（日勤／夜勤・前日計算） -----------------------------
   DB.recurring = DB.recurring.filter(function(r){ return !r.demo; });
@@ -172,7 +193,7 @@
 
   // ---- 5. 自動保存・データ保持 ----------------------------------------
   UI.date = "2026-08-14";
-  var tid = "t-2-201";
+  var tid = "t-2-B101";
   dailyOf(UI.date, tid).short = "発熱38.5℃。";
   saveDB();
   var reread = JSON.parse(localStorage.getItem(KEY));
@@ -244,7 +265,7 @@
   ok("過去日を閲覧中の日付またぎは表示日を維持する", !checkLocalDateChange("2026-08-16") && UI.date === "2026-08-10");
 
   // 現在の入居者と、日付・関連語を全ユニットから探す
-  var currentPerson = addResident(4,"405","山田 花子");
+  var currentPerson = addResident(4,"D105","検索 花子");
   dailyOf("2025-08-14", currentPerson.id).short = "外部受診あり。";
   dailyOf("2026-08-14", currentPerson.id).short = "微熱あり。体温37.5℃。血糖値を確認。";
   dailyOf("2026-07-14", currentPerson.id).short = "病院受診の記録。";
@@ -261,22 +282,22 @@
     return document.getElementById("historyResults")._historyRows || [];
   }
   var people = searchRows("テスト","").filter(function(x){return x.current;});
-  eq("全ユニット検索は静養室・ユニット2〜5を横断する",
-     Array.from(new Set(people.map(function(x){return x.unit;}))).sort().join(","), "1,2,3,4,5");
-  for(var searchUnit=1;searchUnit<=5;searchUnit++){
+  eq("全ブロック検索は A〜D を横断する",
+     Array.from(new Set(people.map(function(x){return x.unit;}))).sort().join(","), "1,2,3,4");
+  for(var searchUnit=1;searchUnit<=4;searchUnit++){
     var unitRows=searchRows("テスト",searchUnit);
     ok(uLb(searchUnit)+"だけへ絞り込める", unitRows.length>0 && unitRows.every(function(x){return x.unit===searchUnit;}));
   }
-  var personRows=searchRows("山田","");
+  var personRows=searchRows("花子","");
   var currentRow=personRows.filter(function(x){return x.current && x.residentId===currentPerson.id;})[0];
   ok("名前の部分一致で現在の所属と部屋番号が表示される", !!currentRow
-     && document.getElementById("historyResults").textContent.indexOf("ユニット4")>=0
-     && document.getElementById("historyResults").textContent.indexOf("405号室")>=0);
+     && document.getElementById("historyResults").textContent.indexOf("Dブロック")>=0
+     && document.getElementById("historyResults").textContent.indexOf("D105号室")>=0);
   ok("現在地結果に『この人を見る』がある", document.getElementById("historyResults").textContent.indexOf("この人を見る")>=0);
   openHistorySource(currentRow);
-  ok("現在地結果から該当ユニットへ移動できる", UI.tab==="input" && UI.unit===4 && UI.date===todayYmd());
+  ok("現在地結果から該当ブロックへ移動できる", UI.tab==="input" && UI.unit===4 && UI.date===todayYmd());
   eq("部屋番号でも現在の入居者を探せる",
-     searchRows("405","").filter(function(x){return x.current && x.residentId===currentPerson.id;}).length, 1);
+     searchRows("D105","").filter(function(x){return x.current && x.residentId===currentPerson.id;}).length, 1);
   eq("年だけで検索できる", searchRows("2025","").filter(function(x){return x.residentId===currentPerson.id;}).length, 1);
   eq("月だけで検索できる", searchRows("08月","").filter(function(x){return x.residentId===currentPerson.id;}).length, 2);
   eq("年月を複数表記で検索できる",
@@ -329,7 +350,7 @@
   eq("旧BS設定が通常BSへ引き継がれる", DB.residents[0].rec.day.normalBS.on, true);
   eq("recurring が用意される", Array.isArray(DB.recurring), true);
   eq("vitals が用意される", typeof DB.vitals, "object");
-  eq("版数が上がる", DB.v, 8);
+  eq("版数が上がる", DB.v, DATA_VERSION);
   // 2回 migrate しても壊れない
   var afterOnce = JSON.stringify(DB);
   migrate();

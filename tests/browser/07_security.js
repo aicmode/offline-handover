@@ -134,7 +134,7 @@
   var savedR = reread.residents.filter(function(r){ return r.id === vid; })[0];
   ok("特殊文字 < > & \" ' が保存内容の中でそのまま残る",
      reread.daily[UI.date][vid].raw === SPECIAL, reread.daily[UI.date][vid].raw);
-  ok("保存キーは kaigo_handover_v2 のまま", KEY === "kaigo_handover_v2" && !!savedR);
+  ok("保存キーは公開デモ専用", KEY === "handover_portfolio_demo_v2" && !!savedR);
 
   /* ---------- 6. 不正なバックアップの拒否 ---------- */
   var snapshot = JSON.stringify(DB);

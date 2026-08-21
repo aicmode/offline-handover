@@ -4,17 +4,17 @@
   window.confirm = function(){ return true; };
   window.alert   = function(){};
 
-  /* 静養室・ユニット2〜5の一覧で、部屋番号は狭く・お名前は広いことを実測する。
-     「部屋番号 201／静養1」に対して氏名は長くなりやすいので、
+  /* A〜Dブロックの一覧で、部屋番号は狭く・お名前は広いことを実測する。
+     「部屋番号 A101」に対して氏名は長くなりやすいので、
      名前欄は入力中に氏名全体が見える幅を確保する。 */
   var NAME = "長谷川 佐和子";              // 実際に出やすい長さの氏名
   var made = [];
   for(var i=0;i<UNIT_DEFS.length;i++){
     var u = UNIT_DEFS[i].id;
-    var r = addResident(u, { room: u === 1 ? "静養1" : (u + "01"), name: NAME });
+    var r = addResident(u, { room: String.fromCharCode(64 + u) + "120", name: NAME });
     if(r) made.push(r);
   }
-  ok("全ユニット（静養室含む）に1名ずつ用意できた", made.length === UNIT_DEFS.length, made.length);
+  ok("A〜Dに1名ずつ用意できた", made.length === UNIT_DEFS.length, made.length);
 
   var widths = [];
   for(var k=0;k<UNIT_DEFS.length;k++){
@@ -30,19 +30,19 @@
     widths.push({ unit:unit, room:rw, name:nw });
     ok(uLb(unit) + "：お名前の欄が部屋番号より広い", nw > rw, "room=" + Math.round(rw) + " name=" + Math.round(nw));
     ok(uLb(unit) + "：部屋番号は必要以上に広くない（105px未満）", rw < 105, Math.round(rw));
-    ok(uLb(unit) + "：部屋番号でも「静養1」を入力できる幅は残っている", rw >= 50, Math.round(rw));
+    ok(uLb(unit) + "：「A101」形式を入力できる幅は残っている", rw >= 50, Math.round(rw));
     ok(uLb(unit) + "：氏名全体が見える幅がある（実測 ≧ 文字幅）",
        nw >= textWidth(NAME, name), Math.round(nw) + " / " + Math.round(textWidth(NAME, name)));
     ok(uLb(unit) + "：名前欄でスクロールせずに全体が見える",
        name.scrollWidth <= name.clientWidth + 1, name.scrollWidth + " / " + name.clientWidth);
   }
-  /* 静養室もユニット2〜5もまったく同じ幅であること（同じ表・同じCSSを使う） */
+  /* A〜Dのすべてがまったく同じ幅であること（同じ表・同じCSSを使う） */
   var same = true;
   for(var w=1;w<widths.length;w++){
     if(Math.abs(widths[w].room - widths[0].room) > 1) same = false;
     if(Math.abs(widths[w].name - widths[0].name) > 1) same = false;
   }
-  ok("静養室・ユニット2〜5で名前・部屋番号の幅が同じ", same,
+  ok("A〜Dで名前・部屋番号の幅が同じ", same,
      widths.map(function(x){ return x.unit + ":" + Math.round(x.room) + "/" + Math.round(x.name); }).join(" "));
 
   /* 入力画面の追加フォームも同じ考え方（部屋番号は狭く・お名前は広く） */

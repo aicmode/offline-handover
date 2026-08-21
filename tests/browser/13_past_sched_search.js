@@ -14,10 +14,10 @@
   DB.settings.showAllUnitSched = false;
   UI.unit = 2;
 
-  var r = addResident(2, { room:"201", name:"予定 花子" });
-  var r2 = addResident(2, { room:"202", name:"記録 次郎" });
+  var r = addResident(2, { room:"B101", name:"予定 花子" });
+  var r2 = addResident(2, { room:"B102", name:"記録 次郎" });
   DB.schedules.push({ id:"one1", residentId:r.id, date:D22, kind:"受診",
-    title:"整形外科 定期受診", place:"市立総合病院", dept:"整形外科",
+    title:"外部受診（定期）", place:"外部医療機関", dept:"",
     start:"09:30", end:"12:00", family:"あり", note:"送迎は長男", demo:false });
   /* 定期予定（日勤＝当日／夜勤＝前日の用紙）も一緒に置いて、壊れないことを確かめる */
   DB.recurring.push({ id:"rep1", unit:2, residentId:r.id, shift:"day",
@@ -40,7 +40,7 @@
     return false;
   }
   function inStorage(id){
-    var raw = localStorage.getItem("kaigo_handover_v2") || "";
+    var raw = localStorage.getItem(KEY) || "";
     return raw.indexOf(id) >= 0;
   }
 
@@ -48,12 +48,12 @@
      1. 過ぎた「1回だけの予定」は、表示中の日付を基準に自動で隠れる
      ============================================================ */
   setDate(D22);
-  ok("8/22を表示中：その日の予定が一覧に出る", schedListText().indexOf("整形外科 定期受診") >= 0);
+  ok("8/22を表示中：その日の予定が一覧に出る", schedListText().indexOf("外部受診（定期）") >= 0);
   ok("入居者カードにも8/22の予定が出る",
-     (switchTab("input"), document.getElementById("inputList").textContent.indexOf("整形外科") >= 0));
+     (switchTab("input"), document.getElementById("inputList").textContent.indexOf("外部受診") >= 0));
 
   setDate(D23);
-  ok("8/23を表示中：8/22の予定は通常一覧に出ない", schedListText().indexOf("整形外科 定期受診") < 0);
+  ok("8/23を表示中：8/22の予定は通常一覧に出ない", schedListText().indexOf("外部受診（定期）") < 0);
   ok("隠れているだけで、予定データは残っている", inDb("one1"));
   ok("保存データ（localStorage）にも残っている", inStorage("one1"));
   ok("隠れている件数と「消えていない」ことを画面で知らせる",
@@ -61,7 +61,7 @@
      document.getElementById("schedPastSummary").textContent);
 
   setDate(D22);
-  ok("8/22へ戻すと、また表示される", schedListText().indexOf("整形外科 定期受診") >= 0);
+  ok("8/22へ戻すと、また表示される", schedListText().indexOf("外部受診（定期）") >= 0);
 
   /* 「過ぎた予定も表示する」ON → 過去日も確認できる */
   setDate(D23);
@@ -69,11 +69,11 @@
   cb.checked = true;
   cb.dispatchEvent(new Event("change", { bubbles:true }));
   ok("「過ぎた予定も表示する」ONで、8/23でも過去予定が見える",
-     schedListText().indexOf("整形外科 定期受診") >= 0);
+     schedListText().indexOf("外部受診（定期）") >= 0);
   ok("設定はそのまま保存される", DB.settings.showPastSched === true);
   cb.checked = false;
   cb.dispatchEvent(new Event("change", { bubbles:true }));
-  ok("OFFに戻すと、また通常一覧から隠れる", schedListText().indexOf("整形外科 定期受診") < 0);
+  ok("OFFに戻すと、また通常一覧から隠れる", schedListText().indexOf("外部受診（定期）") < 0);
 
   /* PC本体の日付では消さない・削除処理とは分離している */
   ok("表示を切り替えても予定の件数は変わらない（削除していない）", DB.schedules.length === 1, DB.schedules.length);
@@ -108,15 +108,15 @@
   DB = backup; migrate(); saveDB(); initUIFromDB(); renderAll();
   ok("復元後も過去予定が残っている", inDb("one1") && inStorage("one1"));
   setDate(D22);
-  ok("復元後、8/22へ戻せばまた表示される", schedListText().indexOf("整形外科 定期受診") >= 0);
+  ok("復元後、8/22へ戻せばまた表示される", schedListText().indexOf("外部受診（定期）") >= 0);
   setDate(D23);
-  ok("復元後も、8/23では通常一覧から隠れる", schedListText().indexOf("整形外科 定期受診") < 0);
+  ok("復元後も、8/23では通常一覧から隠れる", schedListText().indexOf("外部受診（定期）") < 0);
 
   /* ============================================================
      4. 検索履歴の消去（検索操作の状態だけを消す）
      ============================================================ */
   localStorage.setItem("__sentinel_other_key__", "keep-me");
-  var beforeSaved = localStorage.getItem("kaigo_handover_v2");
+  var beforeSaved = localStorage.getItem(KEY);
   var residentsBefore = DB.residents.length;
   var schedBefore = DB.schedules.length;
 
@@ -151,7 +151,7 @@
   ok("確認ダイアログが出る", confirmed.length === 1 && confirmed[0].indexOf("削除されません") >= 0, confirmed[0]);
   ok("完了の知らせが出る", toastEl.textContent.indexOf("検索履歴を消去しました") >= 0, toastEl.textContent);
   ok("入力した言葉が消える", kw.value === "");
-  ok("しぼり込み条件（ユニット・期間・種類・並び順）が消える",
+  ok("しぼり込み条件（ブロック・期間・種類・並び順）が消える",
      document.getElementById("historyUnit").value === "" &&
      document.getElementById("historyFrom").value === "" &&
      document.getElementById("historyTo").value === "" &&
@@ -164,7 +164,7 @@
   /* 実データが消えていないこと */
   ok("入居者は消えていない", DB.residents.length === residentsBefore, DB.residents.length);
   ok("お名前・部屋番号・所属が残っている",
-     residentById(r2.id).name === "記録 次郎" && residentById(r2.id).room === "202" && residentById(r2.id).unit === 2);
+     residentById(r2.id).name === "記録 次郎" && residentById(r2.id).room === "B102" && residentById(r2.id).unit === 2);
   ok("毎日つづく大事なことが残っている", residentById(r2.id).permShort === "移乗は2人介助");
   ok("申し送りが残っている", dailyGet(D21, r2.id).short === "夜間に発熱。カロナール内服。");
   ok("バイタル・記録が残っている", vitalsGet(D22, r2.id)["day.T"] === "37.8");
@@ -172,7 +172,7 @@
   ok("定期予定が残っている", DB.recurring.length === 2);
   ok("記録項目の設定・メモリーが残っている", !!recOf(residentById(r2.id)));
   ok("保存データそのものが書きかわっていない",
-     localStorage.getItem("kaigo_handover_v2") === beforeSaved);
+     localStorage.getItem(KEY) === beforeSaved);
   ok("localStorage.clear() は使われていない（別のキーも残る）",
      localStorage.getItem("__sentinel_other_key__") === "keep-me");
   localStorage.removeItem("__sentinel_other_key__");

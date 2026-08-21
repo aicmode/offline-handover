@@ -5,9 +5,9 @@
   var pass=0, fail=0, lines=[];
   function ok(n,c,e){ if(c){pass++;lines.push("PASS  "+n);} else {fail++;lines.push("FAIL  "+n+(e!==undefined?"  → "+e:""));} }
   ok("旧版の入居者3名がそのまま読める", DB.residents.length === 3, DB.residents.length);
-  ok("更新後も保存型の旧見本は追加されない", DB.residents.filter(isSample).length === 0);
+  ok("更新後も見本印のデータは追加されない", DB.residents.filter(isSample).length === 0);
   var l1 = residentById("L1");
-  ok("氏名・部屋番号が保持される", !!l1 && l1.name === "旧版 一郎" && l1.room === "210");
+  ok("氏名・部屋番号が保持される", !!l1 && l1.name === "旧構成 一郎" && l1.room === "210");
   ok("常設メモが保持される", !!l1 && l1.permShort === "歩行見守り", l1 && l1.permShort);
   ok("印刷欄が空の常設メモは旧の下書きから引き継ぐ",
      residentById("L2").permShort === "食事はきざみ食です。", residentById("L2").permShort);
@@ -17,16 +17,20 @@
   ok("印刷欄が空の日は旧の下書きから引き継ぐ", dailyGet("2026-06-01","L2").short === "昼食10割",
      dailyGet("2026-06-01","L2").short);
   ok("過去2日分とも残っている", Object.keys(DB.daily).length === 2, Object.keys(DB.daily).length);
-  ok("旧の予定が残っている", DB.schedules.length === 1 && DB.schedules[0].place === "旧版クリニック");
+  ok("旧の予定が残っている", DB.schedules.length === 1 && DB.schedules[0].place === "外部医療機関");
   ok("新機能の入れ物（定期予定・記録）が用意される",
      Array.isArray(DB.recurring) && typeof DB.vitals === "object");
-  ok("データ版数が上がる", DB.v === 8, DB.v);
-  ok("ユニットの所属が変わらない", residentById("L1").unit === 2 && residentById("L2").unit === 5);
-  ok("静養室0人なので印刷は4枚", unitsForPrint().join(",") === "2,3,4,5", unitsForPrint().join(","));
+  ok("データ版数が上がる", DB.v === DATA_VERSION, DB.v);
+  ok("いまのブロック構成にある所属はそのまま残る", residentById("L1").unit === 2);
+  ok("いまの構成に無い旧ブロック（5）はAブロックへ安全に退避する",
+     residentById("L2").unit === DEFAULT_UNIT && DEFAULT_UNIT === 1, residentById("L2").unit);
+  ok("印刷は A→B→C→D の4枚構成", unitsForPrint().join(",") === "1,2,3,4", unitsForPrint().join(","));
+  ok("読み込んだデータへデモ生成が割り込まない",
+     DB.residents.length === 3 && DB.demoSeed === 0, DB.residents.length + "/" + DB.demoSeed);
   saveDB();
   ok("保存し直しても入居者が減らない",
      JSON.parse(localStorage.getItem(KEY)).residents.length === 3);
-  ok("保存キーは変わっていない", KEY === "kaigo_handover_v2");
+  ok("保存キーは公開デモ専用のまま", KEY === "handover_portfolio_demo_v2");
   var errs = window.__ERR || [];
   lines.push(""); lines.push("console/実行時エラー: " + errs.length);
   errs.forEach(function(e){ lines.push("  "+e); });
